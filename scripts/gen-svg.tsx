@@ -21,7 +21,14 @@ if (process.env['FORCE_COLOR'] !== '3') {
   console.error('run with FORCE_COLOR=3, e.g. FORCE_COLOR=3 npx tsx scripts/gen-svg.tsx out.svg');
   process.exit(1);
 }
-process.stdout.columns = Number(process.env['COLS'] ?? 100);
+/*
+ * ink-testing-library's stdout stub is hard-wired to 100 columns, so Ink lays
+ * the frame out at 100 however wide this says. Asking for more produced a
+ * screenshot whose fourth card was clipped and ragged — which is what shipped
+ * in the README. Cap it, and say why.
+ */
+const RENDERER_COLUMNS = 100;
+process.stdout.columns = Math.min(Number(process.env['COLS'] ?? 100), RENDERER_COLUMNS);
 process.stdout.rows = Number(process.env['ROWS'] ?? 30);
 
 const ESC = String.fromCharCode(27);

@@ -64,8 +64,10 @@ Options
   -h, --help
 
 Keys
+  left/right   switch screen (overview, cpu, memory, battery, disk)
+  1-5          jump straight to a screen
   up/dn move   +/- show more or fewer rows   enter details   k kill
-  / filter   c m e sort   1-5 view   q quit
+  / filter   c m e sort   q quit
 
 Notes
   Energy is estimated from CPU time by default; macOS's own Energy Impact

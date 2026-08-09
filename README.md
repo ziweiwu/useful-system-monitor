@@ -38,21 +38,25 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 
 | Key | What it does |
 |---|---|
+| <kbd>←</kbd> <kbd>→</kbd> | move between the five screens |
+| <kbd>1</kbd>–<kbd>5</kbd> | jump straight to one |
 | <kbd>↑</kbd> <kbd>↓</kbd> | pick an app — the list scrolls to follow you |
 | <kbd>+</kbd> <kbd>-</kbd> | show more apps, or fewer (50 → 150 → 300 → all) |
 | <kbd>enter</kbd> | see more about it |
 | <kbd>k</kbd> | close it |
 | <kbd>/</kbd> | search |
 | <kbd>c</kbd> <kbd>m</kbd> <kbd>e</kbd> | sort by CPU, memory, or battery use |
-| <kbd>1</kbd>–<kbd>5</kbd> | switch between the five screens |
 | <kbd>q</kbd> | quit |
+
+The strip along the top shows which screen you are on and what the other four
+are, so nothing is hidden behind a key you have to know about.
 
 ## Finding what's draining your battery
 
 ![Battery screen: charge, how fast it is draining, and which apps are responsible](docs/battery.png)
 
-Press <kbd>4</kbd> to see how much power is left, how fast it's going, and which
-apps are responsible — with an estimate of how much time you'd get back by
+Press <kbd>4</kbd> (or walk there with <kbd>→</kbd>) to see how much power is
+left, how fast it's going, and which apps are responsible — with an estimate of how much time you'd get back by
 closing one.
 
 ## Seeing where your disk went

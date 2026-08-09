@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { age, clockTime, duration } from './core/format.js';
 import { sortProcesses, type SortKey } from './core/scoring.js';
 import type { ProcessSample } from './core/types.js';
+import { stepView, VIEW_KEYS, type View } from './core/views.js';
 import { truncate } from './core/width.js';
 import { stepCostNote, stepLabel, WORKING_SET_STEPS } from './core/workingSet.js';
 import { useProcessHistory } from './hooks/useProcessHistory.js';
@@ -19,16 +20,7 @@ import { Overview } from './ui/Overview.js';
 import { ProcessDetail } from './ui/ProcessDetail.js';
 import { ProcessTable } from './ui/ProcessTable.js';
 import { theme } from './ui/theme.js';
-
-type View = 'overview' | 'cpu' | 'memory' | 'battery' | 'disk';
-
-const VIEW_KEYS: Record<string, View> = {
-  '1': 'overview',
-  '2': 'cpu',
-  '3': 'memory',
-  '4': 'battery',
-  '5': 'disk',
-};
+import { ViewTabs } from './ui/ViewTabs.js';
 
 export interface AppProps {
   provider: MetricsProvider;
@@ -120,6 +112,10 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     // open. Falling back to the table beats rendering an empty screen.
     if (detailPid !== null && !detailProc) setDetailPid(null);
   }, [detailPid, detailProc]);
+
+  /* The two modes that take over the screen: the detail panel and the kill
+     confirmation. Both replace the dashboard rather than stacking under it. */
+  const dashboardHidden = detailProc !== null || killTarget !== null;
 
   const guardCtx: GuardContext = useMemo(
     // I-13: the full map, so ancestors outside the top 50 are still found.
@@ -243,7 +239,13 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     }
     // Arrows move; `k` is reserved for kill. Binding `k` to vim-up as well
     // would make the single most destructive action ambiguous.
-    if (key.upArrow) move(-1);
+    //
+    // Left/right walk the tab strip and wrap at both ends (I-27). They are free
+    // to take: up/down own the row cursor, and nothing on any screen is
+    // horizontally scrollable.
+    if (key.leftArrow) setView((v) => stepView(v, -1));
+    else if (key.rightArrow) setView((v) => stepView(v, 1));
+    else if (key.upArrow) move(-1);
     else if (key.downArrow) move(1);
     else if (key.pageUp) move(-10);
     else if (key.pageDown) move(10);
@@ -268,23 +270,44 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   });
 
   /*
-   * Everything on screen that is not a process row: the app header, the four
-   * cards, the core strip, the status line, the footer and their margins — plus
-   * the two lines ProcessTable prints around its rows (the column header and
-   * the "… N others" roll-up). Those last two used to be uncounted, so the
-   * frame ran two lines past the terminal and scrolled its own header away.
+   * Everything on screen that is not a process row: the app header, the tab
+   * strip, the four cards, the core strip, the status line, the footer and
+   * their margins — plus the two lines ProcessTable prints around its rows (the
+   * column header and the "… N others" roll-up). Those last two used to be
+   * uncounted, so the frame ran two lines past the terminal and scrolled its
+   * own header away.
    */
-  const CHROME_ROWS = 18;
-  /* The detail panel's own fixed height: borders, title, five fields, the two
-     block labels, three sparklines, the key hints, and their margins — plus the
-     app header and footer around it. Whatever is left goes to the blocks. */
-  const DETAIL_CHROME_ROWS = 22;
-  /* At the documented 80x24 minimum the panel is one line taller than the
-     screen even with single-line blocks, so the gap below the header is the
-     first thing to go. */
-  const detailGap = rows >= 26 ? 1 : 0;
+  const CHROME_ROWS = 19;
+  /*
+   * The detail panel's fixed height: the app header and footer, the panel's two
+   * borders, its title, five fields, two block labels, three sparklines and the
+   * key hints. Everything that is left goes to the two wrapped blocks.
+   *
+   * Its separators and the gap below the header are budgeted separately because
+   * both are dropped on a short terminal — at 80x24 with a protected process
+   * (which adds a warning line) the panel was two rows taller than the screen
+   * even with single-line blocks.
+   */
+  const DETAIL_FIXED_ROWS = 18;
+  /* Rows left for the two wrapped blocks, given `sep` blank rows between the
+     panel's four groups. A protected process spends one more on its warning. */
+  const detailRoomFor = (sep: number) =>
+    rows - DETAIL_FIXED_ROWS - 4 * sep - (detailProc?.protected ? sep + 1 : 0);
+  /* Keep the separators whenever one line per block still fits with them. */
+  const compactDetail = detailRoomFor(1) < 2;
+  const detailBlockRows = detailRoomFor(compactDetail ? 0 : 1);
   const tableRows = Math.max(3, rows - CHROME_ROWS - (toast ? 2 : 0));
   const width = Math.max(60, columns - 2);
+  /*
+   * Rows a full-screen view may draw into: everything except the header, the
+   * tab strip, the blank line above and below the content, and the footer.
+   *
+   * The four detail screens all render at least one list that grows with the
+   * machine (cores, volumes, top processes), so each is handed this budget and
+   * rolls up whatever does not fit. Without it a 16-core Mac overflowed the CPU
+   * screen by seven lines on an 80x24 terminal. See I-26.
+   */
+  const viewRows = Math.max(4, rows - 5 - (toast ? 2 : 0));
 
   /*
    * I-26: the visible window always contains the selection.
@@ -322,7 +345,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     <Box flexDirection="column" width={width}>
       {/* Header */}
       <Box justifyContent="space-between">
-        <Text>
+        {/* I-19: the hardware line grows with the model name, so it is
+            truncated rather than allowed to wrap the header into two rows. */}
+        <Text wrap="truncate">
           <Text bold color={theme.mem}>
             useful-system-monitor{' '}
           </Text>
@@ -339,32 +364,45 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
         <Text color={theme.dim}>{clockTime(now)}</Text>
       </Box>
 
+      {/* Hidden in the two modes below, where the number and arrow keys are
+          inert and a strip of screen names would only mislead. */}
+      {!dashboardHidden && <ViewTabs active={view} />}
+
       <Box marginTop={1} flexDirection="column">
-        {detailProc ? null : view === 'overview' ? (
+        {dashboardHidden ? null : view === 'overview' ? (
           <Overview snapshot={snapshot} histories={histories} width={width} />
         ) : null}
-        {!detailProc && view === 'cpu' && (
-          <CpuView snapshot={snapshot} histories={histories} width={width} />
+        {!dashboardHidden && view === 'cpu' && (
+          <CpuView snapshot={snapshot} histories={histories} width={width} maxRows={viewRows} />
         )}
-        {!detailProc && view === 'memory' && (
-          <MemView snapshot={snapshot} histories={histories} width={width} />
+        {!dashboardHidden && view === 'memory' && (
+          <MemView snapshot={snapshot} histories={histories} width={width} maxRows={viewRows} />
         )}
-        {!detailProc && view === 'battery' && (
+        {!dashboardHidden && view === 'battery' && (
           <BatteryView
             snapshot={snapshot}
             histories={histories}
             width={width}
+            maxRows={viewRows}
             selectedPid={selectedPid}
           />
         )}
-        {!detailProc && view === 'disk' && (
-          <DiskView snapshot={snapshot} histories={histories} width={width} now={now} />
+        {!dashboardHidden && view === 'disk' && (
+          <DiskView
+            snapshot={snapshot}
+            histories={histories}
+            width={width}
+            maxRows={viewRows}
+            now={now}
+          />
         )}
       </Box>
 
-      {view === 'overview' && !detailProc && (
+      {view === 'overview' && !dashboardHidden && (
         <Box flexDirection="column" marginTop={1}>
-          <Text color={theme.dim}>
+          {/* I-19: this line is the widest variable string on the screen, and
+              CHROME_ROWS budgets exactly one row for it. */}
+          <Text color={theme.dim} wrap="truncate">
             {procData
               ? filtered.length === 0
                 ? 'no matches'
@@ -400,22 +438,24 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
       )}
 
       {detailProc && (
-        <Box marginTop={detailGap}>
+        <Box>
           <ProcessDetail
             p={detailProc}
             history={history.get(detailProc.pid)}
             commandLine={commandLine}
             width={width}
+            compact={compactDetail}
             /* The panel is fixed-height apart from the two wrapped blocks, so
                those absorb whatever the terminal cannot fit. See I-26. */
-            maxLinesPerBlock={Math.max(
-              1,
-              Math.floor((rows - DETAIL_CHROME_ROWS - detailGap - (detailProc.protected ? 2 : 0)) / 2),
-            )}
+            maxLinesPerBlock={Math.max(1, Math.floor(detailBlockRows / 2))}
           />
         </Box>
       )}
 
+      {/* A mode, not an overlay — same reason as the detail panel. Stacked
+          below a full-height table it pushed the frame 16 lines past a 24-row
+          terminal, scrolling away the header and the cards at the exact moment
+          the user is being asked to confirm something irreversible. */}
       {killTarget && (
         <Box marginTop={1}>
           <KillModal
@@ -450,7 +490,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
               ? killCheck?.allowed
                 ? 't SIGTERM   k SIGKILL (twice)   esc cancel'
                 : 'esc back'
-              : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  1-5 view  q quit'}
+              : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  q quit'}
         </Text>
       </Box>
     </Box>

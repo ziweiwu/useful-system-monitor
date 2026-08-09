@@ -127,7 +127,7 @@ export const Overview = memo(function Overview({
       </Box>
       <Box marginTop={1}>
         {cpu ? (
-          <CoreStrip perCore={cpu.perCore} perfCores={snapshot.host.perfCores} />
+          <CoreStrip perCore={cpu.perCore} perfCores={snapshot.host.perfCores} width={width} />
         ) : (
           <Text color={theme.dim}>CORES  sampling…</Text>
         )}

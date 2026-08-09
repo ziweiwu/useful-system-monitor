@@ -2,13 +2,16 @@ import { render } from 'ink-testing-library';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../src/app.js';
 import { displayWidth } from '../src/core/width.js';
+import type { CpuData, DiskData, HostInfo } from '../src/core/types.js';
 import { MockProvider } from '../src/providers/mock/provider.js';
-import { DEFAULT_TIERS } from '../src/providers/types.js';
+import { DEFAULT_TIERS, type MetricsProvider } from '../src/providers/types.js';
 import { wattsAreMeaningful } from '../src/ui/ProcessTable.js';
 
 const ESC = String.fromCharCode(27);
 const DOWN = `${ESC}[B`;
 const UP = `${ESC}[A`;
+const RIGHT = `${ESC}[C`;
+const LEFT = `${ESC}[D`;
 const ENTER = '\r';
 const ANSI = new RegExp(`${ESC}\\[[0-9;]*m`, 'g');
 
@@ -18,14 +21,50 @@ function lines(frame: string | undefined): string[] {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function mount(columns: number, rows = 34, killFn: (pid: number, signal: string) => void = () => {}) {
+/**
+ * A machine much larger than the mock's: 24 cores and 14 mounted volumes.
+ *
+ * Core counts and mount counts are the two list lengths that come from the
+ * hardware rather than from the design, so they are what push a screen past the
+ * bottom of the terminal. See I-26.
+ */
+class BigMachine extends MockProvider {
+  override async host(): Promise<HostInfo> {
+    return { ...(await super.host()), cores: 24, perfCores: 16 };
+  }
+  override async cpu(): Promise<CpuData> {
+    return { ...(await super.cpu()), perCore: Array.from({ length: 24 }, (_, i) => (i * 17) % 100) };
+  }
+  override async disk(): Promise<DiskData> {
+    const d = await super.disk();
+    return {
+      ...d,
+      volumes: [
+        ...d.volumes,
+        ...Array.from({ length: 10 }, (_, i) => ({
+          mount: `/Volumes/share${i}`,
+          device: `//nas/share${i}`,
+          totalBytes: 2_000_000_000_000,
+          usedBytes: 1_000_000_000_000,
+          freeBytes: 1_000_000_000_000,
+          network: true,
+        })),
+      ],
+    };
+  }
+}
+
+async function mount(
+  columns: number,
+  rows = 34,
+  killFn: (pid: number, signal: string) => void = () => {},
+  provider: MetricsProvider = new MockProvider(),
+) {
   const prevCols = process.stdout.columns;
   const prevRows = process.stdout.rows;
   process.stdout.columns = columns;
   process.stdout.rows = rows;
-  const app = render(
-    <App provider={new MockProvider()} tiers={DEFAULT_TIERS} demo killFn={killFn} />,
-  );
+  const app = render(<App provider={provider} tiers={DEFAULT_TIERS} demo killFn={killFn} />);
   await wait(250);
   return {
     ...app,
@@ -151,6 +190,87 @@ describe('view switching', () => {
       app.stdin.write(keyPress);
       await wait(250);
       expect(app.lastFrame() ?? '').toMatch(expected);
+    } finally {
+      app.restore();
+    }
+  });
+});
+
+describe('I-27: arrow keys walk the view strip', () => {
+  it('marks the active view in the tab strip without relying on colour', async () => {
+    const app = await mount(120);
+    try {
+      // Brackets, not just a hue: the strip has to survive NO_COLOR (I-23).
+      expect(app.lastFrame() ?? '').toContain('[1 OVERVIEW]');
+      expect(app.lastFrame() ?? '').toContain(' 3 MEMORY ');
+      app.stdin.write('3');
+      await wait(250);
+      expect(app.lastFrame() ?? '').toContain('[3 MEMORY]');
+      expect(app.lastFrame() ?? '').not.toContain('[1 OVERVIEW]');
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('moves right and left through the five screens', async () => {
+    const app = await mount(120);
+    try {
+      app.stdin.write(RIGHT);
+      await wait(200);
+      expect(app.lastFrame() ?? '').toContain('[2 CPU]');
+      app.stdin.write(RIGHT);
+      await wait(200);
+      expect(app.lastFrame() ?? '').toContain('[3 MEMORY]');
+      app.stdin.write(LEFT);
+      await wait(200);
+      expect(app.lastFrame() ?? '').toContain('[2 CPU]');
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('wraps at both ends rather than dead-ending', async () => {
+    const app = await mount(120);
+    try {
+      // Left from the first screen lands on the last.
+      app.stdin.write(LEFT);
+      await wait(250);
+      expect(app.lastFrame() ?? '').toContain('[5 DISK]');
+      app.stdin.write(RIGHT);
+      await wait(250);
+      expect(app.lastFrame() ?? '').toContain('[1 OVERVIEW]');
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('leaves the process cursor to up/down: switching views keeps the selection', async () => {
+    const app = await mount(120);
+    try {
+      app.stdin.write(DOWN);
+      await wait(120);
+      const before = selectedPid(app.lastFrame());
+      app.stdin.write(RIGHT);
+      await wait(200);
+      app.stdin.write(LEFT);
+      await wait(250);
+      expect(selectedPid(app.lastFrame())).toBe(before);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('does not switch views while typing a filter', async () => {
+    const app = await mount(120);
+    try {
+      app.stdin.write('/');
+      await wait(80);
+      app.stdin.write(RIGHT);
+      await wait(200);
+      // Still on the overview, and the arrow left no escape junk in the filter.
+      const frame = app.lastFrame() ?? '';
+      expect(frame).toContain('type to filter');
+      expect(frame).toMatch(/filter\s+…/);
     } finally {
       app.restore();
     }
@@ -503,6 +623,126 @@ describe('expanding the working set on request', () => {
         expect(displayWidth(l)).toBeLessThanOrEqual(100);
       }
       expect(lines(app.lastFrame()).filter((l) => /^\s*>\s+\d+/.test(l))).toHaveLength(1);
+    } finally {
+      app.restore();
+    }
+  });
+});
+
+describe('I-26: every mode fits the terminal it was given', () => {
+  /** Rendered height of the frame after `keys` have been typed. */
+  async function frameHeight(
+    columns: number,
+    rows: number,
+    keys: string[],
+    provider?: MetricsProvider,
+  ): Promise<number> {
+    const app = await mount(columns, rows, () => {}, provider);
+    try {
+      for (const k of keys) {
+        app.stdin.write(k);
+        await wait(120);
+      }
+      await wait(250);
+      return lines(app.lastFrame()).length;
+    } finally {
+      app.restore();
+    }
+  }
+
+  it.each(['1', '2', '3', '4', '5'])('screen %s fits an 80x24 terminal', async (key) => {
+    expect(await frameHeight(80, 24, [key])).toBeLessThanOrEqual(24);
+  });
+
+  it.each(['1', '2', '5'])('screen %s fits on a 24-core, 14-volume Mac', async (key) => {
+    // The CPU screen used to draw one bar per core unconditionally, which ran
+    // seven lines past the bottom here, and the disk screen one row per mount.
+    expect(await frameHeight(80, 24, [key], new BigMachine())).toBeLessThanOrEqual(24);
+    expect(await frameHeight(100, 30, [key], new BigMachine())).toBeLessThanOrEqual(30);
+  });
+
+  it('rolls the cores it cannot draw into a count rather than dropping them', async () => {
+    const app = await mount(80, 24, () => {}, new BigMachine());
+    try {
+      app.stdin.write('2');
+      await wait(300);
+      expect(app.lastFrame() ?? '').toMatch(/… \d+ more cores/);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('says how many volumes it could not draw', async () => {
+    const app = await mount(80, 24, () => {}, new BigMachine());
+    try {
+      app.stdin.write('5');
+      await wait(300);
+      expect(app.lastFrame() ?? '').toMatch(/… \d+ more volumes/);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it.each([24, 30, 40])('the kill confirmation fits a %i-row terminal', async (rows) => {
+    // It used to render *below* a full-height table: 40 lines in a 24-row
+    // terminal, scrolling away the header and the cards at the exact moment the
+    // user is being asked to confirm something irreversible.
+    const app = await mount(80, rows);
+    try {
+      app.stdin.write('k');
+      await wait(300);
+      expect(app.lastFrame() ?? '').toContain('KILL PROCESS');
+      expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it.each([24, 26, 30, 40])('the detail panel fits a %i-row terminal, protected or not', async (rows) => {
+    // A protected process adds a warning line the panel's row budget did not
+    // count, so at 80x24 it drew two rows past the bottom of the screen.
+    for (const [keys, marker] of [
+      [[ENTER], 'PID'],
+      [['/', 'WindowServer', ENTER, ENTER], 'Protected'],
+      // A 150-character path and a longer argv: the two blocks are the only
+      // part of the panel that grows, so this is its worst case.
+      [['/', 'Renderer', ENTER, ENTER], 'Chrome'],
+    ] as const) {
+      const app = await mount(80, rows);
+      try {
+        for (const k of keys) {
+          app.stdin.write(k);
+          await wait(150);
+        }
+        await wait(300);
+        expect(app.lastFrame() ?? '').toContain('esc back');
+        expect(app.lastFrame() ?? '').toContain(marker);
+        expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
+      } finally {
+        app.restore();
+      }
+    }
+  });
+
+  it('keeps the overview inside a narrow terminal, where the status line used to wrap', async () => {
+    // At 80 columns the status line ran to 84 cells and wrapped onto a second
+    // row that CHROME_ROWS had not budgeted for.
+    expect(await frameHeight(80, 24, [])).toBeLessThanOrEqual(24);
+    expect(await frameHeight(90, 24, [])).toBeLessThanOrEqual(24);
+  });
+});
+
+describe('I-19: the layout follows the terminal when it is resized', () => {
+  it('reflows to a narrower terminal without overflowing it', async () => {
+    const app = await mount(100, 30);
+    try {
+      process.stdout.columns = 80;
+      process.stdout.rows = 24;
+      process.stdout.emit('resize');
+      await wait(300);
+      const frame = lines(app.lastFrame());
+      expect(frame.length).toBeLessThanOrEqual(24);
+      for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(80);
     } finally {
       app.restore();
     }

@@ -1,5 +1,6 @@
 import { Box, Text } from 'ink';
 import { age, bytes } from '../core/format.js';
+import { fitList } from '../core/rows.js';
 import type { Snapshot, VolumeUsage } from '../core/types.js';
 import { padEnd, padStart, truncate } from '../core/width.js';
 import type { Histories } from '../hooks/useSampler.js';
@@ -26,11 +27,14 @@ export function DiskView({
   snapshot,
   histories,
   width,
+  maxRows,
   now,
 }: {
   snapshot: Snapshot;
   histories: Histories;
   width: number;
+  /** Lines this screen may draw into. See I-26. */
+  maxRows: number;
   /** For the sample age. Disk is on a 5-minute tier, so staleness is visible
       here in a way it is not for CPU, and a number with no age reads as live. */
   now: number;
@@ -65,10 +69,22 @@ export function DiskView({
      does not reserve 20 blank columns, and a deep path is truncated rather than
      allowed to wrap (I-19). */
   const full = volumes.filter((v) => pctOf(v) >= 90);
+  const anyNet = volumes.some((v) => v.network);
   const widest = Math.max(...volumes.map((v) => v.mount.length));
   const mountW = Math.max(6, Math.min(24, widest));
   /* 4 columns for the `net` marker, the rest for the three numeric columns. */
   const barW = Math.max(8, Math.min(30, width - mountW - 36));
+
+  /*
+   * Row budget. Fixed: the headline, the sparkline and its blank, and the
+   * VOLUMES title; the two notes below cost a blank and a line each.
+   *
+   * Both notes are computed from every volume, not just the visible ones — a
+   * full disk that got rolled up is exactly the one worth warning about.
+   */
+  const CHROME = 4;
+  const listBudget = maxRows - CHROME - (anyNet ? 2 : 0) - (full.length ? 2 : 0);
+  const fit = fitList(volumes.length, listBudget);
 
   return (
     <Box flexDirection="column">
@@ -97,7 +113,7 @@ export function DiskView({
       <Text bold color={theme.disk}>
         VOLUMES
       </Text>
-      {volumes.map((v) => {
+      {volumes.slice(0, fit.shown).map((v) => {
         const pct = pctOf(v);
         return (
           <Text key={v.mount}>
@@ -111,7 +127,11 @@ export function DiskView({
         );
       })}
 
-      {volumes.some((v) => v.network) && (
+      {listBudget > 0 && fit.hidden > 0 && (
+        <Text color={theme.dim}>{`… ${fit.hidden} more volumes — taller terminal to see them`}</Text>
+      )}
+
+      {anyNet && (
         <Box marginTop={1}>
           <Text color={theme.dim} wrap="truncate">
             {/* Worth saying: a stalled share is the usual reason this panel is

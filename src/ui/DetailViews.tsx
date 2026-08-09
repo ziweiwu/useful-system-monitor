@@ -1,5 +1,6 @@
 import { Box, Text } from 'ink';
 import { bytes, percent } from '../core/format.js';
+import { fitList } from '../core/rows.js';
 import type { Snapshot } from '../core/types.js';
 import { padEnd, padStart } from '../core/width.js';
 import type { Histories } from '../hooks/useSampler.js';
@@ -12,10 +13,13 @@ export function CpuView({
   snapshot,
   histories,
   width,
+  maxRows,
 }: {
   snapshot: Snapshot;
   histories: Histories;
   width: number;
+  /** Lines this screen may draw into. See I-26. */
+  maxRows: number;
 }) {
   const cpu = snapshot.cpu.status === 'ok' ? snapshot.cpu.data : null;
   const procs = snapshot.processes.status === 'ok' ? snapshot.processes.data : null;
@@ -23,6 +27,22 @@ export function CpuView({
 
   const barW = Math.min(36, Math.max(10, width - 34));
   const nameW = Math.max(12, Math.min(34, width - 30));
+
+  /*
+   * Row budget. Fixed: the headline, the sparkline and its trailing blank.
+   * The TOP CPU block costs a blank line and a title on top of its rows.
+   *
+   * The process list gives way first — per-core bars are what this screen is
+   * for — and only if the cores still do not fit do they roll up. A 16-core Mac
+   * on an 80x24 terminal used to overrun it by seven lines.
+   */
+  const CHROME = 3;
+  const topList = procs
+    ? procs.visible.toSorted((a, b) => (b.cpuPercent ?? 0) - (a.cpuPercent ?? 0))
+    : [];
+  const topN = Math.max(0, Math.min(6, topList.length, maxRows - CHROME - cpu.perCore.length - 2));
+  const coreBudget = maxRows - CHROME - (topN > 0 ? 2 + topN : 0);
+  const cores = fitList(cpu.perCore.length, coreBudget);
 
   return (
     <Box flexDirection="column">
@@ -40,7 +60,7 @@ export function CpuView({
       <Box marginBottom={1}>
         <Sparkline values={histories.cpu.toArray()} width={Math.min(60, width - 4)} color={severity(cpu.system)} />
       </Box>
-      {cpu.perCore.map((v, i) => (
+      {cpu.perCore.slice(0, cores.shown).map((v, i) => (
         <Text key={i}>
           <Text color={theme.dim}>
             {padEnd(i < snapshot.host.perfCores ? `P${i}` : `E${i - snapshot.host.perfCores}`, 4)}
@@ -49,14 +69,16 @@ export function CpuView({
           <Text color={theme.headline}>{padStart(v.toFixed(0) + '%', 6)}</Text>
         </Text>
       ))}
-      {procs && (
+      {coreBudget > 0 && cores.hidden > 0 && (
+        <Text color={theme.dim}>{`… ${cores.hidden} more cores — taller terminal to see them`}</Text>
+      )}
+      {topN > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.cpuMid}>
             TOP CPU
           </Text>
-          {procs.visible
-            .toSorted((a, b) => (b.cpuPercent ?? 0) - (a.cpuPercent ?? 0))
-            .slice(0, 6)
+          {topList
+            .slice(0, topN)
             .map((p) => (
               <Text key={p.pid}>
                 <Text color={theme.dim}>{padEnd(String(p.pid), 8)}</Text>
@@ -76,10 +98,13 @@ export function MemView({
   snapshot,
   histories,
   width,
+  maxRows,
 }: {
   snapshot: Snapshot;
   histories: Histories;
   width: number;
+  /** Lines this screen may draw into. See I-26. */
+  maxRows: number;
 }) {
   const mem = snapshot.memory.status === 'ok' ? snapshot.memory.data : null;
   const procs = snapshot.processes.status === 'ok' ? snapshot.processes.data : null;
@@ -96,6 +121,12 @@ export function MemView({
     ['compressed', mem.compressedBytes],
     ['free', mem.freeBytes],
   ];
+
+  /* Fixed: headline, sparkline + blank, the five breakdown bars, the blank and
+     the two summary lines below them. TOP MEMORY costs a blank and a title. */
+  const CHROME = 3 + rows.length + 3;
+  const topList = procs ? procs.visible.toSorted((a, b) => b.rssBytes - a.rssBytes) : [];
+  const topN = Math.max(0, Math.min(6, topList.length, maxRows - CHROME - 2));
 
   return (
     <Box flexDirection="column">
@@ -130,14 +161,13 @@ export function MemView({
           {mem.swapUsedBytes > mem.swapTotalBytes * 0.7 ? '   ! heavy swap pressure' : ''}
         </Text>
       </Box>
-      {procs && (
+      {topN > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.mem}>
             TOP MEMORY
           </Text>
-          {procs.visible
-            .toSorted((a, b) => b.rssBytes - a.rssBytes)
-            .slice(0, 6)
+          {topList
+            .slice(0, topN)
             .map((p) => (
               <Text key={p.pid}>
                 <Text color={theme.dim}>{padEnd(String(p.pid), 8)}</Text>

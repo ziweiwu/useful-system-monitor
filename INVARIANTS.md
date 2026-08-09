@@ -61,9 +61,10 @@ an error.
 | I-23 | Colour degrades by capability and honours `NO_COLOR`. Colour is only ever *redundant* encoding | `ui/theme.ts` |
 | I-24 | Data to stdout, errors to stderr, exit 0/non-zero. Errors state cause *and* remedy | `cli.tsx` |
 | I-25 | Every interactive action has a non-interactive equivalent | `cli.tsx` (`--json`, `--top`, `--sort`) |
-| I-26 | The process table is a scrolling window that always contains the selection, and the frame never exceeds the terminal height | `app.tsx` · `ui/ProcessTable.tsx` · `test/scroll.test.ts` · `test/ui.test.tsx` |
+| I-26 | The process table is a scrolling window that always contains the selection, and **no mode on any screen ever exceeds the terminal height**. Lists whose length comes from the machine — cores, mounted volumes, top processes — are budgeted and roll up what will not fit | `app.tsx` · `core/rows.ts` · `ui/*` · `test/rows.test.ts` · `test/scroll.test.ts` · `test/ui.test.tsx` |
+| I-27 | Every screen is reachable by walking left/right as well as by its number key, the strip on screen names the current one, and the arrows wrap rather than dead-ending | `core/views.ts` · `ui/ViewTabs.tsx` · `test/views.test.ts` · `test/ui.test.tsx` |
 
-## Two invariants worth the extra words
+## The invariants worth the extra words
 
 **I-16 (PID reuse).** PIDs are recycled. Between selecting a row and confirming
 the kill, the process can exit and an unrelated one can inherit its PID. Binding
@@ -84,3 +85,30 @@ for one frame. The same budget fix keeps the frame inside the terminal: the
 column header and the "… N others" roll-up are two lines the table prints around
 its rows, and leaving them uncounted pushed the frame two lines past the bottom,
 scrolling the app's own header away.
+
+The same rule now covers every mode and every screen, because three more ways to
+overrun the terminal were found the same way:
+
+- **The kill confirmation was an overlay, not a mode.** Stacked below a
+  full-height table it drew 40 lines into a 24-row terminal, scrolling away the
+  header and the cards at the moment the user is being asked to confirm
+  something irreversible. It replaces the dashboard now, exactly as the detail
+  panel does.
+- **Machine-sized lists were unbudgeted.** The CPU screen drew one bar per core
+  unconditionally (a 24-core Mac overran an 80x24 terminal by seven lines), the
+  disk screen one row per mount, and the core strip one cell per core across a
+  fixed 80 columns. Each now takes a row budget and rolls the remainder into a
+  count — a list that stops silently is indistinguishable from a machine with
+  nothing more to show.
+- **The layout and the renderer disagreed about the terminal width.** Ink falls
+  back to 80x24 when `stdout.columns` is 0 — a pty with no size set, several CI
+  runners — while this app fell back to 100x30, so it laid out 20 columns wider
+  than the frame Ink drew and the fourth card came out clipped and ragged. Both
+  now fall back to 80x24. Laying out narrower than the renderer wastes space;
+  laying out wider corrupts the frame.
+
+**I-27 (five screens, one strip).** Five screens behind number keys documented
+only in a footer that truncates at 80 columns is a feature nobody finds. The tab
+strip says which screen you are on and that the other four exist; left/right
+walk them and wrap, so neither arrow is ever a dead key. The strip and the
+keymap read the same `VIEW_ORDER`, so a label can never open a different screen.

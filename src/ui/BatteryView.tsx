@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Box, Text } from 'ink';
 import { minutesToHm, percent } from '../core/format.js';
+import { fitList } from '../core/rows.js';
 import { estimateWatts } from '../core/scoring.js';
 import type { Snapshot } from '../core/types.js';
 import { padEnd, padStart } from '../core/width.js';
@@ -19,11 +20,14 @@ export const BatteryView = memo(function BatteryView({
   snapshot,
   histories,
   width,
+  maxRows,
   selectedPid,
 }: {
   snapshot: Snapshot;
   histories: Histories;
   width: number;
+  /** Lines this screen may draw into. See I-26. */
+  maxRows: number;
   selectedPid: number | null;
 }) {
   const batt = snapshot.battery.status === 'ok' ? snapshot.battery.data : null;
@@ -42,13 +46,25 @@ export const BatteryView = memo(function BatteryView({
     );
   }
 
-  const top = procs
+  const ranked = procs
     ? procs.visible.toSorted((a, b) => (b.energy ?? 0) - (a.energy ?? 0)).slice(0, 8)
     : [];
   const totalEnergy =
     (procs?.visible.reduce((s, p) => s + (p.energy ?? 0), 0) ?? 0) + (procs?.others.energy ?? 0);
   const nameW = Math.max(12, Math.min(30, width - 44));
   const showWatts = wattsAreMeaningful(batt.watts);
+
+  /* Fixed: the headline, the blank + gauge, the sparkline, the health line, and
+     the blank + title above the list. The advice below it costs two more. */
+  const CHROME = 7;
+  const advice =
+    ranked[0] && showWatts && batt.watts !== null
+      ? estimateWatts(ranked[0].energy, totalEnergy, batt.watts)
+      : null;
+  const showAdvice = advice !== null && advice > 0.2;
+  const listBudget = maxRows - CHROME - (showAdvice ? 2 : 0);
+  const fit = fitList(ranked.length, listBudget);
+  const top = ranked.slice(0, fit.shown);
 
   return (
     <Box flexDirection="column">
@@ -112,19 +128,17 @@ export const BatteryView = memo(function BatteryView({
         );
       })}
 
-      {top[0] && showWatts && batt.watts !== null && (
+      {listBudget > 0 && fit.hidden > 0 && (
+        <Text color={theme.dim}>{`   … ${fit.hidden} more — taller terminal to see them`}</Text>
+      )}
+
+      {showAdvice && ranked[0] && batt.watts !== null && (
         <Box marginTop={1} flexDirection="column">
-          {(() => {
-            const w = estimateWatts(top[0]!.energy, totalEnergy, batt.watts);
-            if (w === null || w <= 0.2) return null;
-            const minutes = Math.round((w / Math.abs(batt.watts)) * (batt.timeRemainingMin ?? 0));
-            return (
-              <Text color={theme.cpuMid}>
-                Killing {processName(top[0]!.command)} could save ~{w.toFixed(1)} W → about +
-                {minutes} min of battery.
-              </Text>
-            );
-          })()}
+          <Text color={theme.cpuMid} wrap="truncate">
+            Killing {processName(ranked[0].command)} could save ~{advice.toFixed(1)} W → about +
+            {Math.round((advice / Math.abs(batt.watts)) * (batt.timeRemainingMin ?? 0))} min of
+            battery.
+          </Text>
         </Box>
       )}
     </Box>

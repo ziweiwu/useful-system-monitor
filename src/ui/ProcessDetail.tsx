@@ -65,6 +65,7 @@ export const ProcessDetail = memo(function ProcessDetail({
   commandLine,
   width,
   maxLinesPerBlock = 4,
+  compact = false,
 }: {
   p: ProcessSample;
   history: ProcHistory | undefined;
@@ -76,7 +77,17 @@ export const ProcessDetail = memo(function ProcessDetail({
    * so they are the only thing that can push it past the bottom. See I-26.
    */
   maxLinesPerBlock?: number;
+  /**
+   * Drop the blank lines between the panel's four groups.
+   *
+   * They are the first thing to give on a short terminal: at the documented
+   * 80x24 minimum the panel needs every one of those five rows back before it
+   * fits, and a protected process — which adds a warning line — used to push it
+   * two rows past the bottom.
+   */
+  compact?: boolean;
 }) {
+  const gap = compact ? 0 : 1;
   const boxWidth = Math.min(width, 84);
   const sparkW = Math.min(40, Math.max(10, width - 24));
   const memHistory = history?.mem.toArray() ?? [];
@@ -87,7 +98,7 @@ export const ProcessDetail = memo(function ProcessDetail({
       <Text bold color={theme.headline} wrap="truncate">
         {processName(p.command)}
       </Text>
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={gap} flexDirection="column">
         <Field label="PID" value={String(p.pid)} />
         <Field label="Parent" value={String(p.ppid)} />
         <Field label="User" value={p.user} color={p.user === 'root' ? theme.root : theme.text} />
@@ -98,7 +109,7 @@ export const ProcessDetail = memo(function ProcessDetail({
         />
       </Box>
 
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={gap} flexDirection="column">
         <Block label="Path" value={p.command} width={boxWidth - 6} maxLines={maxLinesPerBlock} />
         {/* Full argv is fetched on demand: it is not worth carrying for 800
             processes when only the selected one is ever displayed. */}
@@ -109,13 +120,13 @@ export const ProcessDetail = memo(function ProcessDetail({
           maxLines={maxLinesPerBlock}
         />
         {p.protected && (
-          <Box marginTop={1}>
+          <Box marginTop={gap}>
             <Text color={theme.danger}>! Protected — this tool will refuse to kill this process.</Text>
           </Box>
         )}
       </Box>
 
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={gap} flexDirection="column">
         <Text>
           <Text color={theme.dim}>{'CPU     '}</Text>
           <Sparkline values={history?.cpu.toArray() ?? []} width={sparkW} color={severity(p.cpuPercent ?? 0)} />
@@ -142,7 +153,7 @@ export const ProcessDetail = memo(function ProcessDetail({
         </Text>
       </Box>
 
-      <Box marginTop={1}>
+      <Box marginTop={gap}>
         <Text>
           <Text bold color={theme.mem}>
             {'  [k] '}
