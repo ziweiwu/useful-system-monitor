@@ -24,12 +24,22 @@ function Field({ label, value, color }: { label: string; value: string; color?: 
  * line is laid out separately rather than truncated — the full path is often
  * the only way to tell two identically-named helpers apart.
  */
-function Block({ label, value, width }: { label: string; value: string; width: number }) {
+function Block({
+  label,
+  value,
+  width,
+  maxLines = 4,
+}: {
+  label: string;
+  value: string;
+  width: number;
+  maxLines?: number;
+}) {
   const indent = '  ';
   const avail = Math.max(20, width - indent.length);
   const lines: string[] = [];
   let rest = value;
-  while (rest.length > 0 && lines.length < 4) {
+  while (rest.length > 0 && lines.length < maxLines) {
     lines.push(rest.slice(0, avail));
     rest = rest.slice(avail);
   }
@@ -54,11 +64,18 @@ export const ProcessDetail = memo(function ProcessDetail({
   history,
   commandLine,
   width,
+  maxLinesPerBlock = 4,
 }: {
   p: ProcessSample;
   history: ProcHistory | undefined;
   commandLine: string | null;
   width: number;
+  /**
+   * Wrapped path/argv lines to allow per block. The caller derives this from
+   * the terminal height: the panel is fixed-height apart from these two blocks,
+   * so they are the only thing that can push it past the bottom. See I-26.
+   */
+  maxLinesPerBlock?: number;
 }) {
   const boxWidth = Math.min(width, 84);
   const sparkW = Math.min(40, Math.max(10, width - 24));
@@ -82,10 +99,15 @@ export const ProcessDetail = memo(function ProcessDetail({
       </Box>
 
       <Box marginTop={1} flexDirection="column">
-        <Block label="Path" value={p.command} width={boxWidth - 6} />
+        <Block label="Path" value={p.command} width={boxWidth - 6} maxLines={maxLinesPerBlock} />
         {/* Full argv is fetched on demand: it is not worth carrying for 800
             processes when only the selected one is ever displayed. */}
-        <Block label="Command" value={commandLine ?? 'loading…'} width={boxWidth - 6} />
+        <Block
+          label="Command"
+          value={commandLine ?? 'loading…'}
+          width={boxWidth - 6}
+          maxLines={maxLinesPerBlock}
+        />
         {p.protected && (
           <Box marginTop={1}>
             <Text color={theme.danger}>! Protected — this tool will refuse to kill this process.</Text>

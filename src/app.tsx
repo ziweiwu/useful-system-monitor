@@ -105,6 +105,20 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     }
   }, [filtered, selectedPid]);
 
+  /*
+   * The detail panel is a mode, not an overlay: it replaces the cards and the
+   * table rather than stacking below them. Rendering both put 93 lines into a
+   * 24-row terminal, which scrolled the header and every card off the top.
+   */
+  const detailProc =
+    detailPid === null ? null : (filtered.find((x) => x.pid === detailPid) ?? null);
+
+  useEffect(() => {
+    // The process can exit, or drop out of the working set, while its detail is
+    // open. Falling back to the table beats rendering an empty screen.
+    if (detailPid !== null && !detailProc) setDetailPid(null);
+  }, [detailPid, detailProc]);
+
   const guardCtx: GuardContext = useMemo(
     // I-13: the full map, so ancestors outside the top 50 are still found.
     () => ({ selfPid: process.pid, parents: procData?.parents ?? new Map() }),
@@ -259,6 +273,14 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
    * frame ran two lines past the terminal and scrolled its own header away.
    */
   const CHROME_ROWS = 18;
+  /* The detail panel's own fixed height: borders, title, five fields, the two
+     block labels, three sparklines, the key hints, and their margins — plus the
+     app header and footer around it. Whatever is left goes to the blocks. */
+  const DETAIL_CHROME_ROWS = 22;
+  /* At the documented 80x24 minimum the panel is one line taller than the
+     screen even with single-line blocks, so the gap below the header is the
+     first thing to go. */
+  const detailGap = rows >= 26 ? 1 : 0;
   const tableRows = Math.max(3, rows - CHROME_ROWS - (toast ? 2 : 0));
   const width = Math.max(60, columns - 2);
 
@@ -316,12 +338,16 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
       </Box>
 
       <Box marginTop={1} flexDirection="column">
-        {view === 'overview' && (
+        {detailProc ? null : view === 'overview' ? (
           <Overview snapshot={snapshot} histories={histories} width={width} />
+        ) : null}
+        {!detailProc && view === 'cpu' && (
+          <CpuView snapshot={snapshot} histories={histories} width={width} />
         )}
-        {view === 'cpu' && <CpuView snapshot={snapshot} histories={histories} width={width} />}
-        {view === 'memory' && <MemView snapshot={snapshot} histories={histories} width={width} />}
-        {view === 'battery' && (
+        {!detailProc && view === 'memory' && (
+          <MemView snapshot={snapshot} histories={histories} width={width} />
+        )}
+        {!detailProc && view === 'battery' && (
           <BatteryView
             snapshot={snapshot}
             histories={histories}
@@ -331,7 +357,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
         )}
       </Box>
 
-      {view === 'overview' && (
+      {view === 'overview' && !detailProc && (
         <Box flexDirection="column" marginTop={1}>
           <Text color={theme.dim}>
             {procData
@@ -368,21 +394,22 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
         </Box>
       )}
 
-      {detailPid !== null &&
-        (() => {
-          const p = filtered.find((x) => x.pid === detailPid);
-          if (!p) return null;
-          return (
-            <Box marginTop={1}>
-              <ProcessDetail
-                p={p}
-                history={history.get(p.pid)}
-                commandLine={commandLine}
-                width={width}
-              />
-            </Box>
-          );
-        })()}
+      {detailProc && (
+        <Box marginTop={detailGap}>
+          <ProcessDetail
+            p={detailProc}
+            history={history.get(detailProc.pid)}
+            commandLine={commandLine}
+            width={width}
+            /* The panel is fixed-height apart from the two wrapped blocks, so
+               those absorb whatever the terminal cannot fit. See I-26. */
+            maxLinesPerBlock={Math.max(
+              1,
+              Math.floor((rows - DETAIL_CHROME_ROWS - detailGap - (detailProc.protected ? 2 : 0)) / 2),
+            )}
+          />
+        </Box>
+      )}
 
       {killTarget && (
         <Box marginTop={1}>

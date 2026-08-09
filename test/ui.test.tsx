@@ -345,6 +345,57 @@ describe('I-26: the scroll window always contains the selection', () => {
       }
     }
   });
+
+  it('fits with the detail panel open, down to the 80x24 minimum', async () => {
+    // The panel used to render *below* the full table rather than replacing it,
+    // which put 93 lines into a 24-row terminal and scrolled away the header
+    // and every card. Verified against a real pty, not just this harness.
+    for (const rows of [24, 30, 40]) {
+      const app = await mount(100, rows);
+      try {
+        app.stdin.write(ENTER);
+        await wait(300);
+        expect(app.lastFrame() ?? '').toContain('esc back');
+        expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
+      } finally {
+        app.restore();
+      }
+    }
+  });
+
+  it('fits with a toast showing', async () => {
+    for (const rows of [24, 34]) {
+      const app = await mount(100, rows);
+      try {
+        app.stdin.write('k');
+        await wait(250);
+        app.stdin.write('t');
+        await wait(300);
+        expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
+      } finally {
+        app.restore();
+      }
+    }
+  });
+
+  it('closes the detail panel rather than blanking when its process exits', async () => {
+    const app = await mount(120, 34);
+    try {
+      app.stdin.write(ENTER);
+      await wait(300);
+      expect(app.lastFrame() ?? '').toContain('esc back');
+      app.stdin.write('k');
+      await wait(250);
+      app.stdin.write('t');
+      await wait(600);
+      // Back to the table, not an empty screen.
+      const frame = app.lastFrame() ?? '';
+      expect(frame).toContain('PROCESS');
+      expect(lines(frame).length).toBeGreaterThan(10);
+    } finally {
+      app.restore();
+    }
+  });
 });
 
 describe('expanding the working set on request', () => {
