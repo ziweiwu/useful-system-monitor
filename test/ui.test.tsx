@@ -61,7 +61,7 @@ describe('I-19: layout never overflows the terminal', () => {
     const app = await mount(80, 24);
     try {
       expect(app.lastFrame()).toContain('PID');
-      expect(app.lastFrame()).toContain('SYSMON');
+      expect(app.lastFrame()).toContain('useful-system-monitor');
     } finally {
       app.restore();
     }
