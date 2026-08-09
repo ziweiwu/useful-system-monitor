@@ -1,0 +1,57 @@
+name: Release
+
+# Publishes to npm when a version tag is pushed:
+#   npm version patch && git push --follow-tags
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: macos-latest
+
+    permissions:
+      contents: read
+      # Required for npm Trusted Publishing: GitHub mints a short-lived OIDC
+      # token that npm verifies, so there is no long-lived secret to store,
+      # rotate, or leak — and no 2FA prompt to answer from CI.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      # Trusted Publishing needs npm 11.5.1+; Node 22 ships an older npm.
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+
+      - name: Verify before releasing
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Check the tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "tag v$TAG does not match package.json version $PKG" >&2
+            exit 1
+          fi
+          echo "releasing $PKG"
+
+      - name: Publish
+        # No NODE_AUTH_TOKEN: authentication comes from the OIDC token above.
+        # Falls back to NPM_TOKEN only if Trusted Publishing is not configured.
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

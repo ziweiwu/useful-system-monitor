@@ -190,6 +190,19 @@ capture instead, drop a PNG at `docs/screenshot.png` and point the image at it â
 a native capture will render block characters exactly as your terminal font
 does.
 
+## Releasing
+
+Publishing is automated. Bump the version and push the tag:
+
+```sh
+npm version patch     # or minor / major
+git push --follow-tags
+```
+
+The release workflow re-runs lint, typecheck, tests and build, verifies the tag
+matches `package.json`, and publishes. Authentication uses npm Trusted
+Publishing (OIDC), so there is no token stored in the repo.
+
 ## Contributing
 
 ```sh
