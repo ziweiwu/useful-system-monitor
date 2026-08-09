@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    # macOS only: the collectors read ps/vm_stat/ioreg/pmset, and package.json
+    # declares os: ["darwin"], so npm refuses to install anywhere else.
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke test the built CLI
+        run: |
+          node dist/cli.js --help
+          # Not a TTY here, so this must degrade to one-shot output rather than
+          # trying to start the dashboard.
+          node dist/cli.js --json --top 3 > /tmp/out.json
+          node -e "const j=require('/tmp/out.json'); if(!j.processes?.length) throw new Error('no processes in JSON output'); console.log('ok:', j.processes.length, 'processes')"

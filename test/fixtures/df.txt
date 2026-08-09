@@ -1,0 +1,15 @@
+Filesystem                              1024-blocks        Used  Available Capacity     iused      ifree %iused  Mounted on
+/dev/disk3s1s1                            971350180    12714944  672065964     2%      458734 4291640074    0%   /
+devfs                                           233         233          0   100%         808          0  100%   /dev
+/dev/disk3s6                              971350180    12582940  672065964     2%          12 6720659640    0%   /System/Volumes/VM
+/dev/disk3s2                              971350180    17661440  672065964     3%        2243 6720659640    0%   /System/Volumes/Preboot
+/dev/disk3s4                              971350180      785784  672065964     1%         511 6720659640    0%   /System/Volumes/Update
+/dev/disk1s2                                 512000        6164     492800     2%           1    4928000    0%   /System/Volumes/xarts
+/dev/disk1s1                                 512000        5748     492800     2%          35    4928000    0%   /System/Volumes/iSCPreboot
+/dev/disk1s3                                 512000        2428     492800     1%          69    4928000    0%   /System/Volumes/Hardware
+/dev/disk3s5                              971350180   252800112  672065964    28%     2500320 6720659640    0%   /System/Volumes/Data
+map auto_home                                     0           0          0   100%           0          0     -   /System/Volumes/Data/home
+//ziweiwu@my-nas._smb._tcp.local/docker 15496412064 14070807296 1425604768    91% 14070807294 1425604768   91%   /Volumes/docker
+//ziweiwu@my-nas._smb._tcp.local/data   15496412064 14070807600 1425604464    91% 14070807598 1425604464   91%   /Volumes/data
+/dev/disk2s1                                5242836     2253872    2967392    44%          61   29673920    0%   /System/Volumes/Update/SFR/mnt1
+/dev/disk3s1                              971350180    12714944  672065964     2%      458734 4291609221    0%   /System/Volumes/Update/mnt1

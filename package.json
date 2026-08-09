@@ -1,0 +1,78 @@
+{
+  "name": "useful-system-monitor",
+  "version": "0.1.0",
+  "description": "Terminal dashboard showing which processes are eating your CPU, memory and battery on macOS \u2014 and letting you safely kill them.",
+  "type": "module",
+  "bin": {
+    "useful-system-monitor": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "mock": "tsx src/cli.tsx --mock",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
+    "screenshot": "tsx scripts/screenshot.tsx",
+    "screenshot:svg": "FORCE_COLOR=3 COLS=100 ROWS=30 tsx scripts/gen-svg.tsx docs/screenshot.svg",
+    "start": "tsx src/cli.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "verify:kill": "tsx scripts/verify-kill.ts",
+    "verify:selfcost": "tsx scripts/verify-selfcost.tsx"
+  },
+  "dependencies": {
+    "ink": "^7.1.1",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "fast-check": "^4.1.1",
+    "ink-testing-library": "^4.0.0",
+    "oxlint": "^1.77.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "tui",
+    "terminal",
+    "dashboard",
+    "system-monitor",
+    "cpu",
+    "memory",
+    "battery",
+    "energy",
+    "process-monitor",
+    "htop",
+    "activity-monitor",
+    "macos",
+    "ink",
+    "cli"
+  ],
+  "author": "Ziwei Wu (https://github.com/ziweiwu)",
+  "license": "MIT",
+  "homepage": "https://github.com/ziweiwu/useful-system-monitor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ziweiwu/useful-system-monitor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ziweiwu/useful-system-monitor/issues"
+  },
+  "os": [
+    "darwin"
+  ],
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "INVARIANTS.md"
+  ]
+}

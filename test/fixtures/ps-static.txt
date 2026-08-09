@@ -1,0 +1,802 @@
+  PID STARTED                      USER             STAT COMM
+    1 Sat Aug  1 17:46:44 2026     root             Ss   /sbin/launchd
+  542 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/logd
+  544 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/UserEventAgent
+  546 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd
+  547 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoted
+  550 Sat Aug  1 17:48:22 2026     root             Ss   /usr/sbin/systemstats
+  554 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/configd
+  556 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/CoreServices/powerd.bundle/powerd
+  557 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/IOMFB_bics_daemon
+  561 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/remoted
+  565 Sat Aug  1 17:48:22 2026     _corespeechd     Ss   /System/Library/PrivateFrameworks/CoreSpeech.framework/corespeechd_system
+  567 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/watchdogd
+  571 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds
+  573 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/kernelmanagerd
+  574 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/diskarbitrationd
+  578 Sat Aug  1 17:48:22 2026     root             Ss   /usr/sbin/syslogd
+  580 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/thermalmonitord
+  581 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/contextstored
+  582 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/xprotectd
+  583 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/opendirectoryd
+  584 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+  585 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/CoreServices/launchservicesd
+  586 Sat Aug  1 17:48:22 2026     _timed           Ss   /usr/libexec/timed
+  587 Sat Aug  1 17:48:22 2026     _usbmuxd         Ss   /System/Library/PrivateFrameworks/MobileDevice.framework/Versions/A/Resources/usbmuxd
+  588 Sat Aug  1 17:48:22 2026     root             Ss   /usr/sbin/securityd
+  590 Sat Aug  1 17:48:22 2026     _locationd       Ss   /usr/libexec/locationd
+  591 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/nesessionmanager
+  593 Sat Aug  1 17:48:22 2026     root             Ss   autofsd
+  594 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/dasd
+  595 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/corerepaird
+  597 Sat Aug  1 17:48:22 2026     _distnote        Ss   /usr/sbin/distnoted
+  601 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/CoreServices/logind
+  602 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/PrivateFrameworks/GenerationalStorage.framework/Versions/A/Support/revisiond
+  603 Sat Aug  1 17:48:22 2026     root             Ss   /usr/sbin/KernelEventAgent
+  608 Sat Aug  1 17:48:22 2026     root             Ss   /usr/sbin/notifyd
+  610 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/corebrightnessd
+  611 Sat Aug  1 17:48:22 2026     root             Ss   /usr/libexec/AirPlayXPCHelper
+  612 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/Resources/com.apple.cmio.registerassistantservice
+  615 Sat Aug  1 17:48:23 2026     root             Ss   /System/Library/PrivateFrameworks/TCC.framework/Support/tccd
+  616 Sat Aug  1 17:48:23 2026     _windowserver    Ss   /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  617 Sat Aug  1 17:48:23 2026     root             Ss   /usr/sbin/cfprefsd
+  618 Sat Aug  1 17:48:23 2026     ziweiwu          Ss   /System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow
+  621 Sat Aug  1 17:48:23 2026     root             Ss   /System/Library/CoreServices/coreservicesd
+  622 Sat Aug  1 17:48:23 2026     root             Ss   /usr/libexec/runningboardd
+  623 Sat Aug  1 17:48:23 2026     _trustd          Ss   /usr/libexec/trustd
+  624 Sat Aug  1 17:48:23 2026     _coreaudiod      Ss   /usr/sbin/coreaudiod
+  633 Sat Aug  1 17:48:23 2026     root             Ss   /usr/libexec/apfsd
+  634 Sat Aug  1 17:48:23 2026     _nsurlsessiond   Ss   /usr/libexec/nsurlsessiond
+  637 Sat Aug  1 17:48:23 2026     _analyticsd      Ss   /System/Library/PrivateFrameworks/CoreAnalytics.framework/Support/analyticsd
+  640 Sat Aug  1 17:48:23 2026     root             Ss   /usr/libexec/ApplicationFirewall/socketfilterfw
+  642 Sat Aug  1 17:48:23 2026     root             Ss   /usr/libexec/airportd
+  644 Sat Aug  1 17:48:23 2026     root             Ss   /usr/libexec/lsd
+  650 Sat Aug  1 17:48:21 2026     _networkd        Ss   /usr/libexec/symptomsd
+  651 Sat Aug  1 17:48:21 2026     _mdnsresponder   Ss   /usr/sbin/mDNSResponder
+  656 Sat Aug  1 17:48:21 2026     root             Ss   /System/Library/PrivateFrameworks/SystemStatusServer.framework/Support/systemstatusd
+  659 Sat Aug  1 17:48:21 2026     _coreaudiod      S    /usr/sbin/distnoted
+  660 Sat Aug  1 17:48:21 2026     root             Ss   /usr/libexec/eligibilityd
+  668 Sat Aug  1 17:48:21 2026     root             Ss   /System/Library/Frameworks/Security.framework/Versions/A/XPCServices/authd.xpc/Contents/MacOS/authd
+  669 Sat Aug  1 17:48:21 2026     root             Ss   /usr/sbin/mDNSResponderHelper
+  673 Sat Aug  1 17:48:21 2026     _windowserver    S    /usr/sbin/distnoted
+  676 Sat Aug  1 17:48:21 2026     root             S    /usr/sbin/distnoted
+  682 Sat Aug  1 17:48:21 2026     root             Ss   /usr/libexec/syspolicyd
+  687 Sat Aug  1 17:48:21 2026     root             Ss   /System/Library/CoreServices/TimeMachine/backupd
+  690 Sat Aug  1 17:48:21 2026     root             Ss   /System/Library/Frameworks/Security.framework/Versions/A/XPCServices/com.apple.CodeSigningHelper.xpc/Contents/MacOS/com.apple.CodeSigningHelper
+  692 Sat Aug  1 17:48:21 2026     _coreaudiod      Ss   Core Audio Driver (MSTeamsAudioDevice.driver)
+  693 Sat Aug  1 17:48:21 2026     root             Ss   /usr/libexec/audioclocksyncd
+  695 Sat Aug  1 17:48:21 2026     _audiomxd        Ss   /usr/libexec/audiomxd
+  696 Sat Aug  1 17:48:21 2026     root             Ss   /usr/sbin/WirelessRadioManagerd
+  699 Sat Aug  1 17:48:21 2026     _cmiodalassistants S    /usr/sbin/distnoted
+  701 Sat Aug  1 17:48:21 2026     _cmiodalassistants Ss   /usr/libexec/com.apple.cmio.videodriverkithostextension.systemextension/Contents/MacOS/com.apple.cmio.videodriverkithostextension
+  702 Sat Aug  1 17:48:21 2026     _cmiodalassistants Ss   /usr/sbin/appleh13camerad
+  705 Sat Aug  1 17:48:21 2026     _driverkit       Ss   /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN
+  707 Sat Aug  1 17:48:22 2026     _coreaudiod      Ss   Core Audio Driver (ParrotAudioPlugin.driver)
+  708 Sat Aug  1 17:48:22 2026     _driverkit       Ss   /System/Library/DriverExtensions/com.apple.DriverKit-IOUserDockChannelSerial.dext/com.apple.DriverKit-IOUserDockChannelSerial
+  709 Sat Aug  1 17:48:22 2026     _modelmanagerd   Ss   /usr/libexec/modelmanagerd
+  713 Sat Aug  1 17:48:22 2026     _driverkit       Ss   /System/Library/DriverExtensions/com.apple.AppleUserHIDDrivers.dext/com.apple.AppleUserHIDDrivers
+  719 Sat Aug  1 17:48:22 2026     root             Ss   /System/Library/CoreServices/Software Update.app/Contents/Resources/suhelperd
+  720 Sat Aug  1 17:48:22 2026     _softwareupdate  S    /usr/sbin/distnoted
+  722 Sat Aug  1 17:48:22 2026     _audiomxd        S    /usr/sbin/distnoted
+  724 Sat Aug  1 17:48:23 2026     root             Ss   /usr/sbin/BTLEServer
+  733 Sat Aug  1 17:48:23 2026     root             Ss   /usr/libexec/searchpartyd
+  758 Sat Aug  1 17:48:29 2026     root             Ss   /usr/libexec/sysmond
+  759 Sat Aug  1 17:48:29 2026     root             S    /usr/sbin/systemstats
+  762 Sat Aug  1 17:48:30 2026     _accessoryupdater S    /usr/sbin/distnoted
+  784 Sat Aug  1 17:48:36 2026     root             Us   /Library/Application Support/Logitech.localized/LogiOptionsPlus/logioptionsplus_agent.app/Contents/Frameworks/logioptionsplus_updater.app/Contents/MacOS/logioptionsplus_updater
+  786 Sat Aug  1 17:48:36 2026     root             Ss   /Library/PrivilegedHelperTools/com.docker.vmnetd
+  787 Sat Aug  1 17:48:36 2026     _cmiodalassistants Ss   /usr/libexec/cameracaptured
+  788 Sat Aug  1 17:48:36 2026     _cmiodalassistants Ss   /System/Library/Frameworks/CoreMediaIO.framework/Versions/A/Resources/UVCAssistant.systemextension/Contents/MacOS/UVCAssistant
+  791 Sat Aug  1 17:48:36 2026     _appleevents     Ss   /System/Library/CoreServices/appleeventsd
+  792 Sat Aug  1 17:48:36 2026     _locationd       S    /usr/sbin/distnoted
+  848 Sat Aug  1 17:48:37 2026     _mds_stores      Ss   /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+  906 Sat Aug  1 17:48:37 2026     _nsurlsessiond   S    /usr/sbin/distnoted
+  910 Sat Aug  1 17:48:37 2026     _spotlight       S    /usr/sbin/distnoted
+  920 Sat Aug  1 17:48:38 2026     _oahd            Ss   /usr/libexec/rosetta/oahd
+  922 Sat Aug  1 17:48:38 2026     ziweiwu          S    /usr/sbin/distnoted
+  947 Sat Aug  1 17:48:39 2026     root             Ss   /System/Library/Frameworks/LocalAuthentication.framework/Support/coreauthd
+  956 Sat Aug  1 17:48:39 2026     _applepay        S    /usr/sbin/distnoted
+  963 Sat Aug  1 17:48:40 2026     ziweiwu          S    /usr/libexec/secd
+  977 Sat Aug  1 17:48:44 2026     ziweiwu          S    /usr/sbin/cfprefsd
+  982 Sat Aug  1 17:48:46 2026     _ctkd            Ss   /System/Library/Frameworks/CryptoTokenKit.framework/ctkd
+  988 Sat Aug  1 17:48:47 2026     ziweiwu          S    /usr/libexec/UserEventAgent
+  994 Sat Aug  1 17:48:47 2026     ziweiwu          S    /usr/sbin/universalaccessd
+  997 Sat Aug  1 17:48:47 2026     ziweiwu          S    /usr/libexec/pboard
+  999 Sat Aug  1 17:48:47 2026     ziweiwu          S    /usr/libexec/containermanagerd
+ 1000 Sat Aug  1 17:48:47 2026     ziweiwu          S    /System/Library/PrivateFrameworks/BiomeStreams.framework/Support/BiomeAgent
+ 1001 Sat Aug  1 17:48:47 2026     ziweiwu          S    /usr/libexec/lsd
+ 1008 Sat Aug  1 17:48:48 2026     ziweiwu          S    /usr/libexec/rapportd
+ 1011 Sat Aug  1 17:48:48 2026     ziweiwu          S    /usr/sbin/usernoted
+ 1012 Sat Aug  1 17:48:48 2026     ziweiwu          S    /usr/libexec/nsurlsessiond
+ 1013 Sat Aug  1 17:48:48 2026     ziweiwu          S    /usr/libexec/trustd
+ 1023 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/PrivateFrameworks/UserNotificationsCore.framework/Support/usernotificationsd
+ 1026 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/Frameworks/Accounts.framework/Versions/A/Support/accountsd
+ 1027 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/PrivateFrameworks/TCC.framework/Support/tccd
+ 1029 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/PrivateFrameworks/SystemMigrationNetwork.framework/Resources/migrationhelper
+ 1030 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/PrivateFrameworks/HomeKitDaemon.framework/Support/homed
+ 1032 Sat Aug  1 17:48:48 2026     ziweiwu          S    /usr/libexec/sharingd
+ 1036 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/PrivateFrameworks/IDS.framework/identityservicesd.app/Contents/MacOS/identityservicesd
+ 1047 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/PrivateFrameworks/IMCore.framework/imagent.app/Contents/MacOS/imagent
+ 1048 Sat Aug  1 17:48:48 2026     ziweiwu          S    /System/Library/CoreServices/sharedfilelistd
+ 1064 Sat Aug  1 17:48:49 2026     ziweiwu          S    /System/Library/PrivateFrameworks/FamilyCircle.framework/Versions/A/Resources/familycircled
+ 1066 Sat Aug  1 17:48:49 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CommunicationsFilter.framework/CMFSyncAgent
+ 1073 Sat Aug  1 17:48:50 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AuthKit.framework/Versions/A/Support/akd
+ 1080 Sat Aug  1 17:48:50 2026     _securityagent   S    /usr/sbin/distnoted
+ 1097 Sat Aug  1 17:48:50 2026     ziweiwu          S    /System/Library/CoreServices/WiFiAgent.app/Contents/MacOS/WiFiAgent
+ 1106 Sat Aug  1 17:48:51 2026     root             Ss   /usr/sbin/filecoordinationd
+ 1110 Sat Aug  1 17:48:51 2026     ziweiwu          S    /System/Library/PrivateFrameworks/PassKitCore.framework/passd
+ 1113 Sat Aug  1 17:48:51 2026     _appinstalld     S    /usr/sbin/distnoted
+ 1119 Sat Aug  1 17:48:52 2026     ziweiwu          S    /System/Library/CoreServices/AccessibilityUIServer.app/Contents/MacOS/AccessibilityUIServer
+ 1121 Sat Aug  1 17:48:52 2026     ziweiwu          S    /usr/libexec/ContinuityCaptureAgent
+ 1122 Sat Aug  1 17:48:52 2026     _nearbyd         Ss   /usr/libexec/nearbyd
+ 1133 Sat Aug  1 17:48:53 2026     root             Ss   /System/Library/PrivateFrameworks/AmbientDisplay.framework/Versions/A/XPCServices/com.apple.AmbientDisplayAgent.xpc/Contents/MacOS/com.apple.AmbientDisplayAgent
+ 1134 Sat Aug  1 17:48:53 2026     ziweiwu          S    /System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager
+ 1143 Sat Aug  1 17:48:55 2026     ziweiwu          S    /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd
+ 1144 Sat Aug  1 17:48:56 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CoreSpeech.framework/corespeechd
+ 1146 Sat Aug  1 17:48:56 2026     root             Ss   /System/Library/CoreServices/SubmitDiagInfo
+ 1147 Sat Aug  1 17:48:56 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AssistantServices.framework/Versions/A/Support/assistantd
+ 1180 Sat Aug  1 17:48:59 2026     _appleevents     S    /usr/sbin/distnoted
+ 1189 Sat Aug  1 17:49:01 2026     ziweiwu          S    /System/Library/CoreServices/NotificationCenter.app/Contents/MacOS/NotificationCenter
+ 1191 Sat Aug  1 17:49:01 2026     ziweiwu          S    /System/Library/Frameworks/ApplicationServices.framework/Frameworks/ATS.framework/Support/fontd
+ 1193 Sat Aug  1 17:49:01 2026     ziweiwu          S    /System/Library/PrivateFrameworks/ChronoCore.framework/Support/chronod
+ 1195 Sat Aug  1 17:49:01 2026     ziweiwu          S    /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Support/fontworker
+ 1196 Sat Aug  1 17:49:01 2026     ziweiwu          S    /System/Library/PrivateFrameworks/ViewBridge.framework/Versions/A/XPCServices/ViewBridgeAuxiliary.xpc/Contents/MacOS/ViewBridgeAuxiliary
+ 1199 Sat Aug  1 17:49:02 2026     ziweiwu          SN   /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdbulkimport
+ 1210 Sat Aug  1 17:49:03 2026     ziweiwu          S    /usr/libexec/avconferenced
+ 1211 Sat Aug  1 17:49:03 2026     ziweiwu          S    /System/Library/PrivateFrameworks/MediaRemote.framework/Support/mediaremoteagent
+ 1212 Sat Aug  1 17:49:03 2026     ziweiwu          S    /System/Library/PrivateFrameworks/UserActivity.framework/Agents/useractivityd
+ 1243 Sat Aug  1 17:49:07 2026     _installcoordinationd S    /usr/sbin/distnoted
+ 1249 Sat Aug  1 17:49:12 2026     _gamecontrollerd S    /usr/sbin/distnoted
+ 1253 Sat Aug  1 17:49:15 2026     ziweiwu          S    /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+ 1285 Sat Aug  1 17:49:19 2026     ziweiwu          S    /Applications/iTerm.app/Contents/MacOS/iTerm2
+ 1292 Sat Aug  1 17:49:19 2026     ziweiwu          S    /Applications/Bitwarden.app/Contents/MacOS/Bitwarden
+ 1296 Sat Aug  1 17:49:19 2026     ziweiwu          S    /System/Library/CoreServices/Dock.app/Contents/MacOS/Dock
+ 1297 Sat Aug  1 17:49:19 2026     ziweiwu          S    /System/Library/CoreServices/SystemUIServer.app/Contents/MacOS/SystemUIServer
+ 1300 Sat Aug  1 17:49:19 2026     ziweiwu          S    /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder
+ 1306 Sat Aug  1 17:49:20 2026     ziweiwu          S    /System/Library/CoreServices/WallpaperAgent.app/Contents/MacOS/WallpaperAgent
+ 1307 Sat Aug  1 17:49:20 2026     root             Ss   /usr/libexec/gamepolicyd
+ 1310 Sat Aug  1 17:49:20 2026     root             Ss   automountd
+ 1311 Sat Aug  1 17:49:20 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AMPDevices.framework/Versions/A/Support/AMPDeviceDiscoveryAgent
+ 1318 Sat Aug  1 17:49:20 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperImageExtension.appex/Contents/MacOS/WallpaperImageExtension
+ 1319 Sat Aug  1 17:49:20 2026     root             Ss   /System/Library/Frameworks/CryptoTokenKit.framework/ctkahp.bundle/Contents/MacOS/ctkahp
+ 1323 Sat Aug  1 17:49:20 2026     ziweiwu          Ss   /System/Library/CoreServices/Screen Time.app/Contents/PlugIns/ScreenTimeWidgetExtension.appex/Contents/MacOS/ScreenTimeWidgetExtension
+ 1324 Sat Aug  1 17:49:20 2026     ziweiwu          S    /System/Library/Frameworks/InputMethodKit.framework/Resources/imklaunchagent
+ 1328 Sat Aug  1 17:49:21 2026     ziweiwu          S    /System/Library/PrivateFrameworks/TextInputUIMacHelper.framework/Versions/A/XPCServices/CursorUIViewService.xpc/Contents/MacOS/CursorUIViewService
+ 1333 Sat Aug  1 17:49:21 2026     ziweiwu          S    /System/Library/Frameworks/CryptoTokenKit.framework/ctkahp.bundle/Contents/MacOS/ctkahp
+ 1341 Sat Aug  1 17:49:21 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperAerialsExtension.appex/Contents/MacOS/WallpaperAerialsExtension
+ 1343 Sat Aug  1 17:49:22 2026     ziweiwu          Ss   /System/Library/Input Methods/PressAndHold.app/Contents/PlugIns/PAH_Extension.appex/Contents/MacOS/PAH_Extension
+ 1345 Sat Aug  1 17:49:22 2026     ziweiwu          Ss   /System/Applications/Stocks.app/Contents/PlugIns/StocksWidget.appex/Contents/MacOS/StocksWidget
+ 1358 Sat Aug  1 17:49:23 2026     ziweiwu          Ss   /System/Applications/Notes.app/Contents/PlugIns/com.apple.Notes.WidgetExtension.appex/Contents/MacOS/com.apple.Notes.WidgetExtension
+ 1367 Sat Aug  1 17:49:23 2026     ziweiwu          Ss   /System/Library/CoreServices/Dock.app/Contents/XPCServices/com.apple.dock.extra.xpc/Contents/MacOS/com.apple.dock.extra
+ 1376 Sat Aug  1 17:49:24 2026     ziweiwu          Ss   /System/Applications/News.app/Contents/PlugIns/NewsToday2.appex/Contents/MacOS/NewsToday2
+ 1378 Sat Aug  1 17:49:25 2026     ziweiwu          Ss   /System/Applications/FindMy.app/Contents/PlugIns/FindMyWidgetItems.appex/Contents/MacOS/FindMyWidgetItems
+ 1383 Sat Aug  1 17:49:25 2026     ziweiwu          Ss   /System/Applications/Calendar.app/Contents/PlugIns/CalendarWidgetExtension.appex/Contents/MacOS/CalendarWidgetExtension
+ 1384 Sat Aug  1 17:49:25 2026     ziweiwu          Ss   /System/Applications/Notes.app/Contents/PlugIns/com.apple.Notes.IntentsExtension.appex/Contents/MacOS/com.apple.Notes.IntentsExtension
+ 1385 Sat Aug  1 17:49:25 2026     _fpsd            Ss   /System/Library/PrivateFrameworks/CoreFP.framework/Versions/A/fairplayd
+ 1387 Sat Aug  1 17:49:25 2026     ziweiwu          Ss   /System/Applications/Home.app/Contents/PlugIns/HomeWidget.appex/Contents/MacOS/HomeWidget
+ 1388 Sat Aug  1 17:49:25 2026     ziweiwu          Ss   /System/Library/CoreServices/Screen Time.app/Contents/PlugIns/ScreenTimeWidgetIntentsExtension.appex/Contents/MacOS/ScreenTimeWidgetIntentsExtension
+ 1389 Sat Aug  1 17:49:25 2026     ziweiwu          Ss   /System/Applications/FindMy.app/Contents/PlugIns/FindMyWidgetPeople.appex/Contents/MacOS/FindMyWidgetPeople
+ 1391 Sat Aug  1 17:49:26 2026     ziweiwu          Ss   /System/Library/CoreServices/WindowManager.app/Contents/PlugIns/WindowManagerControlsExtension.appex/Contents/MacOS/WindowManagerControlsExtension
+ 1392 Sat Aug  1 17:49:26 2026     ziweiwu          Ss   /System/Applications/Shortcuts.app/Contents/PlugIns/ShortcutsWidgetExtension.appex/Contents/MacOS/ShortcutsWidgetExtension
+ 1394 Sat Aug  1 17:49:26 2026     ziweiwu          Ss   /System/Library/CoreServices/WallpaperAgent.app/Contents/PlugIns/WallpaperControlsExtension.appex/Contents/MacOS/WallpaperControlsExtension
+ 1395 Sat Aug  1 17:49:26 2026     ziweiwu          Ss   /System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/Extensions/SafariWidgetExtension.appex/Contents/MacOS/SafariWidgetExtension
+ 1396 Sat Aug  1 17:49:26 2026     ziweiwu          Ss   /System/Applications/Shortcuts.app/Contents/PlugIns/ShortcutLiveActivityWidgetExtension.appex/Contents/MacOS/ShortcutLiveActivityWidgetExtension
+ 1398 Sat Aug  1 17:49:26 2026     ziweiwu          Ss   /System/Library/CoreServices/Dock.app/Contents/PlugIns/DockControls.appex/Contents/MacOS/DockControls
+ 1401 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/News.app/Contents/PlugIns/NewsTag.appex/Contents/MacOS/NewsTag
+ 1402 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/Photos.app/Contents/PlugIns/PhotosReliveWidget.appex/Contents/MacOS/PhotosReliveWidget
+ 1403 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/Home.app/Contents/PlugIns/HomeEnergyWidgetsExtension.appex/Contents/MacOS/HomeEnergyWidgetsExtension
+ 1406 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/Podcasts.app/Contents/PlugIns/PodcastsWidget.appex/Contents/MacOS/PodcastsWidget
+ 1409 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/Journal.app/Contents/PlugIns/JournalWidgets.appex/Contents/MacOS/JournalWidgets
+ 1410 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/Clock.app/Contents/PlugIns/WorldClockWidget.appex/Contents/MacOS/WorldClockWidget
+ 1412 Sat Aug  1 17:49:27 2026     ziweiwu          Ss   /System/Applications/News.app/Contents/PlugIns/NewsTodayIntents.appex/Contents/MacOS/NewsTodayIntents
+ 1415 Sat Aug  1 17:49:28 2026     ziweiwu          Ss   /System/Applications/Reminders.app/Contents/PlugIns/RemindersWidgetExtension.appex/Contents/MacOS/RemindersWidgetExtension
+ 1417 Sat Aug  1 17:49:28 2026     ziweiwu          S    /Applications/Bitwarden.app/Contents/Frameworks/Bitwarden Helper (GPU).app/Contents/MacOS/Bitwarden Helper (GPU)
+ 1420 Sat Aug  1 17:49:29 2026     ziweiwu          Ss   /System/Library/CoreServices/Batteries.app/Contents/PlugIns/BatteriesAvocadoWidgetExtension.appex/Contents/MacOS/BatteriesAvocadoWidgetExtension
+ 1442 Sat Aug  1 17:49:30 2026     ziweiwu          Ss   /System/Applications/Journal.app/Contents/PlugIns/JournalWidgetsSecure.appex/Contents/MacOS/JournalWidgetsSecure
+ 1456 Sat Aug  1 17:49:32 2026     ziweiwu          Ss   /System/Applications/Tips.app/Contents/PlugIns/TipsWidgetExtension.appex/Contents/MacOS/TipsWidgetExtension
+ 1460 Sat Aug  1 17:49:32 2026     root             Ss   /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/CVMServer
+ 1470 Sat Aug  1 17:49:33 2026     ziweiwu          Ss   /System/Library/CoreServices/PeopleViewService.app/Contents/PlugIns/PeopleWidget_macOSExtension.appex/Contents/MacOS/PeopleWidget_macOSExtension
+ 1473 Sat Aug  1 17:49:34 2026     ziweiwu          S    /Users/ziweiwu/Library/Application Support/iTerm2/iTermServer-3.6.11
+ 1573 Sat Aug  1 17:49:36 2026     ziweiwu          S    /System/Library/Image Capture/Support/icdd
+ 1575 Sat Aug  1 17:49:36 2026     ziweiwu          S    /Library/Application Support/Logitech.localized/LogiRightSightForWebcams/LogiRightSight.app/Contents/MacOS/LogiRightSight
+ 1578 Sat Aug  1 17:49:36 2026     ziweiwu          S    /Library/Application Support/Logitech.localized/LogiOptionsPlus/logioptionsplus_agent.app/Contents/MacOS/logioptionsplus_agent
+ 1581 Sat Aug  1 17:49:36 2026     ziweiwu          S    /System/Library/CoreServices/AirPlayUIAgent.app/Contents/MacOS/AirPlayUIAgent
+ 1586 Sat Aug  1 17:49:36 2026     ziweiwu          S    /System/Library/CoreServices/diagnostics_agent
+ 1587 Sat Aug  1 17:49:36 2026     ziweiwu          S    /System/Library/CoreServices/TextInputMenuAgent.app/Contents/MacOS/TextInputMenuAgent
+ 1591 Sat Aug  1 17:49:37 2026     ziweiwu          S    /Applications/Hyperkey.app/Contents/MacOS/Hyperkey
+ 1596 Sat Aug  1 17:49:37 2026     ziweiwu          S    /Applications/Notion.app/Contents/MacOS/Notion
+ 1597 Sat Aug  1 17:49:38 2026     ziweiwu          S    /Applications/Tailscale.app/Contents/MacOS/Tailscale
+ 1602 Sat Aug  8 21:28:28 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CloudSubscriptionFeatures.framework/FeatureAccessAgent
+ 1604 Sat Aug  1 17:49:38 2026     ziweiwu          S    /Applications/Stillcolor.app/Contents/MacOS/Stillcolor
+ 1610 Sat Aug  1 17:49:38 2026     ziweiwu          S    /Applications/Irvue.app/Contents/MacOS/Irvue
+ 1613 Sat Aug  1 17:49:39 2026     ziweiwu          S    /Applications/Alfred 5.app/Contents/MacOS/Alfred
+ 1618 Sat Aug  1 17:49:39 2026     ziweiwu          S    /Applications/Datacolor/SpyderXPro/Support/SpyderUtility.app/Contents/MacOS/SpyderUtility
+ 1632 Sat Aug  1 17:49:39 2026     ziweiwu          S    /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/MacOS/cloud-drive-ui
+ 1633 Sat Aug  1 17:49:40 2026     ziweiwu          S    /System/Library/CoreServices/Spotlight.app/Contents/MacOS/Spotlight
+ 1634 Sat Aug  1 17:49:40 2026     root             Ss   /Library/SystemExtensions/608D83D1-1B82-4740-9BAC-B5A8CF51236F/io.tailscale.ipn.macsys.network-extension.systemextension/Contents/MacOS/io.tailscale.ipn.macsys.network-extension
+ 1635 Sat Aug  1 17:49:40 2026     ziweiwu          S    /Applications/Notion.app/Contents/Frameworks/Notion Helper.app/Contents/MacOS/Notion Helper
+ 1636 Sat Aug  1 17:49:40 2026     ziweiwu          S    /Applications/Notion.app/Contents/Frameworks/Notion Helper.app/Contents/MacOS/Notion Helper
+ 1652 Sat Aug  1 17:49:41 2026     ziweiwu          S    /Applications/Notion.app/Contents/Frameworks/Notion Helper.app/Contents/MacOS/Notion Helper
+ 1679 Sat Aug  1 17:49:42 2026     ziweiwu          S    /Applications/Datacolor/SpyderXPro/Support/SpyderEngage.app/Contents/MacOS/SpyderEngage
+ 1681 Sat Aug  1 17:49:42 2026     ziweiwu          S    /Applications/Notion.app/Contents/Frameworks/Notion Helper (Renderer).app/Contents/MacOS/Notion Helper (Renderer)
+ 1690 Sat Aug  1 17:49:43 2026     root             Ss   /Applications/Synology Drive Client.app/Contents/MacOS/cloud-drive-eventd
+ 1691 Sat Aug  1 17:49:43 2026     ziweiwu          S    /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/MacOS/cloud-drive-connect
+ 1694 Sat Aug  1 17:49:44 2026     ziweiwu          S    /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/Resources/FinderHelper.app/Contents/MacOS/FinderHelper
+ 1695 Sat Aug  1 17:49:44 2026     ziweiwu          Ss   /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/Resources/FinderHelper.app/Contents/PlugIns/FinderSync.appex/Contents/MacOS/FinderSync
+ 1707 Sat Aug  1 17:49:45 2026     ziweiwu          S    /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/MacOS/cloud-drive-daemon
+ 1710 Sat Aug  1 17:49:45 2026     ziweiwu          S    /System/Library/CoreServices/UserNotificationCenter.app/Contents/MacOS/UserNotificationCenter
+ 1714 Sat Aug  1 17:49:46 2026     ziweiwu          S    /Library/Application Support/Logitech.localized/LogiOptionsPlus/logioptionsplus_agent.app/Contents/MacOS/logi_crashpad_handler
+ 1746 Sat Aug  1 17:49:56 2026     ziweiwu          S    /Applications/Bitwarden.app/Contents/Frameworks/Bitwarden Helper (Renderer).app/Contents/MacOS/Bitwarden Helper (Renderer)
+ 1749 Sat Aug  1 17:49:56 2026     ziweiwu          S    /Applications/Bitwarden.app/Contents/Frameworks/Bitwarden Helper.app/Contents/MacOS/Bitwarden Helper
+ 1785 Sat Aug  1 17:50:22 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/NeptuneOneWallpaper.appex/Contents/MacOS/NeptuneOneWallpaper
+ 1786 Sat Aug  1 17:50:23 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperGradientExtension.appex/Contents/MacOS/WallpaperGradientExtension
+ 1787 Sat Aug  1 17:50:23 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperSequoiaExtension.appex/Contents/MacOS/WallpaperSequoiaExtension
+ 1788 Sat Aug  1 17:50:23 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperMacintoshExtension.appex/Contents/MacOS/WallpaperMacintoshExtension
+ 1789 Sat Aug  1 17:50:23 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperDynamicExtension.appex/Contents/MacOS/WallpaperDynamicExtension
+ 1790 Sat Aug  1 17:50:23 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperLegacyExtension.appex/Contents/MacOS/WallpaperLegacyExtension
+ 1791 Sat Aug  1 17:50:23 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/WallpaperSonomaExtension.appex/Contents/MacOS/WallpaperSonomaExtension
+ 1793 Sat Aug  1 17:50:24 2026     ziweiwu          S    /System/Library/PrivateFrameworks/EmailDaemon.framework/Versions/A/maild
+ 1819 Sat Aug  1 17:50:51 2026     root             Ss   /usr/libexec/taskgated
+ 1836 Sat Aug  1 17:50:58 2026     _rmd             S    /usr/sbin/distnoted
+ 1869 Sat Aug  8 21:28:29 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CoreFollowUp.framework/Versions/A/Support/followupd
+ 1998 Sat Aug  1 17:55:05 2026     root             Ss   /System/Library/CoreServices/CrashReporterSupportHelper
+ 2024 Wed Aug  5 22:48:18 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+ 2062 Sat Aug  1 17:57:49 2026     ziweiwu          S    /System/Cryptexes/App/usr/libexec/PasswordBreachAgent
+ 2377 Sat Aug  8 20:49:05 2026     ziweiwu          Ss   /Applications/iTerm.app/Contents/XPCServices/pidinfo.xpc/Contents/MacOS/pidinfo
+ 2544 Sat Aug  1 18:05:09 2026     _neuralengine    S    /usr/sbin/distnoted
+ 2867 Sat Aug  8 00:26:49 2026     root             Ss   /usr/libexec/usermanagerd
+ 3049 Sat Aug  8 21:55:38 2026     ziweiwu          S    /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+ 3827 Sat Aug  8 21:31:24 2026     ziweiwu          S    /System/Library/PrivateFrameworks/DataAccess.framework/Support/dataaccessd
+ 6392 Sat Aug  8 19:57:40 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+ 6415 Sat Aug  1 20:50:42 2026     ziweiwu          S    /System/Library/CoreServices/PowerChime.app/Contents/MacOS/PowerChime
+ 6463 Sat Aug  1 20:51:40 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+ 6520 Sat Aug  1 20:51:45 2026     ziweiwu          Ss   tmux
+ 6696 Sat Aug  8 20:12:26 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+ 6904 Sat Aug  8 21:31:29 2026     ziweiwu          S    /usr/libexec/proactived
+ 7082 Sat Aug  8 21:21:26 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+ 7170 Mon Aug  3 11:35:49 2026     root             Ss   /Applications/Tailscale.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate
+ 7171 Mon Aug  3 11:35:49 2026     ziweiwu          S    /Users/ziweiwu/Library/Caches/io.tailscale.ipn.macsys/org.sparkle-project.Sparkle/Launcher/kDH86VtNu/Updater.app/Contents/MacOS/Updater
+ 7589 Wed Aug  5 22:50:02 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+ 9002 Sat Aug  8 12:53:05 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+10207 Wed Aug  5 22:50:22 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+10351 Sat Aug  8 12:43:38 2026     ziweiwu          S    /System/Library/CoreServices/CoreLocationAgent.app/Contents/MacOS/CoreLocationAgent
+10388 Sat Aug  8 21:56:01 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+11055 Sat Aug  1 20:51:54 2026     ziweiwu          Ss   /System/Applications/System Settings.app/Contents/PlugIns/csimporter.appex/Contents/MacOS/csimporter
+11201 Sat Aug  8 12:43:43 2026     root             Ss   /usr/libexec/coreduetd
+11480 Sat Aug  8 21:56:05 2026     ziweiwu          S    /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+12006 Sat Aug  8 21:56:06 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+12385 Sun Aug  2 12:54:49 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/MacOS/Obsidian
+12471 Sun Aug  2 12:54:49 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/Frameworks/Obsidian Helper (GPU).app/Contents/MacOS/Obsidian Helper (GPU)
+12472 Sun Aug  2 12:54:49 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/Frameworks/Obsidian Helper.app/Contents/MacOS/Obsidian Helper
+12473 Sun Aug  2 12:54:50 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/Frameworks/Obsidian Helper (Renderer).app/Contents/MacOS/Obsidian Helper (Renderer)
+12710 Wed Aug  5 22:50:45 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+12712 Wed Aug  5 22:50:49 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+12715 Wed Aug  5 22:50:59 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+13035 Sun Aug  2 12:54:55 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+13037 Sun Aug  2 12:54:58 2026     ziweiwu          S    /System/Library/Services/AppleSpell.service/Contents/MacOS/AppleSpell
+13315 Sat Aug  8 21:56:10 2026     ziweiwu          Ss   /bin/zsh
+13388 Sat Aug  8 21:56:11 2026     root             R    /bin/ps
+13550 Sat Aug  8 12:29:41 2026     ziweiwu          S    /System/Library/Frameworks/LocalAuthentication.framework/Support/coreauthd
+15217 Sun Aug  2 11:04:52 2026     root             Ss   /usr/libexec/wifivelocityd
+16462 Sat Aug  1 22:08:28 2026     ziweiwu          Ss   /System/Library/Input Methods/SCIM.app/Contents/PlugIns/SCIM_Extension.appex/Contents/MacOS/SCIM_Extension
+16758 Sat Aug  8 10:18:15 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+16780 Sat Aug  8 10:18:20 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/chrome_crashpad_handler
+16784 Sat Aug  8 10:18:20 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper
+16785 Sat Aug  8 10:18:20 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper
+16786 Sat Aug  8 10:18:20 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper
+16790 Sat Aug  8 10:18:21 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+16796 Sat Aug  8 10:18:21 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+16798 Sat Aug  8 10:18:21 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+16799 Sat Aug  8 10:18:21 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+16804 Sat Aug  8 10:18:21 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+16805 Sat Aug  8 10:18:21 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+17422 Wed Aug  5 15:30:52 2026     ziweiwu          S    /Applications/PDF Expert.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate
+17430 Wed Aug  5 15:30:52 2026     ziweiwu          S    /Users/ziweiwu/Library/Caches/com.readdle.PDFExpert-Mac/org.sparkle-project.Sparkle/Launcher/Rd3klHaCL/Updater.app/Contents/MacOS/Updater
+18153 Wed Aug  5 23:40:50 2026     _netbios         SNs  /usr/sbin/netbiosd
+19152 Sat Aug  8 20:00:38 2026     root             Ss   /usr/libexec/PowerUIAgent
+19520 Sat Aug  8 21:29:01 2026     ziweiwu          Ss   /System/Library/CoreServices/Siri.app/Contents/XPCServices/SiriNCService.xpc/Contents/MacOS/SiriNCService
+19773 Sat Aug  8 21:29:01 2026     ziweiwu          S    /usr/libexec/siriknowledged
+20008 Sat Aug  8 21:29:01 2026     root             Ss   /usr/libexec/assetsubscriptiond
+20009 Sat Aug  8 21:29:01 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AssetCacheServices.framework/Versions/A/XPCServices/AssetCacheLocatorService.xpc/Contents/MacOS/AssetCacheLocatorService
+20078 Wed Aug  5 22:52:10 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+20244 Sat Aug  8 21:35:33 2026     root             Ss   /usr/sbin/systemsoundserverd
+20245 Sat Aug  8 21:35:33 2026     root             Ss   /System/Library/Frameworks/AudioToolbox.framework/AudioComponentRegistrar
+20246 Sat Aug  8 21:35:33 2026     root             Ss   /System/Library/Frameworks/AudioToolbox.framework/XPCServices/com.apple.audio.SandboxHelper.xpc/Contents/MacOS/com.apple.audio.SandboxHelper
+20473 Sat Aug  8 20:51:18 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+20601 Sat Aug  8 14:41:42 2026     ziweiwu          S    /System/Library/PrivateFrameworks/People.framework/peopled
+20780 Sat Aug  8 19:48:37 2026     ziweiwu          S    /usr/libexec/linkd
+21111 Sat Aug  8 12:44:13 2026     root             Ss   /usr/libexec/wifip2pd
+21480 Sat Aug  8 20:36:01 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+22502 Sat Aug  8 21:38:43 2026     root             Ss   /System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XPCServices/XprotectService.xpc/Contents/MacOS/XprotectService
+22503 Sat Aug  8 21:38:43 2026     root             Ss   /System/Library/CoreServices/ReportCrash
+22712 Sat Aug  8 21:38:43 2026     root             Ss   /System/Library/PrivateFrameworks/CoreSymbolication.framework/coresymbolicationd
+22793 Sat Aug  8 18:40:29 2026     _softwareupdate  Ss   /System/Library/CoreServices/Software Update.app/Contents/Resources/softwareupdated
+22831 Sat Aug  8 21:29:07 2026     ziweiwu          S    /System/Library/PrivateFrameworks/iCloudNotification.framework/iCloudNotificationAgent
+22833 Sat Aug  8 21:29:07 2026     ziweiwu          S    /System/Library/PrivateFrameworks/VoiceShortcuts.framework/Versions/A/Support/siriactionsd
+22852 Sat Aug  8 21:29:07 2026     ziweiwu          S    /usr/libexec/appleaccountd
+22853 Sat Aug  8 21:29:07 2026     ziweiwu          S    /System/Library/PrivateFrameworks/iCloudDriveCore.framework/Versions/A/Support/bird
+22975 Sat Aug  8 18:22:32 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/CloudTelemetry.framework/Versions/A/XPCServices/CloudTelemetryService.xpc/Contents/MacOS/CloudTelemetryService
+23108 Sat Aug  8 18:40:30 2026     ziweiwu          S    /usr/libexec/pkd
+23134 Sat Aug  8 18:40:32 2026     root             Ss   /System/Library/PrivateFrameworks/PackageKit.framework/Resources/system_installd
+23138 Sat Aug  8 18:40:32 2026     root             Ss   /System/Library/PrivateFrameworks/PackageKit.framework/Resources/installd
+23363 Sun Aug  2 11:46:38 2026     ziweiwu          Ss   /System/Applications/Podcasts.app/Contents/PlugIns/com.apple.podcasts.SpotlightIndexExtension.appex/Contents/MacOS/com.apple.podcasts.SpotlightIndexExtension
+23445 Wed Aug  5 22:52:48 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+24702 Sat Aug  8 21:29:10 2026     ziweiwu          S    /System/Library/Frameworks/CryptoTokenKit.framework/ctkd
+24779 Sat Aug  8 20:52:30 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+25144 Sat Aug  8 12:01:26 2026     ziweiwu          Ss   /bin/zsh
+25148 Sat Aug  8 12:01:26 2026     ziweiwu          S    eza
+27011 Thu Aug  6 02:15:36 2026     ziweiwu          S    /System/Library/PrivateFrameworks/StatusKit.framework/StatusKitAgent
+27651 Sun Aug  2 19:05:45 2026     ziweiwu          Ss   /System/Applications/Mail.app/Contents/PlugIns/com.apple.mail.SpotlightIndexExtension.appex/Contents/MacOS/com.apple.mail.SpotlightIndexExtension
+27981 Sat Aug  8 21:32:06 2026     ziweiwu          SN   python3
+28480 Sat Aug  8 21:22:37 2026     ziweiwu          S    /usr/libexec/knowledge-agent
+28951 Wed Aug  5 22:54:02 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+29325 Sat Aug  8 20:30:55 2026     ziweiwu          S    /System/Library/CoreServices/rcd.app/Contents/MacOS/rcd
+30180 Sat Aug  8 20:53:41 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+30335 Sat Aug  8 21:46:59 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+31330 Sat Aug  8 21:32:12 2026     ziweiwu          S    /System/Library/CoreServices/CoreServicesUIAgent.app/Contents/MacOS/CoreServicesUIAgent
+31540 Sat Aug  8 21:32:12 2026     ziweiwu          S    /System/Library/PrivateFrameworks/Synapse.framework/Support/contentlinkingd
+31635 Sat Aug  8 20:19:26 2026     ziweiwu          S    /System/Library/PrivateFrameworks/SyncedDefaults.framework/Support/syncdefaultsd
+31961 Sat Aug  8 21:22:42 2026     ziweiwu          S    /System/Library/PrivateFrameworks/GeoAnalytics.framework/geoanalyticsd
+32052 Sat Aug  8 21:32:13 2026     ziweiwu          S    /System/Library/Frameworks/StoreKit.framework/Support/storekitagent
+32477 Sat Aug  8 21:32:15 2026     root             Ss   /usr/libexec/wallpaperexportd
+32905 Sat Aug  8 21:29:23 2026     root             Ss   /usr/libexec/amfid
+33482 Sat Aug  8 21:29:24 2026     root             Ss   /System/Library/PrivateFrameworks/CloudTelemetry.framework/Versions/A/XPCServices/CloudTelemetryService.xpc/Contents/MacOS/CloudTelemetryService
+33490 Sat Aug  8 21:29:24 2026     root             Ss   /System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XPCServices/XProtectBridgeService.xpc/Contents/MacOS/XProtectBridgeService
+33934 Sat Aug  8 20:03:13 2026     root             Ss   /usr/libexec/PerfPowerServices
+34081 Sat Aug  8 19:51:14 2026     ziweiwu          Ss   /bin/zsh
+34083 Sat Aug  8 19:51:14 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/MacOS/Obsidian
+34088 Sat Aug  8 19:51:14 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/Frameworks/Obsidian Helper (GPU).app/Contents/MacOS/Obsidian Helper (GPU)
+34089 Sat Aug  8 19:51:14 2026     ziweiwu          S    /Applications/Obsidian.app/Contents/Frameworks/Obsidian Helper.app/Contents/MacOS/Obsidian Helper
+34622 Sat Aug  8 21:32:16 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AppleMediaServicesUI.framework/amsengagementd
+35800 Sat Aug  8 17:26:17 2026     ziweiwu          S    /System/Library/PrivateFrameworks/TelephonyUtilities.framework/callservicesd
+35831 Sat Aug  8 21:32:19 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/IntelligencePlatformCompute.framework/Versions/A/XPCServices/IntelligencePlatformComputeService.xpc/Contents/MacOS/IntelligencePlatformComputeService
+36362 Sat Aug  8 21:52:20 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+36923 Sat Aug  8 21:52:22 2026     ziweiwu          S    /System/Library/PrivateFrameworks/UsageTracking.framework/Versions/A/UsageTrackingAgent
+36957 Thu Aug  6 18:17:08 2026     ziweiwu          S    /usr/libexec/spotlightknowledged.updater
+36973 Sat Aug  8 20:55:07 2026     ziweiwu          S    /System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/XPCServices/com.apple.geod.xpc/Contents/MacOS/com.apple.geod
+37420 Sat Aug  8 21:32:22 2026     ziweiwu          Ss   /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService
+37917 Sat Aug  8 21:32:23 2026     _locationd       S    /System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/XPCServices/com.apple.geod.xpc/Contents/MacOS/com.apple.geod
+37918 Sat Aug  8 21:32:23 2026     _locationd       S    /usr/libexec/secinitd
+38076 Tue Aug  4 21:50:04 2026     root             Ss   /usr/sbin/bluetoothd
+38228 Sat Aug  8 21:15:34 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+38400 Sat Aug  8 21:32:23 2026     _locationd       S    /usr/sbin/cfprefsd
+38401 Sat Aug  8 21:32:24 2026     _locationd       S    /usr/libexec/trustd
+38407 Sat Aug  8 21:32:24 2026     root             Ss   /usr/libexec/trustdFileHelper
+38451 Sat Aug  8 20:03:31 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+38454 Sat Aug  8 20:03:31 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+38458 Sat Aug  8 20:03:35 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+38831 Sat Aug  8 21:42:22 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+39712 Sun Aug  2 12:39:52 2026     ziweiwu          S    /System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged
+39920 Sat Aug  8 21:32:26 2026     root             Ss   /usr/libexec/countryd
+40008 Sat Aug  8 21:32:26 2026     _locationd       S    /usr/libexec/containermanagerd
+40566 Sat Aug  8 21:15:40 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+40793 Tue Aug  4 21:50:18 2026     _driverkit       Ss   /System/Library/DriverExtensions/IOUserBluetoothSerialDriver.dext/IOUserBluetoothSerialDriver
+40794 Tue Aug  4 21:50:18 2026     _driverkit       Ss   /System/Library/DriverExtensions/IOUserBluetoothSerialDriver.dext/IOUserBluetoothSerialDriver
+40796 Tue Aug  4 21:50:18 2026     _driverkit       Ss   /System/Library/DriverExtensions/IOUserBluetoothSerialDriver.dext/IOUserBluetoothSerialDriver
+41194 Wed Aug  5 22:56:15 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+41473 Sat Aug  8 21:32:29 2026     _cmiodalassistants S    /System/Library/PrivateFrameworks/GeoServices.framework/Versions/A/XPCServices/com.apple.geod.xpc/Contents/MacOS/com.apple.geod
+41515 Sat Aug  8 21:32:29 2026     _cmiodalassistants S    /usr/libexec/secinitd
+41537 Sat Aug  8 21:32:29 2026     _cmiodalassistants S    /usr/sbin/cfprefsd
+41538 Sat Aug  8 21:32:29 2026     _cmiodalassistants S    /usr/libexec/trustd
+41540 Sat Aug  8 21:32:29 2026     _cmiodalassistants S    /usr/libexec/containermanagerd
+42560 Sat Aug  8 21:32:31 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+43891 Sat Aug  8 21:26:43 2026     ziweiwu          S    /usr/libexec/replayd
+43915 Sat Aug  8 21:26:43 2026     root             Ss   /usr/libexec/aned
+43989 Sat Aug  8 21:05:58 2026     ziweiwu          S    /System/Library/PrivateFrameworks/SafariSafeBrowsing.framework/com.apple.Safari.SafeBrowsing.Service
+44181 Sat Aug  8 21:26:43 2026     root             Ss   /System/Library/PrivateFrameworks/PowerLog.framework/Versions/A/XPCServices/PerfPowerTelemetryClientRegistrationService.xpc/Contents/MacOS/PerfPowerTelemetryClientRegistrationService
+45172 Wed Aug  5 23:44:13 2026     ziweiwu          S    /System/Library/CoreServices/Setup Assistant.app/Contents/Resources/mbuseragent
+45628 Sun Aug  2 13:33:33 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+46430 Sat Aug  8 12:46:45 2026     ziweiwu          S    /Applications/Rectangle.app/Contents/MacOS/Rectangle
+46500 Sat Aug  8 21:23:28 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AXAssetLoader.framework/Support/axassetsd
+46530 Sat Aug  8 21:29:47 2026     root             Ss   /usr/libexec/logd_helper
+46908 Sat Aug  8 11:54:41 2026     ziweiwu          S    /System/Library/PrivateFrameworks/AppleMediaServices.framework/Resources/amsaccountsd
+46969 Sat Aug  8 12:46:54 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+47044 Sat Aug  8 12:46:54 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+47088 Sat Aug  8 12:46:55 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+47650 Sat Aug  8 20:05:00 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+47827 Sat Aug  8 12:46:58 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+47894 Sat Aug  8 19:17:14 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+48290 Sat Aug  8 10:10:18 2026     ziweiwu          Ss   /System/Library/Frameworks/AuthenticationServices.framework/Versions/A/XPCServices/com.apple.AuthenticationServices.Helper.xpc/Contents/MacOS/com.apple.AuthenticationServices.Helper
+49179 Sat Aug  8 19:17:43 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+49490 Sat Aug  8 12:47:03 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper
+49495 Sat Aug  8 12:47:03 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper
+49686 Sun Aug  2 13:14:37 2026     ziweiwu          S    /System/Library/PrivateFrameworks/KerberosHelper/Helpers/DiskUnmountWatcher
+49687 Sun Aug  2 13:14:38 2026     ziweiwu          S    /Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay
+49852 Sun Aug  2 13:34:47 2026     ziweiwu          S    /System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari
+49940 Sat Aug  8 20:05:31 2026     ziweiwu          S    /Library/Application Support/Logitech.localized/LogiOptionsPlus/logi_ai_prompt_builder/Logi AI Prompt Builder.app/Contents/MacOS/Logi AI Prompt Builder
+50959 Sun Aug  2 13:34:48 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.Networking.xpc/Contents/MacOS/com.apple.WebKit.Networking
+51004 Sun Aug  2 13:34:48 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.GPU.xpc/Contents/MacOS/com.apple.WebKit.GPU
+51822 Sat Aug  8 21:29:56 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CalendarDaemon.framework/Support/calaccessd
+51823 Sat Aug  8 21:29:57 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CommunicationTrust.framework/Support/communicationtrustd
+51827 Sat Aug  8 20:06:05 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+51831 Sat Aug  8 20:06:08 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+52528 Mon Aug  3 15:10:02 2026     ziweiwu          S    /Applications/PDF Expert.app/Contents/MacOS/PDF Expert
+53849 Sat Aug  8 21:23:46 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+54855 Sat Aug  8 21:32:59 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/AppPredictionFoundation.framework/Versions/A/XPCServices/AppPredictionIntentsHelperService.xpc/Contents/MacOS/AppPredictionIntentsHelperService
+55658 Sat Aug  8 21:26:56 2026     ziweiwu          S    /usr/libexec/assessmentagent
+55972 Sun Aug  2 12:45:33 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+56240 Sat Aug  8 21:23:54 2026     ziweiwu          S    /usr/libexec/remindd
+56286 Mon Aug  3 15:10:32 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+56359 Sat Aug  8 20:07:01 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+56623 Sat Aug  8 21:26:57 2026     ziweiwu          S    /usr/libexec/feedbackd
+56917 Sat Aug  8 19:20:06 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+57025 Sat Aug  8 19:52:32 2026     ziweiwu          S    /System/Library/PrivateFrameworks/DoNotDisturbServer.framework/Support/donotdisturbd
+57157 Sat Aug  8 21:26:58 2026     ziweiwu          S    /System/Library/PrivateFrameworks/IntelligenceFlowRuntime.framework/Versions/A/intelligenceflowd
+57160 Sat Aug  8 21:26:59 2026     ziweiwu          S    /System/Library/Frameworks/CoreTelephony.framework/Support/CommCenter
+57485 Sun Aug  2 21:22:42 2026     ziweiwu          S    /Applications/MacVim.app/Contents/MacOS/MacVim
+57486 Sun Aug  2 21:22:42 2026     ziweiwu          S    /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdwrite
+57500 Sun Aug  2 21:22:43 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+58178 Sat Aug  8 19:20:32 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+58185 Sat Aug  8 21:27:00 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CoreAnalytics.framework/Support/analyticsagent
+58556 Sat Aug  8 21:27:01 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/commerce
+58976 Wed Aug  5 22:59:02 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/firefox
+58979 Wed Aug  5 22:59:03 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/crashhelper
+58981 Wed Aug  5 22:59:03 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/gpu-helper.app/Contents/MacOS/Firefox GPU Helper
+58982 Wed Aug  5 22:59:03 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+58983 Wed Aug  5 22:59:04 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+58984 Wed Aug  5 22:59:04 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+58986 Wed Aug  5 22:59:04 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SafariPlatformSupport.framework/Versions/A/XPCServices/com.apple.SafariPlatformSupport.Helper.xpc/Contents/MacOS/com.apple.SafariPlatformSupport.Helper
+58987 Wed Aug  5 22:59:04 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+58990 Wed Aug  5 22:59:04 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+59014 Wed Aug  5 22:59:08 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+61370 Sat Aug  8 21:27:05 2026     root             Ss   /usr/libexec/ospredictiond
+61938 Mon Aug  3 21:59:12 2026     ziweiwu          S    /System/Library/CoreServices/UIKitSystem.app/Contents/MacOS/UIKitSystem
+62549 Sat Aug  8 19:21:51 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+64247 Sat Aug  8 21:27:09 2026     ziweiwu          S    /System/Cryptexes/App/usr/libexec/com.apple.Safari.History
+64372 Sat Aug  8 21:27:09 2026     _applepay        Ss   /usr/libexec/nfcd
+64967 Sat Aug  8 21:27:10 2026     _applepay        Ss   /System/Library/PrivateFrameworks/NearFieldPrivateServices.framework/Versions/A/XPCServices/NFStorageServer.xpc/Contents/MacOS/NFStorageServer
+65433 Sat Aug  8 18:41:53 2026     ziweiwu          S    /System/Library/Frameworks/LocalAuthentication.framework/Support/coreautha.bundle/Contents/MacOS/coreautha
+66445 Sun Aug  2 12:47:04 2026     ziweiwu          S    /Applications/Notion.app/Contents/Frameworks/Notion Helper (Renderer).app/Contents/MacOS/Notion Helper (Renderer)
+66756 Sat Aug  8 14:13:25 2026     ziweiwu          S    /usr/libexec/SidecarRelay
+67743 Sat Aug  8 21:48:58 2026     root             Ss   /System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/Resources/backgroundtaskmanagementd
+67744 Sat Aug  8 21:48:58 2026     ziweiwu          S    /usr/libexec/tipsd
+68218 Sat Aug  8 21:27:13 2026     ziweiwu          S    /System/Library/Frameworks/ManagedSettings.framework/Versions/A/ManagedSettingsAgent
+68430 Sun Aug  2 18:50:56 2026     ziweiwu          S    /usr/libexec/milod
+68569 Sat Aug  8 21:27:14 2026     root             Ss   /usr/libexec/online-auth-agent
+68621 Sat Aug  8 21:49:01 2026     _softwareupdate  Ss   /System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/Support/softwareupdated
+68667 Thu Aug  6 16:24:19 2026     _biome           Ss   /System/Library/PrivateFrameworks/BiomeStreams.framework/Support/biomed
+68864 Sat Aug  8 21:49:02 2026     root             Ss   /System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/Versions/A/XPCServices/com.apple.MobileSoftwareUpdate.CleanupPreparePathService.xpc/Contents/MacOS/com.apple.MobileSoftwareUpdate.CleanupPreparePathService
+69536 Sat Aug  8 21:10:45 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+69739 Sat Aug  8 14:13:34 2026     ziweiwu          S    /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/XPCServices/com.apple.hiservices-xpcservice.xpc/Contents/MacOS/com.apple.hiservices-xpcservice
+70130 Sat Aug  8 14:13:42 2026     ziweiwu          S    /System/Library/CoreServices/talagentd
+70434 Sun Aug  2 18:51:04 2026     ziweiwu          S    /usr/bin/ssh-agent
+70554 Sat Aug  8 21:18:05 2026     root             Ss   /usr/libexec/nehelper
+71083 Thu Aug  6 16:39:38 2026     ziweiwu          S    /usr/libexec/duetexpertd
+71100 Sat Aug  8 11:13:33 2026     ziweiwu          Ss   /System/Library/Frameworks/AppKit.framework/Versions/C/XPCServices/com.apple.appkit.xpc.openAndSavePanelService.xpc/Contents/MacOS/com.apple.appkit.xpc.openAndSavePanelService
+71104 Sat Aug  8 11:13:34 2026     ziweiwu          Ss   /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/Resources/FinderHelper.app/Contents/PlugIns/FinderSync.appex/Contents/MacOS/FinderSync
+71260 Sat Aug  8 21:49:09 2026     ziweiwu          S    /System/Library/PrivateFrameworks/IASUtilities.framework/Versions/A/Resources/installerauthagent
+71261 Sat Aug  8 21:49:09 2026     _softwareupdate  Ss   /usr/libexec/NRDUpdated
+71380 Mon Aug  3 15:12:20 2026     ziweiwu          Ss   /System/Library/Frameworks/AppKit.framework/Versions/C/XPCServices/com.apple.appkit.xpc.openAndSavePanelService.xpc/Contents/MacOS/com.apple.appkit.xpc.openAndSavePanelService
+71387 Mon Aug  3 15:12:20 2026     ziweiwu          Ss   /Users/ziweiwu/Library/Application Support/SynologyDrive/SynologyDrive.app/Contents/Resources/FinderHelper.app/Contents/PlugIns/FinderSync.appex/Contents/MacOS/FinderSync
+71684 Sat Aug  8 21:49:10 2026     root             Ss   /System/Library/AssetsV2/com_apple_MobileAsset_RecoveryOSUpdateBrain/7a84bd1c89069f2e742ece792e84523266f36fdf.asset/AssetData/com.apple.NRD.UpdateBrainService.xpc/Contents/MacOS/com.apple.NRD.UpdateBrainService
+72050 Sat Aug  8 21:27:18 2026     root             Ss   /usr/libexec/powerexperienced
+72227 Thu Aug  6 08:46:56 2026     ziweiwu          S    /System/Applications/FindMy.app/Contents/MacOS/FindMy
+72398 Sat Aug  8 21:49:12 2026     _softwareupdate  Ss   /System/Library/PrivateFrameworks/UIFoundation.framework/Versions/A/XPCServices/nsattributedstringagent.xpc/Contents/MacOS/nsattributedstringagent
+72399 Sat Aug  8 21:49:13 2026     _softwareupdate  S    /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/XPCServices/com.apple.hiservices-xpcservice.xpc/Contents/MacOS/com.apple.hiservices-xpcservice
+72427 Sat Aug  8 21:49:13 2026     _softwareupdate  S    /usr/sbin/cfprefsd
+72451 Sat Aug  8 21:33:51 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+72644 Sat Aug  8 21:49:13 2026     _softwareupdate  S    /System/Library/Frameworks/MediaAccessibility.framework/Versions/A/XPCServices/com.apple.accessibility.mediaaccessibilityd.xpc/Contents/MacOS/com.apple.accessibility.mediaaccessibilityd
+72645 Sat Aug  8 21:49:13 2026     ziweiwu          S    /System/Library/PrivateFrameworks/SoftwareUpdate.framework/Resources/SoftwareUpdateNotificationManager.app/Contents/MacOS/SoftwareUpdateNotificationManager
+72646 Sat Aug  8 21:49:14 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/UIFoundation.framework/Versions/A/XPCServices/nsattributedstringagent.xpc/Contents/MacOS/nsattributedstringagent
+72868 Sat Aug  8 21:49:14 2026     ziweiwu          S    /System/Library/Frameworks/MediaAccessibility.framework/Versions/A/XPCServices/com.apple.accessibility.mediaaccessibilityd.xpc/Contents/MacOS/com.apple.accessibility.mediaaccessibilityd
+72892 Sat Aug  8 21:49:14 2026     ziweiwu          S    /System/Library/Frameworks/AudioToolbox.framework/AudioComponentRegistrar
+72894 Sat Aug  8 21:49:14 2026     root             Ss   /System/Library/PrivateFrameworks/EcosystemAnalytics.framework/Support/ecosystemanalyticsd
+73042 Sat Aug  8 21:33:53 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+73892 Sat Aug  8 21:18:15 2026     ziweiwu          S    /usr/libexec/neagent
+74377 Sat Aug  8 21:49:15 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/UIFoundation.framework/Versions/A/XPCServices/nsattributedstringagent.xpc/Contents/MacOS/nsattributedstringagent
+74622 Sat Aug  8 21:49:16 2026     root             Ss   /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+74623 Sat Aug  8 21:49:17 2026     ziweiwu          S    /usr/libexec/GamePolicyAgent
+74624 Sat Aug  8 21:49:17 2026     ziweiwu          Ss   /System/Library/Frameworks/NetFS.framework/Versions/A/XPCServices/PlugInLibraryService.xpc/Contents/MacOS/PlugInLibraryService
+74625 Sat Aug  8 21:49:17 2026     ziweiwu          S    /usr/libexec/MTLAssetUpgraderD
+74626 Sat Aug  8 21:49:17 2026     ziweiwu          S    /usr/libexec/swcd
+74627 Sat Aug  8 21:49:17 2026     ziweiwu          S    /usr/libexec/dmd
+74628 Sat Aug  8 21:49:17 2026     ziweiwu          S    /System/Library/Frameworks/MediaExtension.framework/Versions/A/Helpers/MENotificationAgent
+74629 Sat Aug  8 21:49:17 2026     ziweiwu          S    /System/Library/PrivateFrameworks/BackgroundTaskManagement.framework/Support/BackgroundTaskManagementAgent.app/Contents/MacOS/BackgroundTaskManagementAgent
+75134 Sat Aug  8 21:49:19 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/CascadeSets.framework/Versions/A/XPCServices/SetStoreUpdateService.xpc/Contents/MacOS/SetStoreUpdateService
+75748 Sat Aug  8 21:18:17 2026     root             Ss   /System/Library/Frameworks/Metal.framework/Versions/A/XPCServices/MTLCompilerService.xpc/Contents/MacOS/MTLCompilerService
+75795 Sat Aug  8 11:31:08 2026     ziweiwu          Ss   /Applications/MacVim.app/Contents/MacOS/Vim
+75806 Sat Aug  8 11:31:08 2026     ziweiwu          Ss   node
+76035 Sat Aug  8 21:37:14 2026     root             Ss   /usr/sbin/spindump
+76043 Sat Aug  8 21:37:14 2026     ziweiwu          S    /usr/libexec/spindump_agent
+76273 Sat Aug  8 21:37:14 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+76329 Sat Aug  8 21:11:54 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+77234 Sat Aug  8 21:27:24 2026     ziweiwu          Ss   /System/Library/Frameworks/ExtensionFoundation.framework/Versions/A/XPCServices/extensionkitservice.xpc/Contents/MacOS/extensionkitservice
+77553 Sat Aug  8 21:49:28 2026     ziweiwu          S    /System/Library/CoreServices/pbs
+77554 Sat Aug  8 21:49:28 2026     ziweiwu          S    /System/Library/CoreServices/iconservicesagent
+77555 Sat Aug  8 21:49:28 2026     _iconservices    Ss   /System/Library/CoreServices/iconservicesd
+78320 Sat Aug  8 21:30:41 2026     ziweiwu          S    /System/Library/PrivateFrameworks/WorkflowKit.framework/XPCServices/ShortcutsViewService.xpc/Contents/MacOS/ShortcutsViewService
+78331 Sat Aug  8 21:30:41 2026     ziweiwu          S    /System/Library/PrivateFrameworks/MobileTimer.framework/Executables/mobiletimerd
+78469 Sat Aug  8 21:30:41 2026     ziweiwu          S    /System/Library/PrivateFrameworks/SessionCore.framework/Support/liveactivitiesd
+78681 Sat Aug  8 21:30:41 2026     ziweiwu          S    /System/Library/PrivateFrameworks/ReplicatorCore.framework/Support/replicatord
+78827 Mon Aug  3 10:34:52 2026     ziweiwu          S    /System/Library/CoreServices/audioaccessoryd
+79487 Sat Aug  8 21:27:29 2026     ziweiwu          S    /System/Library/CoreServices/ScopedBookmarkAgent
+79564 Sat Aug  8 21:27:29 2026     ziweiwu          Ss   /System/Library/Frameworks/NetFS.framework/Versions/A/XPCServices/PlugInLibraryService.xpc/Contents/MacOS/PlugInLibraryService
+79566 Sat Aug  8 21:27:30 2026     ziweiwu          S    /System/Library/CoreServices/Keychain Circle Notification.app/Contents/MacOS/Keychain Circle Notification
+80837 Tue Aug  4 00:19:45 2026     ziweiwu          S    /System/Library/PrivateFrameworks/ScreenTimeCore.framework/Versions/A/ScreenTimeAgent
+80841 Tue Aug  4 00:19:53 2026     ziweiwu          S    /System/Library/PrivateFrameworks/HearingCore.framework/heard
+82186 Sat Aug  8 21:27:36 2026     root             Ss   /usr/libexec/mobileassetd
+82922 Sun Aug  2 21:12:27 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+83167 Sat Aug  8 21:27:38 2026     root             Ss   /System/Library/PrivateFrameworks/MobileAssetDaemon.framework/Versions/A/XPCServices/com.apple.MobileAsset.DownloadService.Builtin.xpc/Contents/MacOS/com.apple.MobileAsset.DownloadService.Builtin
+83770 Mon Aug  3 19:10:37 2026     ziweiwu          S<   /Applications/Notion.app/Contents/Frameworks/Squirrel.framework/Resources/ShipIt
+83866 Sat Aug  8 09:23:13 2026     ziweiwu          Ss   /System/Applications/Weather.app/Contents/PlugIns/WeatherWidget.appex/Contents/MacOS/WeatherWidget
+85296 Sun Aug  2 06:01:01 2026     ziweiwu          S    /System/Library/PrivateFrameworks/IMDPersistence.framework/IMAutomaticHistoryDeletionAgent.app/Contents/MacOS/IMAutomaticHistoryDeletionAgent
+85437 Sat Aug  8 21:34:34 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/SiriAnalytics.framework/Versions/A/XPCServices/SAExtensionOrchestrator.xpc/Contents/MacOS/SAExtensionOrchestrator
+85466 Sat Aug  8 21:34:34 2026     ziweiwu          Ss   /System/Library/Frameworks/ExtensionFoundation.framework/Versions/A/XPCServices/extensionkitservice.xpc/Contents/MacOS/extensionkitservice
+85638 Mon Aug  3 05:02:32 2026     ziweiwu          S    /usr/libexec/routined
+85698 Sat Aug  8 21:34:34 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/IFTelemetrySELFIngestor.appex/Contents/MacOS/IFTelemetrySELFIngestor
+85706 Sat Aug  8 21:34:35 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/BiomeSELFIngestor.appex/Contents/MacOS/BiomeSELFIngestor
+85707 Sat Aug  8 21:34:35 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/IFTranscriptSELFIngestor.appex/Contents/MacOS/IFTranscriptSELFIngestor
+85708 Sat Aug  8 21:34:35 2026     ziweiwu          Ss   /System/Library/ExtensionKit/Extensions/GMSSELFIngestor.appex/Contents/MacOS/GMSSELFIngestor
+85846 Sat Aug  8 21:27:45 2026     ziweiwu          S    /usr/libexec/findmylocateagent
+87570 Sat Aug  8 21:27:49 2026     ziweiwu          S    /usr/libexec/searchpartyuseragent
+87824 Sat Aug  8 21:27:50 2026     ziweiwu          S    /System/Library/Frameworks/Contacts.framework/Support/contactsd
+88169 Sat Aug  8 11:25:42 2026     ziweiwu          Z    <defunct>
+88513 Sat Aug  8 21:27:52 2026     root             Ss   /usr/libexec/findmydeviced
+88540 Sat Aug  8 21:18:59 2026     ziweiwu          S    /System/Library/CoreServices/UniversalControl.app/Contents/MacOS/UniversalControl
+88872 Sat Aug  8 20:45:50 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+88935 Sat Aug  8 21:27:52 2026     root             Ss   /usr/libexec/findmybeaconingd
+88936 Sat Aug  8 21:27:52 2026     root             Ss   /usr/libexec/securityd_system
+88937 Sat Aug  8 21:27:52 2026     _fpsd            Ss   /System/Library/PrivateFrameworks/CoreADI.framework/adid
+88938 Sat Aug  8 21:27:52 2026     root             Ss   /usr/libexec/containermanagerd_system
+89085 Sat Aug  8 01:14:42 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CoreDuetContext.framework/Resources/ContextStoreAgent
+89366 Fri Aug  7 23:55:50 2026     ziweiwu          S    /usr/libexec/networkserviceproxy
+89561 Sat Aug  8 19:54:22 2026     root             Ss   /usr/libexec/audioanalyticsd
+89932 Sat Aug  8 21:27:54 2026     root             Ss   /usr/libexec/mobileactivationd
+89933 Sat Aug  8 21:27:54 2026     root             Ss   /usr/libexec/biometrickitd
+89935 Sat Aug  8 21:27:55 2026     root             Ss   /usr/libexec/sandboxd
+90180 Sat Aug  8 21:27:55 2026     ziweiwu          S    /usr/libexec/findmydevice-user-agent
+90441 Sat Aug  8 10:02:55 2026     ziweiwu          S    /System/Applications/App Store.app/Contents/MacOS/App Store
+90443 Sat Aug  8 10:02:56 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Resources/storeuid.app/Contents/MacOS/storeuid
+90461 Sat Aug  8 10:02:59 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/AppleMediaServicesUIPaymentSheets.framework/Versions/A/XPCServices/AMSUIPaymentViewService_macOS.xpc/Contents/MacOS/AMSUIPaymentViewService_macOS
+90843 Sat Aug  8 21:27:56 2026     root             Ss   /usr/libexec/storagekitd
+90878 Sat Aug  8 01:15:11 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
+91148 Sat Aug  8 20:46:20 2026     ziweiwu          S    /Applications/Firefox.app/Contents/MacOS/plugin-container.app/Contents/MacOS/plugin-container
+91473 Sat Aug  8 21:27:57 2026     ziweiwu          S    /System/Library/CoreServices/Siri.app/Contents/MacOS/Siri
+91545 Sat Aug  8 21:27:57 2026     ziweiwu          S    /usr/libexec/secinitd
+91704 Sat Aug  8 21:50:05 2026     ziweiwu          S    /System/iOSSupport/System/Library/PrivateFrameworks/HomeEnergyDaemon.framework/Support/homeenergyd
+92117 Sat Aug  8 21:27:59 2026     root             Ss   /usr/libexec/fskitd
+92371 Sat Aug  8 21:28:00 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CacheDelete.framework/deleted
+92511 Sat Aug  8 19:54:38 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+92612 Sat Aug  8 21:28:01 2026     root             Ss   /System/Library/PrivateFrameworks/CacheDelete.framework/deleted_helper
+93178 Sat Aug  8 21:28:02 2026     root             Ss   /System/Library/PrivateFrameworks/ModelCatalogRuntime.framework/Versions/A/modelcatalogd
+93179 Sat Aug  8 21:28:02 2026     root             Ss   /usr/libexec/triald_system
+93180 Sat Aug  8 21:28:02 2026     root             Ss   /System/Library/CoreServices/TimeMachine/backupd-helper
+93181 Sat Aug  8 21:28:02 2026     ziweiwu          S    /usr/libexec/triald
+93182 Sat Aug  8 21:28:02 2026     _assetcache      Ss   /usr/libexec/AssetCache/AssetCache
+93183 Sat Aug  8 21:28:02 2026     root             Ss   /System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd
+93184 Sat Aug  8 21:28:02 2026     ziweiwu          S    /System/Library/Frameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent
+93185 Sat Aug  8 21:28:02 2026     ziweiwu          S    /System/Library/PrivateFrameworks/FileProvider.framework/Support/fileproviderd
+93186 Sat Aug  8 21:28:02 2026     ziweiwu          S    /System/Library/PrivateFrameworks/GeoServices.framework/geodMachServiceBridge
+93386 Sat Aug  8 01:15:41 2026     ziweiwu          S    /System/Library/PrivateFrameworks/CoreSuggestions.framework/Versions/A/Support/suggestd
+93444 Sat Aug  8 21:28:03 2026     ziweiwu          S    /System/Library/PrivateFrameworks/GenerativeExperiencesRuntime.framework/Versions/A/generativeexperiencesd
+93686 Sat Aug  8 21:28:03 2026     root             Ss   /System/Library/PrivateFrameworks/AssetCacheServicesExtensions.framework/XPCServices/AssetCacheTetheratorService.xpc/Contents/MacOS/AssetCacheTetheratorService
+93689 Sat Aug  8 21:28:04 2026     root             Ss   /System/Library/CoreServices/osanalyticshelper
+93930 Sat Aug  8 21:28:05 2026     ziweiwu          Ss   /System/Library/PrivateFrameworks/TrialServer.framework/Versions/A/XPCServices/TrialArchivingService.xpc/Contents/MacOS/TrialArchivingService
+94183 Sat Aug  8 21:28:06 2026     ziweiwu          S    /System/Cryptexes/App/usr/libexec/SafariBookmarksSyncAgent
+94187 Sat Aug  8 21:28:06 2026     ziweiwu          S    /System/Library/PrivateFrameworks/SocialLayer.framework/sociallayerd.app/Contents/MacOS/sociallayerd
+95131 Thu Aug  6 06:01:48 2026     root             Ss   /usr/libexec/rtcreportingd
+95450 Wed Aug  5 22:46:42 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+95774 Sat Aug  8 21:28:10 2026     ziweiwu          S    /System/Library/PrivateFrameworks/ModelCatalogRuntime.framework/Versions/A/ModelCatalogAgent
+95869 Wed Aug  5 22:46:54 2026     ziweiwu          Ss   /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
+98259 Sat Aug  8 21:50:22 2026     root             Ss   /usr/libexec/seputil
+98293 Sat Aug  8 19:56:12 2026     ziweiwu          S    /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/151.0.7922.77/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+99866 Sat Aug  8 21:55:29 2026     ziweiwu          S    /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+85960 Mon Aug  3 01:13:49 2026     ziweiwu          Ss+  claude
+86517 Mon Aug  3 01:13:51 2026     ziweiwu          S+   /opt/homebrew/bin/node
+11195 Mon Aug  3 15:18:08 2026     ziweiwu          Ss+  claude
+11530 Mon Aug  3 15:18:10 2026     ziweiwu          S+   /opt/homebrew/bin/node
+36919 Mon Aug  3 15:59:15 2026     ziweiwu          Ss+  claude
+37422 Mon Aug  3 15:59:16 2026     ziweiwu          S+   /opt/homebrew/bin/node
+ 8196 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8229 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 8711 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8714 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8716 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8232 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8276 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 8770 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8773 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8774 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8279 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8328 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 8819 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8824 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8826 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8331 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8382 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 8878 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8881 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8883 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8385 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8434 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 8893 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8896 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8897 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8438 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8488 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 8975 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8980 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8981 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 8491 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8546 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 9046 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9049 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9050 Sat Aug  1 20:51:48 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8557 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8602 Sat Aug  1 20:51:47 2026     ziweiwu          S    -zsh
+ 9105 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9106 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9113 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8613 Sat Aug  1 20:51:47 2026     ziweiwu          Ss+  -zsh
+ 8662 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9247 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9250 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 9252 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 8680 Sat Aug  1 20:51:48 2026     ziweiwu          Ss   -zsh
+ 8724 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9423 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9425 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9426 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+16859 Sat Aug  1 20:55:03 2026     ziweiwu          S+   claude
+ 8732 Sat Aug  1 20:51:48 2026     ziweiwu          Ss+  -zsh
+ 8776 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9470 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9471 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 9473 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 8794 Sat Aug  1 20:51:48 2026     ziweiwu          Ss+  -zsh
+ 8849 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9501 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9503 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9504 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8865 Sat Aug  1 20:51:48 2026     ziweiwu          Ss+  -zsh
+ 8919 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9534 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9536 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9538 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 8936 Sat Aug  1 20:51:48 2026     ziweiwu          Ss+  -zsh
+ 8972 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9575 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9577 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9578 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 9001 Sat Aug  1 20:51:48 2026     ziweiwu          Ss+  -zsh
+ 9053 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9669 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9671 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9672 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+ 9058 Sat Aug  1 20:51:48 2026     ziweiwu          Ss+  -zsh
+ 9094 Sat Aug  1 20:51:48 2026     ziweiwu          S    -zsh
+ 9686 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9690 Sat Aug  1 20:51:49 2026     ziweiwu          S    -zsh
+ 9691 Sat Aug  1 20:51:49 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+93511 Mon Aug  3 01:14:39 2026     ziweiwu          Ss+  claude
+93901 Mon Aug  3 01:14:40 2026     ziweiwu          S+   /opt/homebrew/bin/node
+85496 Mon Aug  3 19:11:06 2026     ziweiwu          Ss+  claude
+85991 Mon Aug  3 19:11:09 2026     ziweiwu          S+   /opt/homebrew/bin/node
+69567 Mon Aug  3 09:44:11 2026     ziweiwu          Ss+  claude
+70128 Mon Aug  3 09:44:13 2026     ziweiwu          S+   /opt/homebrew/bin/node
+80617 Sun Aug  2 12:48:48 2026     ziweiwu          Ss+  node
+81514 Sun Aug  2 12:48:49 2026     ziweiwu          S+   /opt/homebrew/Cellar/node/26.5.1/bin/node
+24974 Mon Aug  3 15:20:04 2026     ziweiwu          Ss+  claude
+25473 Mon Aug  3 15:20:06 2026     ziweiwu          S+   /opt/homebrew/bin/node
+79443 Mon Aug  3 11:02:58 2026     ziweiwu          Ss+  claude
+80077 Mon Aug  3 11:03:00 2026     ziweiwu          S+   /opt/homebrew/bin/node
+19095 Tue Aug  4 22:10:45 2026     ziweiwu          Ss+  claude
+19588 Tue Aug  4 22:10:47 2026     ziweiwu          S+   /opt/homebrew/bin/node
+54851 Mon Aug  3 11:32:03 2026     ziweiwu          Ss+  claude
+55577 Mon Aug  3 11:32:05 2026     ziweiwu          S+   /opt/homebrew/bin/node
+76186 Mon Aug  3 12:26:52 2026     ziweiwu          Ss   -zsh
+76677 Mon Aug  3 12:26:54 2026     ziweiwu          S    -zsh
+76680 Mon Aug  3 12:26:54 2026     ziweiwu          S    -zsh
+76681 Mon Aug  3 12:26:54 2026     ziweiwu          S    -zsh
+76685 Mon Aug  3 12:26:54 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+76695 Mon Aug  3 12:26:55 2026     ziweiwu          S+   claude
+77258 Mon Aug  3 12:26:57 2026     ziweiwu          S+   /opt/homebrew/bin/node
+77196 Mon Aug  3 16:12:40 2026     ziweiwu          Ss+  claude
+77776 Mon Aug  3 16:12:42 2026     ziweiwu          S+   /opt/homebrew/bin/node
+25838 Mon Aug  3 15:38:42 2026     ziweiwu          Ss+  claude
+26330 Mon Aug  3 15:38:43 2026     ziweiwu          S+   /opt/homebrew/bin/node
+33483 Mon Aug  3 15:01:13 2026     ziweiwu          Ss+  claude
+75253 Mon Aug  3 15:03:38 2026     ziweiwu          S+   /opt/homebrew/bin/node
+92306 Mon Aug  3 16:15:02 2026     ziweiwu          Ss+  claude
+92809 Mon Aug  3 16:15:03 2026     ziweiwu          S+   /opt/homebrew/bin/node
+29801 Sat Aug  8 19:35:07 2026     root             Ss   login
+29802 Sat Aug  8 19:35:07 2026     ziweiwu          S    -zsh
+29854 Sat Aug  8 19:35:09 2026     ziweiwu          S    -zsh
+29856 Sat Aug  8 19:35:09 2026     ziweiwu          S    -zsh
+29858 Sat Aug  8 19:35:09 2026     ziweiwu          S    -zsh
+29863 Sat Aug  8 19:35:09 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+30759 Sat Aug  8 19:35:17 2026     ziweiwu          S+   tmux
+11250 Tue Aug  4 22:09:08 2026     ziweiwu          Ss+  claude
+11891 Tue Aug  4 22:09:13 2026     ziweiwu          S+   /opt/homebrew/bin/node
+90203 Mon Aug  3 19:12:11 2026     ziweiwu          Ss+  claude
+91181 Mon Aug  3 19:12:28 2026     ziweiwu          S+   /opt/homebrew/bin/node
+37600 Sat Aug  8 20:55:09 2026     root             Ss   login
+37601 Sat Aug  8 20:55:10 2026     ziweiwu          S    -zsh
+37668 Sat Aug  8 20:55:11 2026     ziweiwu          S    -zsh
+37669 Sat Aug  8 20:55:11 2026     ziweiwu          S    -zsh
+37670 Sat Aug  8 20:55:11 2026     ziweiwu          S    -zsh
+37676 Sat Aug  8 20:55:11 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+38897 Sat Aug  8 20:55:35 2026     ziweiwu          S+   tmux
+59161 Mon Aug  3 19:24:27 2026     ziweiwu          Ss+  claude
+59968 Mon Aug  3 19:24:29 2026     ziweiwu          S+   /opt/homebrew/bin/node
+59760 Mon Aug  3 19:24:29 2026     ziweiwu          Ss+  -zsh
+60799 Mon Aug  3 19:24:35 2026     ziweiwu          S    -zsh
+60800 Mon Aug  3 19:24:35 2026     ziweiwu          S    -zsh
+60802 Mon Aug  3 19:24:35 2026     ziweiwu          S    -zsh
+60807 Mon Aug  3 19:24:35 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+19437 Sat Aug  8 19:48:24 2026     ziweiwu          Ss   -zsh
+19848 Sat Aug  8 19:48:26 2026     ziweiwu          S    -zsh
+19849 Sat Aug  8 19:48:26 2026     ziweiwu          S    -zsh
+19851 Sat Aug  8 19:48:26 2026     ziweiwu          S    -zsh
+19856 Sat Aug  8 19:48:26 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+19866 Sat Aug  8 19:48:28 2026     ziweiwu          S+   claude
+20190 Sat Aug  8 19:48:30 2026     ziweiwu          S+   /opt/homebrew/bin/node
+30303 Mon Aug  3 19:28:28 2026     ziweiwu          Ss+  claude
+31397 Mon Aug  3 19:28:29 2026     ziweiwu          S+   /opt/homebrew/bin/node
+53217 Tue Aug  4 22:15:03 2026     ziweiwu          Ss+  claude
+53559 Tue Aug  4 22:15:04 2026     ziweiwu          S+   /opt/homebrew/bin/node
+38898 Sat Aug  8 20:55:35 2026     ziweiwu          Ss+  claude
+39528 Sat Aug  8 20:55:36 2026     ziweiwu          S+   /opt/homebrew/bin/node
+61540 Tue Aug  4 22:15:42 2026     ziweiwu          Ss+  claude
+62171 Tue Aug  4 22:15:44 2026     ziweiwu          S+   /opt/homebrew/bin/node
+67047 Sat Aug  8 20:58:20 2026     ziweiwu          Ss   -zsh
+67328 Sat Aug  8 20:58:21 2026     ziweiwu          S    -zsh
+67329 Sat Aug  8 20:58:21 2026     ziweiwu          S    -zsh
+67331 Sat Aug  8 20:58:21 2026     ziweiwu          S    -zsh
+67336 Sat Aug  8 20:58:21 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+67345 Sat Aug  8 20:58:23 2026     ziweiwu          S+   claude
+67929 Sat Aug  8 20:58:25 2026     ziweiwu          S+   /opt/homebrew/bin/node
+51749 Wed Aug  5 22:58:20 2026     ziweiwu          Ss+  claude
+52393 Wed Aug  5 22:58:25 2026     ziweiwu          S+   /opt/homebrew/bin/node
+ 2376 Sat Aug  8 21:07:38 2026     root             Ss   login
+ 2378 Sat Aug  8 21:07:38 2026     ziweiwu          S    -zsh
+ 2974 Sat Aug  8 21:07:40 2026     ziweiwu          S    -zsh
+ 2976 Sat Aug  8 21:07:40 2026     ziweiwu          S    -zsh
+ 2978 Sat Aug  8 21:07:40 2026     ziweiwu          S    -zsh
+ 2983 Sat Aug  8 21:07:40 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+14798 Sat Aug  8 21:08:01 2026     ziweiwu          S+   tmux
+27332 Sat Aug  8 10:08:12 2026     ziweiwu          Ss+  claude
+27979 Sat Aug  8 10:08:21 2026     ziweiwu          S+   /opt/homebrew/bin/node
+14813 Sat Aug  8 21:08:01 2026     ziweiwu          Ss+  claude
+16899 Sat Aug  8 21:08:03 2026     ziweiwu          S+   /opt/homebrew/bin/node
+81488 Sat Aug  8 21:54:43 2026     ziweiwu          S+   caffeinate
+97277 Sat Aug  8 10:16:44 2026     ziweiwu          Ss+  claude
+97788 Sat Aug  8 10:16:47 2026     ziweiwu          S+   /opt/homebrew/bin/node
+34048 Sat Aug  8 10:33:53 2026     ziweiwu          Ss+  claude
+34678 Sat Aug  8 10:33:55 2026     ziweiwu          S+   /opt/homebrew/bin/node
+78751 Sat Aug  8 10:48:31 2026     ziweiwu          Ss   -zsh
+80003 Sat Aug  8 10:48:32 2026     ziweiwu          S    -zsh
+80006 Sat Aug  8 10:48:32 2026     ziweiwu          S    -zsh
+80007 Sat Aug  8 10:48:32 2026     ziweiwu          S    -zsh
+80011 Sat Aug  8 10:48:32 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+80019 Sat Aug  8 10:48:33 2026     ziweiwu          S+   claude
+80447 Sat Aug  8 10:48:34 2026     ziweiwu          S+   /opt/homebrew/bin/node
+52616 Sat Aug  8 21:16:57 2026     ziweiwu          Ss+  claude
+53249 Sat Aug  8 21:17:00 2026     ziweiwu          S+   /opt/homebrew/bin/node
+27958 Sat Aug  8 10:51:55 2026     ziweiwu          Ss+  claude
+28486 Sat Aug  8 10:51:57 2026     ziweiwu          S+   /opt/homebrew/bin/node
+65444 Sat Aug  8 10:55:13 2026     root             Ss   login
+65445 Sat Aug  8 10:55:14 2026     ziweiwu          S    -zsh
+65457 Sat Aug  8 10:55:14 2026     ziweiwu          S    -zsh
+65727 Sat Aug  8 10:55:16 2026     ziweiwu          S    -zsh
+65728 Sat Aug  8 10:55:16 2026     ziweiwu          S    -zsh
+65730 Sat Aug  8 10:55:16 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+67815 Sat Aug  8 10:55:41 2026     ziweiwu          S+   tmux
+67816 Sat Aug  8 10:55:41 2026     ziweiwu          Rs+  claude
+68682 Sat Aug  8 10:55:42 2026     ziweiwu          S+   /opt/homebrew/bin/node
+89076 Sat Aug  8 12:04:38 2026     ziweiwu          Ss   -zsh
+89115 Sat Aug  8 12:04:39 2026     ziweiwu          S    -zsh
+89117 Sat Aug  8 12:04:39 2026     ziweiwu          S    -zsh
+89119 Sat Aug  8 12:04:39 2026     ziweiwu          S    -zsh
+89124 Sat Aug  8 12:04:39 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+97865 Sat Aug  8 21:07:32 2026     ziweiwu          S+   claude
+98642 Sat Aug  8 21:07:33 2026     ziweiwu          S+   /opt/homebrew/bin/node
+86550 Sat Aug  8 13:08:14 2026     root             Ss   login
+86559 Sat Aug  8 13:08:14 2026     ziweiwu          S    -zsh
+87117 Sat Aug  8 13:08:16 2026     ziweiwu          S    -zsh
+87118 Sat Aug  8 13:08:16 2026     ziweiwu          S    -zsh
+87120 Sat Aug  8 13:08:16 2026     ziweiwu          S    -zsh
+87125 Sat Aug  8 13:08:16 2026     ziweiwu          S    /Users/ziweiwu/.cache/gitstatus/gitstatusd-darwin-arm64
+87134 Sat Aug  8 13:08:16 2026     ziweiwu          S+   tmux
+87135 Sat Aug  8 13:08:16 2026     ziweiwu          Ss+  claude
+87716 Sat Aug  8 13:08:18 2026     ziweiwu          S+   /opt/homebrew/bin/node
