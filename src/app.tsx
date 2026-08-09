@@ -261,7 +261,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
       <Box justifyContent="space-between">
         <Text>
           <Text bold color={theme.mem}>
-            SYSMON{' '}
+            useful-system-monitor{' '}
           </Text>
           <Text color={theme.dim}>
             {/* host() is async, so the first frame has no hardware info yet.

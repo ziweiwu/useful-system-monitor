@@ -29,8 +29,9 @@ export const Overview = memo(function Overview({
 
   return (
     <Box flexDirection="column">
-      <Box>
-        <Box marginRight={gap}>
+      {/* One gapped row: wrapper Boxes around each card would shrink and
+          clip the card inside them at wider terminals. */}
+      <Box gap={gap}>
           <Gauge
             title="CPU"
             width={cardWidth}
@@ -48,8 +49,6 @@ export const Overview = memo(function Overview({
                 : []
             }
           />
-        </Box>
-        <Box marginRight={gap}>
           <Gauge
             title="MEM"
             width={cardWidth}
@@ -70,8 +69,6 @@ export const Overview = memo(function Overview({
                 : []
             }
           />
-        </Box>
-        <Box marginRight={gap}>
           <Gauge
             title="DISK"
             width={cardWidth}
@@ -89,7 +86,6 @@ export const Overview = memo(function Overview({
                 : []
             }
           />
-        </Box>
         <Gauge
           title="BATT"
           width={cardWidth}

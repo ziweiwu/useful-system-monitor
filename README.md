@@ -32,7 +32,7 @@ Want a shorter name to type?
 echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 ```
 
-![The dashboard: CPU, memory, disk and battery at the top, with the busiest apps listed below](docs/screenshot.svg)
+![The dashboard: CPU, memory, disk and battery at the top, with the busiest apps listed below](docs/screenshot.png)
 
 ## Using it
 
@@ -48,7 +48,7 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 
 ## Finding what's draining your battery
 
-![Battery screen: charge, how fast it is draining, and which apps are responsible](docs/battery.svg)
+![Battery screen: charge, how fast it is draining, and which apps are responsible](docs/battery.png)
 
 Press <kbd>4</kbd> to see how much power is left, how fast it's going, and which
 apps are responsible — with an estimate of how much time you'd get back by
