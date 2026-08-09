@@ -1,10 +1,10 @@
 {
   "name": "useful-system-monitor",
   "version": "0.1.0",
-  "description": "Find what's draining your Mac's CPU, memory and battery \u2014 a fast terminal dashboard that ranks every process by what it actually costs you, and kills the offenders safely.",
+  "description": "Find what's draining your Mac's CPU, memory and battery — a fast terminal dashboard that ranks every process by what it actually costs you, and kills the offenders safely.",
   "type": "module",
   "bin": {
-    "useful-system-monitor": "./dist/cli.js"
+    "useful-system-monitor": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
