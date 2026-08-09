@@ -1,5 +1,10 @@
 # useful-system-monitor
 
+[![npm](https://img.shields.io/npm/v/useful-system-monitor?color=cb3837&logo=npm)](https://www.npmjs.com/package/useful-system-monitor)
+[![CI](https://github.com/ziweiwu/useful-system-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/ziweiwu/useful-system-monitor/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-lightgrey?logo=apple)](#requirements)
+
 **Your Mac is hot, the fan is loud, and the battery says two hours. Which app is
 doing it?**
 
