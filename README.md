@@ -6,11 +6,10 @@
 [![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-lightgrey?logo=apple)](#requirements)
 [![sponsor](https://img.shields.io/github/sponsors/ziweiwu?logo=githubsponsors&color=ea4aaa)](https://github.com/sponsors/ziweiwu)
 
-**Your Mac is hot, the fan is loud, and the battery says two hours. Which app is
-doing it?**
+See what's using up your Mac — and close the apps that are hogging it.
 
-A terminal dashboard that ranks every process by what it actually costs you —
-CPU, memory, and watts — and kills the offender safely.
+It shows your CPU, memory, disk and battery at a glance, lists the apps using
+the most of each, and lets you quit any of them without leaving the terminal.
 
 ## Install
 
@@ -18,88 +17,81 @@ CPU, memory, and watts — and kills the offender safely.
 npx useful-system-monitor
 ```
 
-Or install it for good:
+Or install it so you can run it any time:
 
 ```sh
 npm install -g useful-system-monitor
 useful-system-monitor
 ```
 
-Requires **macOS** and **Node 20+**. No config, no setup, no permissions to
-grant.
+Works on a Mac. Nothing to set up.
 
-Most people add a shorter name:
+Want a shorter name to type?
 
 ```sh
 echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 ```
 
-![The dashboard: CPU, memory, disk and battery gauges above a process table ranked by CPU](docs/screenshot.svg)
+![The dashboard: CPU, memory, disk and battery at the top, with the busiest apps listed below](docs/screenshot.svg)
 
-## Keys
+## Using it
 
-| Key | Action |
+| Key | What it does |
 |---|---|
-| <kbd>↑</kbd> <kbd>↓</kbd> | move selection |
-| <kbd>enter</kbd> | process detail |
-| <kbd>k</kbd> | kill the selected process |
-| <kbd>/</kbd> | filter |
-| <kbd>c</kbd> <kbd>m</kbd> <kbd>e</kbd> | sort by CPU, memory, energy |
-| <kbd>1</kbd>–<kbd>4</kbd> | overview, CPU, memory, battery |
+| <kbd>↑</kbd> <kbd>↓</kbd> | pick an app |
+| <kbd>enter</kbd> | see more about it |
+| <kbd>k</kbd> | close it |
+| <kbd>/</kbd> | search |
+| <kbd>c</kbd> <kbd>m</kbd> <kbd>e</kbd> | sort by CPU, memory, or battery use |
+| <kbd>1</kbd>–<kbd>4</kbd> | switch between the four screens |
 | <kbd>q</kbd> | quit |
 
-## What's draining the battery
+## Finding what's draining your battery
 
-![Battery view: draw, drain history, health, and the processes spending it ranked in watts](docs/battery.svg)
+![Battery screen: charge, how fast it is draining, and which apps are responsible](docs/battery.svg)
 
-Press <kbd>4</kbd>. Energy is estimated from CPU time; `--energy=accurate` uses
-macOS's real Energy Impact instead, at the cost of ~1s of CPU per sample.
+Press <kbd>4</kbd> to see how much power is left, how fast it's going, and which
+apps are responsible — with an estimate of how much time you'd get back by
+closing one.
 
-## Killing things safely
+## Closing apps safely
 
-Critical system processes and your own ancestors are refused outright, SIGTERM
-is the default, and the target is bound to `(pid, start time)` — so a recycled
-PID aborts the kill rather than hitting something innocent.
+You can't accidentally break your Mac with it. Apps that macOS needs to keep
+running are off limits, and so is the terminal you're using. It asks an app to
+close politely first, and if the app has already closed on its own, it won't
+hit something else by mistake.
 
-## Options
+## Extras
 
 ```
---mock              Scripted data; touches nothing on your system
---json              One-shot JSON, for scripting
---top N             Rows in one-shot output (default 10)
+--mock              Try it with fake data, without touching your system
+--json              Print the numbers instead of the dashboard
+--top N             How many apps to list (default 10)
 --sort cpu|mem|energy
---interval SECONDS  Refresh interval (default 10)
---energy=accurate   Real macOS Energy Impact instead of the estimate
+--interval SECONDS  How often to refresh (default 10)
+--energy=accurate   More precise battery numbers, at a small cost in speed
 -h, --help
 ```
 
-No TTY means no dashboard, so `useful-system-monitor --json | jq` composes.
-`NO_COLOR` is honoured.
-
 ## Requirements
 
-macOS only — the collectors read `ps`, `vm_stat`, `df`, `pmset` and `ioreg`, and
-npm refuses to install elsewhere rather than shipping you something that cannot
-work. Linux support would mean one new file behind the existing
-`MetricsProvider` interface; PRs welcome.
+A Mac, and [Node.js](https://nodejs.org) 20 or newer. Linux isn't supported yet
+— contributions welcome.
 
-It costs **1.3% of one core** to run. A monitor that drains your battery would
-be a bad joke.
+Running it barely costs anything: about 1% of one CPU core. A monitor that ran
+your battery down would rather defeat the point.
 
 ## Contributing
 
 ```sh
 npm install
-npm test && npm run lint && npm run typecheck
-npm run mock         # iterate on the UI without touching the system
+npm test
+npm run mock         # work on the interface without touching your system
 ```
 
-Behaviour is specified as numbered invariants in [INVARIANTS.md](./INVARIANTS.md),
-each with a test named after it (`npx vitest run -t "I-16"`). If you change
-anything under `src/providers/`, add a fixture in `test/fixtures/` captured from
-real command output.
-
-Releases are automated — `npm version patch && git push --follow-tags`.
+The behaviour it promises is written down in [INVARIANTS.md](./INVARIANTS.md),
+and every item there has a test. If you touch anything that reads from the
+system, please add a sample of the real command output to `test/fixtures/`.
 
 ## Sponsor
 
