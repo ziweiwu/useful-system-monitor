@@ -4,6 +4,7 @@
 [![CI](https://github.com/ziweiwu/useful-system-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/ziweiwu/useful-system-monitor/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-lightgrey?logo=apple)](#requirements)
+[![sponsor](https://img.shields.io/github/sponsors/ziweiwu?logo=githubsponsors&color=ea4aaa)](https://github.com/sponsors/ziweiwu)
 
 **Your Mac is hot, the fan is loud, and the battery says two hours. Which app is
 doing it?**
@@ -206,6 +207,18 @@ captured from real command output — the parsers are tested against actual macO
 output, including the awkward cases (process names containing spaces, hour-scale
 CPU times, and the unsigned 64-bit wrap that makes a discharging battery report
 `18446744073709548164` milliamps).
+
+## Sponsor
+
+`useful-system-monitor` is built and maintained by one person, in evenings,
+around a full-time job. It is MIT licensed and will stay that way.
+
+If it has saved you a battery-drain hunt, [sponsorship](https://github.com/sponsors/ziweiwu)
+buys the evenings that keep it moving. One-time works as well as monthly.
+
+**Using it at work?** The $100/month tier includes priority response on issues
+you file and your logo in this README. Invoiced sponsorships are available if
+that is easier for your finance team.
 
 ## License
 
