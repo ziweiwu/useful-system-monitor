@@ -1,90 +1,85 @@
 #!/usr/bin/env node
+import { createRequire } from 'node:module';
 import { render } from 'ink';
 import { bytes, percent } from './core/format.js';
-import { sortProcesses, type SortKey } from './core/scoring.js';
+import { parseArgs, SORT_KEYS, type Options } from './core/options.js';
+import { sortProcesses } from './core/scoring.js';
+import { WORKING_SET_SIZE } from './core/workingSet.js';
 import { DarwinProvider } from './providers/darwin/provider.js';
 import { MockProvider } from './providers/mock/provider.js';
 import { DEFAULT_TIERS, type MetricsProvider, type Tiers } from './providers/types.js';
 import { processName } from './kill/guards.js';
 import { App } from './app.js';
 
-interface Options {
-  accurateEnergy: boolean;
-  mock: boolean;
-  json: boolean;
-  top: number;
-  sort: SortKey;
-  interval: number | null;
-  help: boolean;
-}
+/* Read at runtime rather than baked in at build time, so the version can never
+   disagree with the package it was installed from. `../package.json` resolves
+   from both `src/cli.tsx` and the compiled `dist/cli.js`. */
+const VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
-function parseArgs(argv: readonly string[]): Options {
-  const o: Options = {
-    accurateEnergy: false,
-    mock: false,
-    json: false,
-    top: 10,
-    sort: 'cpu',
-    interval: null,
-    help: false,
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
-    if (a === '--mock') o.mock = true;
-    else if (a === '--energy=accurate') o.accurateEnergy = true;
-    else if (a === '--energy' && argv[i + 1] === 'accurate') {
-      o.accurateEnergy = true;
-      i++;
-    }
-    else if (a === '--json') o.json = true;
-    else if (a === '--help' || a === '-h') o.help = true;
-    else if (a === '--top') o.top = Number(argv[++i]) || 10;
-    else if (a.startsWith('--top=')) o.top = Number(a.slice(6)) || 10;
-    else if (a === '--sort') o.sort = (argv[++i] as SortKey) ?? 'cpu';
-    else if (a.startsWith('--sort=')) o.sort = a.slice(7) as SortKey;
-    else if (a === '--interval') o.interval = Number(argv[++i]) || null;
-    else if (a.startsWith('--interval=')) o.interval = Number(a.slice(11)) || null;
-  }
-  return o;
-}
-
-const HELP = `useful-system-monitor — terminal system resource monitor
+const HELP = `useful-system-monitor — see what's using up your Mac, from the terminal
 
 Usage
   useful-system-monitor [options]
 
+  With no options it opens the dashboard. When stdin or stdout is not a
+  terminal it prints a one-shot summary instead, so it composes in pipes,
+  scripts and cron.
+
 Options
-  --mock              Run with scripted data (no system access)
-  --json              One-shot JSON to stdout, for scripting
-  --top N             Rows in one-shot output (default 10)
-  --sort cpu|mem|energy
-  --interval SECONDS  Process sampling interval (default 10)
+  --json              One-shot JSON to stdout instead of the dashboard
+  --top N             Rows of processes in one-shot output (default 10).
+                      No effect on the dashboard, which fills the terminal.
+  --sort ${SORT_KEYS.join('|')}
+                      Order of the one-shot rows (default cpu). In the
+                      dashboard, press c, m or e instead.
+  --interval SECONDS  Dashboard refresh, 1-3600 (default 10). Lower is more
+                      responsive and costs more CPU; no effect one-shot.
   --energy=accurate   Use macOS Energy Impact instead of the CPU-time estimate.
                       Costs ~1s of CPU per 60s sample (~5x the default budget).
-  -h, --help
+  --mock              Run with scripted data, without touching the system
+  -h, --help          Show this help
+  -v, --version       Print the version
 
-Keys
-  left/right   switch screen (overview, cpu, memory, battery, disk)
-  1-5          jump straight to a screen
-  up/dn move   +/- show more or fewer rows   enter details   k kill
-  / filter   c m e sort   q quit
+Keys (dashboard)
+  left/right   move between the five screens; 1-5 jump straight to one
+  up/dn        pick a process     +/-     show more or fewer rows
+  enter        details            k       close the selected app
+  /            search             c m e   sort by cpu, memory, energy
+  q            quit
+
+Examples
+  useful-system-monitor                        open the dashboard
+  useful-system-monitor --json | jq .cpu       the numbers, for a script
+  useful-system-monitor --top 20 --sort mem    the 20 biggest memory users
+  useful-system-monitor --interval 2           refresh faster to catch a spike
+
+Exit status
+  0  success
+  1  could not run — unsupported platform, or a collector failed
+  2  bad usage — unknown option, or a value that cannot be used
 
 Notes
   Energy is estimated from CPU time by default; macOS's own Energy Impact
   costs ~1s of CPU per sample, which would make this tool a battery drain.
+
+  Colour follows NO_COLOR and the terminal's capabilities. The dashboard
+  wants at least 80x24; below that it drops detail rather than overflow.
 `;
 
 /** One-shot, pipe-friendly output. Used when stdout is not a TTY. See I-22. */
 async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
+  /* The working set has to cover the requested rows, or `--top 200` would be
+     silently capped at the default 50 and report fewer rows than asked for. */
+  const limit = Math.max(o.top, WORKING_SET_SIZE);
   // Two samples are required: CPU% is always a delta, never a lifetime average.
-  await provider.processes();
+  await provider.processes(limit);
   await new Promise((r) => setTimeout(r, 300));
   const [cpu, mem, disk, batt, procs] = await Promise.all([
     provider.cpu(),
     provider.memory(),
     provider.disk(),
     provider.battery(),
-    provider.processes(),
+    provider.processes(limit),
   ]);
   const top = sortProcesses(procs.visible, o.sort).slice(0, o.top);
 
@@ -92,6 +87,8 @@ async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
     process.stdout.write(
       JSON.stringify(
         {
+          /* Named so a consumer can tell which shape it is reading. */
+          version: VERSION,
           cpu: { system: cpu.system, perCore: cpu.perCore, loadAvg: cpu.loadAvg },
           memory: mem,
           disk,
@@ -133,10 +130,25 @@ async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
 }
 
 async function main(): Promise<void> {
-  const o = parseArgs(process.argv.slice(2));
+  const parsed = parseArgs(process.argv.slice(2));
+  if (!parsed.ok) {
+    // I-24: cause and remedy, to stderr, with a usage exit code of its own so
+    // a script can tell a typo apart from a machine it could not read.
+    process.stderr.write(
+      `useful-system-monitor: ${parsed.error}\n` +
+        '        Run `useful-system-monitor --help` for the full list of options.\n',
+    );
+    process.exit(2);
+  }
+  const o = parsed.options;
 
   if (o.help) {
     process.stdout.write(HELP);
+    process.exit(0);
+  }
+
+  if (o.version) {
+    process.stdout.write(`${VERSION}\n`);
     process.exit(0);
   }
 
