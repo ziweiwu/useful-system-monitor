@@ -44,7 +44,7 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 | <kbd>k</kbd> | close it |
 | <kbd>/</kbd> | search |
 | <kbd>c</kbd> <kbd>m</kbd> <kbd>e</kbd> | sort by CPU, memory, or battery use |
-| <kbd>1</kbd>–<kbd>4</kbd> | switch between the four screens |
+| <kbd>1</kbd>–<kbd>5</kbd> | switch between the five screens |
 | <kbd>q</kbd> | quit |
 
 ## Finding what's draining your battery
@@ -54,6 +54,16 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 Press <kbd>4</kbd> to see how much power is left, how fast it's going, and which
 apps are responsible — with an estimate of how much time you'd get back by
 closing one.
+
+## Seeing where your disk went
+
+Press <kbd>5</kbd> for every mounted volume at a glance — how full each one is,
+how much is left, and which are network shares. Volumes past 90% are called out,
+because that's where macOS starts failing writes and dropping snapshots.
+
+Your Mac's internal storage appears once, as `/`. macOS actually mounts it as
+several APFS volumes sharing one pool, and `df` lists each with the same total —
+so a raw listing makes one 1 TB disk look like four.
 
 ## Closing apps safely
 

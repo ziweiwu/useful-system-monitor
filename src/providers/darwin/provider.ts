@@ -19,6 +19,7 @@ import { BIN, run } from './exec.js';
 import { sampleEnergyImpact } from './power.js';
 import {
   parseDf,
+  parseDfAll,
   parseIoregBattery,
   parseMemory,
   parsePmset,
@@ -149,7 +150,8 @@ export class DarwinProvider implements MetricsProvider {
     const out = await run(BIN.df, ['-k']);
     const d = parseDf(out, '/');
     if (!d) throw new Error('no filesystem mounted at / in df output');
-    return d;
+    // One df call feeds both the root card and the per-volume view.
+    return { ...d, volumes: parseDfAll(out) };
   }
 
   async battery(): Promise<BatteryData> {

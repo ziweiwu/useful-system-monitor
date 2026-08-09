@@ -65,7 +65,7 @@ Options
 
 Keys
   up/dn move   +/- show more or fewer rows   enter details   k kill
-  / filter   c m e sort   1-4 view   q quit
+  / filter   c m e sort   1-5 view   q quit
 
 Notes
   Energy is estimated from CPU time by default; macOS's own Energy Impact
@@ -77,9 +77,10 @@ async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
   // Two samples are required: CPU% is always a delta, never a lifetime average.
   await provider.processes();
   await new Promise((r) => setTimeout(r, 300));
-  const [cpu, mem, batt, procs] = await Promise.all([
+  const [cpu, mem, disk, batt, procs] = await Promise.all([
     provider.cpu(),
     provider.memory(),
+    provider.disk(),
     provider.battery(),
     provider.processes(),
   ]);
@@ -91,6 +92,7 @@ async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
         {
           cpu: { system: cpu.system, perCore: cpu.perCore, loadAvg: cpu.loadAvg },
           memory: mem,
+          disk,
           battery: batt,
           processes: top.map((p) => ({
             pid: p.pid,
@@ -113,7 +115,9 @@ async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
   }
 
   const lines = [
-    `cpu ${cpu.system.toFixed(1)}%  mem ${((mem.usedBytes / mem.totalBytes) * 100).toFixed(1)}%  battery ${batt.percent}%${batt.charging ? ' charging' : ''}`,
+    `cpu ${cpu.system.toFixed(1)}%  mem ${((mem.usedBytes / mem.totalBytes) * 100).toFixed(1)}%` +
+      `  disk ${((disk.usedBytes / disk.totalBytes) * 100).toFixed(0)}%` +
+      `  battery ${batt.percent}%${batt.charging ? ' charging' : ''}`,
     '',
     'PID     CPU%     MEM  NAME',
   ];

@@ -105,11 +105,35 @@ export interface MemoryData {
   swapUsedBytes: number;
 }
 
+/**
+ * One user-facing filesystem.
+ *
+ * "User-facing" is doing real work here: `df` lists every APFS sibling in a
+ * container (`/`, `/System/Volumes/Data`, `/System/Volumes/VM`, …) with the
+ * *same* total and available blocks, so listing rows verbatim shows one 926 G
+ * disk four times and implies four times the storage. See parseDfAll.
+ */
+export interface VolumeUsage {
+  mount: string;
+  /** The df "Filesystem" column: a device node, or a network share URL. */
+  device: string;
+  totalBytes: number;
+  usedBytes: number;
+  freeBytes: number;
+  /** Not backed by a local device — an SMB/AFP/NFS share. */
+  network: boolean;
+}
+
 export interface DiskData {
   mount: string;
   totalBytes: number;
   usedBytes: number;
   freeBytes: number;
+  /**
+   * Every mounted user-facing volume, root first. The four fields above stay
+   * as-is: they are the root volume, and the Overview card reads them.
+   */
+  volumes: VolumeUsage[];
 }
 
 export interface BatteryData {

@@ -13,19 +13,21 @@ import { sendSignal, type KillFn } from './kill/signal.js';
 import type { MetricsProvider, Tiers } from './providers/types.js';
 import { BatteryView } from './ui/BatteryView.js';
 import { CpuView, MemView } from './ui/DetailViews.js';
+import { DiskView } from './ui/DiskView.js';
 import { KillModal } from './ui/KillModal.js';
 import { Overview } from './ui/Overview.js';
 import { ProcessDetail } from './ui/ProcessDetail.js';
 import { ProcessTable } from './ui/ProcessTable.js';
 import { theme } from './ui/theme.js';
 
-type View = 'overview' | 'cpu' | 'memory' | 'battery';
+type View = 'overview' | 'cpu' | 'memory' | 'battery' | 'disk';
 
 const VIEW_KEYS: Record<string, View> = {
   '1': 'overview',
   '2': 'cpu',
   '3': 'memory',
   '4': 'battery',
+  '5': 'disk',
 };
 
 export interface AppProps {
@@ -355,6 +357,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
             selectedPid={selectedPid}
           />
         )}
+        {!detailProc && view === 'disk' && (
+          <DiskView snapshot={snapshot} histories={histories} width={width} now={now} />
+        )}
       </Box>
 
       {view === 'overview' && !detailProc && (
@@ -445,7 +450,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
               ? killCheck?.allowed
                 ? 't SIGTERM   k SIGKILL (twice)   esc cancel'
                 : 'esc back'
-              : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  1-4 view  q quit'}
+              : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  1-5 view  q quit'}
         </Text>
       </Box>
     </Box>

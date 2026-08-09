@@ -8,6 +8,7 @@ import type {
   MemoryData,
   ProcessSample,
   ProcessesData,
+  VolumeUsage,
 } from '../../core/types.js';
 import { isProtectedName } from '../../kill/guards.js';
 import type { MetricsProvider } from '../types.js';
@@ -37,6 +38,16 @@ interface FakeProc {
 }
 
 const GB = 1024 ** 3;
+
+function vol(
+  mount: string,
+  device: string,
+  totalBytes: number,
+  usedBytes: number,
+  network: boolean,
+): VolumeUsage {
+  return { mount, device, totalBytes, usedBytes, freeBytes: totalBytes - usedBytes, network };
+}
 const MB = 1024 ** 2;
 
 const FAKE: FakeProc[] = [
@@ -138,7 +149,15 @@ export class MockProvider implements MetricsProvider {
   async disk(): Promise<DiskData> {
     const total = 931 * GB;
     const used = 289 * GB;
-    return { mount: '/', totalBytes: total, usedBytes: used, freeBytes: total - used };
+    /* Deliberately covers the three cases the view has to render well: the
+       root volume, an external disk, and a nearly-full network share (which is
+       what the severity colouring exists for). */
+    const volumes: VolumeUsage[] = [
+      vol('/', '/dev/disk3s1s1', total, used, false),
+      vol('/Volumes/Backup', '/dev/disk5s2', 2000 * GB, 812 * GB, false),
+      vol('/Volumes/media', '//user@nas._smb._tcp.local/media', 14 * 1024 * GB, 13 * 1024 * GB, true),
+    ];
+    return { mount: '/', totalBytes: total, usedBytes: used, freeBytes: total - used, volumes };
   }
 
   async battery(): Promise<BatteryData> {

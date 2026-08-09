@@ -1,4 +1,11 @@
-import type { BatteryData, DiskData, MemoryData, ProcessMeta, RawProcess } from '../../core/types.js';
+import type {
+  BatteryData,
+  DiskData,
+  MemoryData,
+  ProcessMeta,
+  RawProcess,
+  VolumeUsage,
+} from '../../core/types.js';
 
 /**
  * Pure parsers for macOS command output. Kept separate from process spawning so
@@ -147,7 +154,10 @@ export function parseMemory(
  * on this machine, while the shared container actually holds 285 G. Reporting
  * the Used column shows a 926 G disk as 1% full.
  */
-export function parseDf(stdout: string, mount = '/'): DiskData | null {
+export function parseDf(
+  stdout: string,
+  mount = '/',
+): Omit<DiskData, 'volumes'> | null {
   const lines = stdout.split('\n');
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i]!;
@@ -166,6 +176,87 @@ export function parseDf(stdout: string, mount = '/'): DiskData | null {
     };
   }
   return null;
+}
+
+/**
+ * Every user-facing volume in `df -k` output.
+ *
+ * Two kinds of noise have to go, or the panel lies about how much storage the
+ * machine has:
+ *
+ *  1. APFS container siblings. `/`, `/System/Volumes/Data`, `/System/Volumes/VM`
+ *     and `/System/Volumes/Preboot` are separate mounts that share one pool, so
+ *     df reports the *same* total and available blocks for each. Listing them
+ *     verbatim shows a 926 G disk four times. They are grouped by container
+ *     (`/dev/disk3s5` -> `disk3`) and reported once, at their outermost mount.
+ *  2. Pseudo and firmware filesystems: devfs, `map auto_home` (zero blocks),
+ *     and the iSCPreboot/xarts/Hardware volumes, which are macOS internals no
+ *     user can act on.
+ *
+ * Usage is total minus available for the same APFS reason parseDf documents:
+ * df's own Used column reads the sealed system snapshot, not the container.
+ */
+export function parseDfAll(stdout: string): VolumeUsage[] {
+  interface Row {
+    device: string;
+    mount: string;
+    totalBytes: number;
+    freeBytes: number;
+  }
+  const rows: Row[] = [];
+  const lines = stdout.split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (!line.trim()) continue;
+    const m = /^(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%\s+(\d+)\s+(\d+)\s+(\S+)\s+(.*)$/.exec(line);
+    // `map auto_home` and friends have a space in the device column and so
+    // fail this pattern outright, which is the intended outcome.
+    if (!m) continue;
+    const device = m[1]!;
+    const mount = m[9]!.trim();
+    const totalBytes = Number(m[2]) * 1024;
+    // Zero-block and devfs-style entries are not storage.
+    if (totalBytes <= 0 || device === 'devfs' || device === 'devfs.') continue;
+    rows.push({ device, mount, totalBytes, freeBytes: Number(m[4]) * 1024 });
+  }
+
+  /* Group by APFS container, so one pool reports once. Anything that is not a
+     /dev/diskN device (network shares, disk images) is its own group. */
+  const groups = new Map<string, Row[]>();
+  for (const r of rows) {
+    const c = /^\/dev\/(disk\d+)/.exec(r.device);
+    const key = c ? c[1]! : r.device;
+    const g = groups.get(key);
+    if (g) g.push(r);
+    else groups.set(key, [r]);
+  }
+
+  const out: VolumeUsage[] = [];
+  for (const g of groups.values()) {
+    /* The outermost mount represents the pool: `/` if the container holds it,
+       otherwise the shortest path, which is the one a user would recognise. */
+    const rep =
+      g.find((r) => r.mount === '/') ??
+      g.toSorted((a, b) => a.mount.length - b.mount.length)[0]!;
+    /* Containers that surface only under /System/Volumes are macOS internals
+       (Preboot, Update/SFR, the firmware volumes). `/` is never excluded here
+       because it is picked as the representative above. */
+    if (rep.mount.startsWith('/System/Volumes/')) continue;
+    out.push({
+      mount: rep.mount,
+      device: rep.device,
+      totalBytes: rep.totalBytes,
+      usedBytes: Math.max(0, rep.totalBytes - rep.freeBytes),
+      freeBytes: rep.freeBytes,
+      // SMB/AFP shares are `//user@host/share`; NFS is `host:/export`.
+      network: rep.device.startsWith('//') || /^[^/]+:\//.test(rep.device),
+    });
+  }
+
+  // Root first, then alphabetically, so the list is stable across samples.
+  return out.toSorted((a, b) =>
+    a.mount === '/' ? -1 : b.mount === '/' ? 1 : a.mount.localeCompare(b.mount),
+  );
 }
 
 /**

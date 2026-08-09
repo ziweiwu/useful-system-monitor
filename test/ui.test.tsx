@@ -144,6 +144,7 @@ describe('view switching', () => {
     ['2', /P0|load/],
     ['3', /wired|swap/],
     ['4', /BATTERY|TOP ENERGY/],
+    ['5', /VOLUMES/],
   ])('key %s renders its view', async (keyPress, expected) => {
     const app = await mount(120);
     try {
@@ -152,6 +153,52 @@ describe('view switching', () => {
       expect(app.lastFrame() ?? '').toMatch(expected);
     } finally {
       app.restore();
+    }
+  });
+});
+
+describe('disk view', () => {
+  it('lists every mounted volume, not just the root filesystem', async () => {
+    const app = await mount(120);
+    try {
+      app.stdin.write('5');
+      await wait(250);
+      const frame = app.lastFrame() ?? '';
+      expect(frame).toContain('/Volumes/Backup');
+      expect(frame).toContain('/Volumes/media');
+      // The root row is present as a bare mount point.
+      expect(frame).toMatch(/^\s*\/\s/m);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('marks network shares and warns on a nearly-full volume', async () => {
+    const app = await mount(120);
+    try {
+      app.stdin.write('5');
+      await wait(250);
+      const frame = app.lastFrame() ?? '';
+      expect(frame).toContain('net');
+      // The mock share sits at ~93%, which is what the warning exists for.
+      expect(frame).toMatch(/above 90%/);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('fits its widest row inside the terminal (I-19)', async () => {
+    for (const columns of [80, 100, 160]) {
+      const app = await mount(columns);
+      try {
+        app.stdin.write('5');
+        await wait(250);
+        for (const l of lines(app.lastFrame())) {
+          expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+        }
+      } finally {
+        app.restore();
+      }
     }
   });
 });

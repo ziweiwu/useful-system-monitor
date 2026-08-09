@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseCpuTimeMs,
   parseDf,
+  parseDfAll,
   parseIoregBattery,
   parseMemory,
   parsePmset,
@@ -153,6 +154,48 @@ describe('I-5: memory reconciles', () => {
     expect(mem.swapTotalBytes).toBeGreaterThan(0);
     expect(mem.swapUsedBytes).toBeGreaterThan(0);
     expect(mem.swapUsedBytes).toBeLessThanOrEqual(mem.swapTotalBytes);
+  });
+});
+
+describe('parseDfAll', () => {
+  const vols = parseDfAll(fixture('df.txt'));
+  const mounts = vols.map((v) => v.mount);
+
+  it('reports one APFS container once, not once per sibling mount', () => {
+    // The fixture has five /dev/disk3* rows (/, VM, Preboot, Update, Data,
+    // Update/mnt1) all sharing 926G. Listing them would imply ~5.5TB.
+    expect(mounts.filter((m) => m === '/')).toHaveLength(1);
+    expect(mounts).not.toContain('/System/Volumes/Data');
+    expect(mounts).not.toContain('/System/Volumes/VM');
+  });
+
+  it('keeps the root volume and every user-visible mount', () => {
+    expect(mounts).toEqual(['/', '/Volumes/data', '/Volumes/docker']);
+  });
+
+  it('drops pseudo and firmware filesystems a user cannot act on', () => {
+    expect(mounts).not.toContain('/dev'); // devfs
+    expect(mounts).not.toContain('/System/Volumes/Data/home'); // map auto_home
+    // disk1 (xarts/iSCPreboot/Hardware) and disk2 (SFR) are macOS internals.
+    expect(mounts.some((m) => m.startsWith('/System/Volumes/'))).toBe(false);
+  });
+
+  it('flags network shares', () => {
+    const docker = vols.find((v) => v.mount === '/Volumes/docker')!;
+    expect(docker.network).toBe(true);
+    expect(vols.find((v) => v.mount === '/')!.network).toBe(false);
+  });
+
+  it('computes usage as total minus available, matching parseDf', () => {
+    const root = vols.find((v) => v.mount === '/')!;
+    const viaParseDf = parseDf(fixture('df.txt'), '/')!;
+    expect(root.usedBytes).toBe(viaParseDf.usedBytes);
+    expect(root.usedBytes).toBe(root.totalBytes - root.freeBytes);
+  });
+
+  it('survives output with no parsable rows', () => {
+    expect(parseDfAll('Filesystem 1024-blocks Used Available Capacity\n')).toEqual([]);
+    expect(parseDfAll('')).toEqual([]);
   });
 });
 
