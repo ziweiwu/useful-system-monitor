@@ -8,6 +8,7 @@ import { wattsAreMeaningful } from '../src/ui/ProcessTable.js';
 
 const ESC = String.fromCharCode(27);
 const DOWN = `${ESC}[B`;
+const UP = `${ESC}[A`;
 const ENTER = '\r';
 const ANSI = new RegExp(`${ESC}\\[[0-9;]*m`, 'g');
 
@@ -255,7 +256,7 @@ describe('process detail view', () => {
       app.stdin.write(ESC);
       await wait(300);
       const frame = app.lastFrame() ?? '';
-      expect(frame).toContain('enter details');
+      expect(frame).toContain('enter info');
       expect(frame).not.toContain('esc back');
     } finally {
       app.restore();
@@ -287,6 +288,125 @@ describe('process detail view', () => {
       } finally {
         app.restore();
       }
+    }
+  });
+});
+
+describe('I-26: the scroll window always contains the selection', () => {
+  it('keeps the cursor on screen past the bottom of the window', async () => {
+    const app = await mount(120, 34);
+    try {
+      // Far more presses than the window is tall, so the old fixed
+      // slice(0, rows) would have left the cursor off-screen entirely.
+      for (let i = 0; i < 45; i++) {
+        app.stdin.write(DOWN);
+        await wait(5);
+      }
+      const cursors = lines(app.lastFrame()).filter((l) => /^\s*>\s+\d+/.test(l));
+      expect(cursors).toHaveLength(1);
+      expect(selectedPid(app.lastFrame())).not.toBeNull();
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('scrolls back up and returns to the first row', async () => {
+    const app = await mount(120, 34);
+    try {
+      const first = selectedPid(app.lastFrame());
+      for (let i = 0; i < 40; i++) {
+        app.stdin.write(DOWN);
+        await wait(4);
+      }
+      expect(selectedPid(app.lastFrame())).not.toBe(first);
+      for (let i = 0; i < 60; i++) {
+        app.stdin.write(UP);
+        await wait(4);
+      }
+      expect(selectedPid(app.lastFrame())).toBe(first);
+      expect(lines(app.lastFrame()).filter((l) => /^\s*>\s+\d+/.test(l))).toHaveLength(1);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('never renders more lines than the terminal has rows', async () => {
+    for (const rows of [24, 30, 34, 50]) {
+      const app = await mount(120, rows);
+      try {
+        expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
+        for (let i = 0; i < 45; i++) {
+          app.stdin.write(DOWN);
+          await wait(3);
+        }
+        expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
+      } finally {
+        app.restore();
+      }
+    }
+  });
+});
+
+describe('expanding the working set on request', () => {
+  it('+ widens the set and - narrows it again', async () => {
+    const app = await mount(120, 34);
+    try {
+      const cap = () => /top (\S+) of/.exec(lines(app.lastFrame()).join('\n'))?.[1] ?? '';
+      expect(cap()).toBe('50');
+      app.stdin.write('+');
+      await wait(150);
+      expect(cap()).toBe('150');
+      app.stdin.write('+');
+      await wait(150);
+      expect(cap()).toBe('300');
+      app.stdin.write('+');
+      await wait(150);
+      expect(cap()).toBe('all');
+      // Saturates rather than wrapping round to the smallest step.
+      app.stdin.write('+');
+      await wait(150);
+      expect(cap()).toBe('all');
+      app.stdin.write('-');
+      await wait(150);
+      expect(cap()).toBe('300');
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('offers the expansion where the roll-up says rows are hidden', async () => {
+    const app = await mount(120, 34);
+    try {
+      expect(lines(app.lastFrame()).join('\n')).toMatch(/… \d+ others {2}\(\+ show more\)/);
+      // At the widest step nothing is rolled up, so the offer is withdrawn.
+      for (let i = 0; i < 3; i++) {
+        app.stdin.write('+');
+        await wait(150);
+      }
+      expect(lines(app.lastFrame()).join('\n')).not.toMatch(/show more/);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('stays within the terminal when expanded and scrolled deep', async () => {
+    const app = await mount(100, 34);
+    try {
+      for (let i = 0; i < 3; i++) {
+        app.stdin.write('+');
+        await wait(150);
+      }
+      for (let i = 0; i < 120; i++) {
+        app.stdin.write(DOWN);
+        await wait(3);
+      }
+      expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(34);
+      for (const l of lines(app.lastFrame())) {
+        expect(displayWidth(l)).toBeLessThanOrEqual(100);
+      }
+      expect(lines(app.lastFrame()).filter((l) => /^\s*>\s+\d+/.test(l))).toHaveLength(1);
+    } finally {
+      app.restore();
     }
   });
 });

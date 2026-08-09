@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "verify:kill": "tsx scripts/verify-kill.ts",
-    "verify:selfcost": "tsx scripts/verify-selfcost.tsx"
+    "verify:selfcost": "tsx scripts/verify-selfcost.tsx",
+    "verify:workingset": "tsx scripts/verify-workingset.ts"
   },
   "dependencies": {
     "ink": "^7.1.1",

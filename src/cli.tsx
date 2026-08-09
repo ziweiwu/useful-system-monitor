@@ -64,7 +64,8 @@ Options
   -h, --help
 
 Keys
-  up/dn move   enter details   k kill   / filter   c m e sort   1-4 view   q quit
+  up/dn move   +/- show more or fewer rows   enter details   k kill
+  / filter   c m e sort   1-4 view   q quit
 
 Notes
   Energy is estimated from CPU time by default; macOS's own Energy Impact

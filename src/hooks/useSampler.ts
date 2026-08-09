@@ -32,7 +32,7 @@ const EMPTY_HOST: HostInfo = {
  * - At most one run per collector is in flight; an overrun skips the next tick
  *   rather than queueing it, so slow samples cannot pile up (I-8).
  */
-export function useSampler(provider: MetricsProvider, tiers: Tiers) {
+export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSize: number) {
   const [host, setHost] = useState<HostInfo>(EMPTY_HOST);
   const [cpu, setCpu] = useState<Panel<Snapshot['cpu'] extends Panel<infer T> ? T : never>>(PENDING);
   const [memory, setMemory] = useState<Snapshot['memory']>(PENDING);
@@ -52,6 +52,18 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers) {
 
   const inFlight = useRef<Record<string, boolean>>({});
   const refreshRef = useRef<() => void>(() => {});
+  const refreshProcsRef = useRef<() => void>(() => {});
+
+  /*
+   * Read through a ref, not captured by the effect.
+   *
+   * Putting workingSetSize in the effect's dependency list would clear and
+   * rebuild every interval on each `+` press, which resets all five tier
+   * phases and re-runs cpu() out of band — shortening one delta window and
+   * printing a bogus CPU reading. See I-4.
+   */
+  const sizeRef = useRef(workingSetSize);
+  sizeRef.current = workingSetSize;
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +109,7 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers) {
     const runBattery = poll('battery', () => provider.battery(), setBattery, (d) =>
       histories.battery.push(d.percent),
     );
-    const runProcs = poll('processes', () => provider.processes(), setProcesses);
+    const runProcs = poll('processes', () => provider.processes(sizeRef.current), setProcesses);
 
     void provider.host().then((h) => {
       if (!cancelled) setHost(h);
@@ -111,6 +123,7 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers) {
       void runProcs();
     };
     refreshRef.current = runAll;
+    refreshProcsRef.current = () => void runProcs();
     runAll();
 
     const timers = [
@@ -139,5 +152,13 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers) {
     [host, cpu, memory, disk, battery, processes],
   );
   const refresh = useCallback(() => refreshRef.current(), []);
-  return { snapshot, histories, refresh };
+  const refreshProcesses = useCallback(() => refreshProcsRef.current(), []);
+
+  // A new cap is only visible after a resample, and waiting out a 10s tier for
+  // a keypress reads as a dead key. Processes only — see the note on sizeRef.
+  useEffect(() => {
+    refreshProcesses();
+  }, [workingSetSize, refreshProcesses]);
+
+  return { snapshot, histories, refresh, refreshProcesses };
 }

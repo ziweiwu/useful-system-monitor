@@ -22,7 +22,12 @@ export interface MetricsProvider {
   memory(): Promise<MemoryData>;
   disk(): Promise<DiskData>;
   battery(): Promise<BatteryData>;
-  processes(): Promise<ProcessesData>;
+  /**
+   * `limit` caps the working set (the rows that get names, history and a place
+   * in the table). Everything above it is rolled into `others`. Defaults to
+   * WORKING_SET_SIZE; the UI raises it on demand with `+`.
+   */
+  processes(limit?: number): Promise<ProcessesData>;
   /**
    * Full argv for one process, fetched on demand.
    *

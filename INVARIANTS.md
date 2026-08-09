@@ -31,6 +31,7 @@ collectors, and the kill path. All invariants below are enforced and tested.
 | I-8 | At most one run per collector is in flight; an overrun skips the next tick rather than queueing it | `hooks/useSampler.ts` |
 | I-9 | Collector cost < 1% of one core; **measured 0.31%**. Whole-app cost at the 10s default is **1.31%** (1.00% render + 0.31% collectors) | `test/cost.test.ts` (collectors) · `npm run verify:selfcost` (whole app) |
 | I-9b | SYSMON must not appear in its own top-20 energy consumers while idle. **Verified: absent, or ranked ~#26–28 of ~40** | `npm run verify:selfcost` |
+| I-9c | Widening the working set with `+` adds no rendered rows (the table is windowed, I-26). Measured per `processes()` call, interleaved A/B: cap 50 **27.3ms**, 150 **25.1ms**, 300 **26.5ms** — free, within noise. `all` is **90.4ms (+0.63% of one core at the 10s tier)** because the static `ps` then refetches every tick; the UI labels that step with its cost | `npm run verify:workingset` |
 | I-10 | History lives in fixed-capacity ring buffers, and per-process history only for the working set, evicted on exit | `core/ring.ts` · `hooks/useProcessHistory.ts` · `test/ring.test.ts` · `test/history.test.ts` |
 | I-11 | A collector failure degrades only its own panel; it never crashes the app or blanks other panels | `hooks/useSampler.ts` · `ui/Gauge.tsx` |
 
@@ -60,6 +61,7 @@ an error.
 | I-23 | Colour degrades by capability and honours `NO_COLOR`. Colour is only ever *redundant* encoding | `ui/theme.ts` |
 | I-24 | Data to stdout, errors to stderr, exit 0/non-zero. Errors state cause *and* remedy | `cli.tsx` |
 | I-25 | Every interactive action has a non-interactive equivalent | `cli.tsx` (`--json`, `--top`, `--sort`) |
+| I-26 | The process table is a scrolling window that always contains the selection, and the frame never exceeds the terminal height | `app.tsx` · `ui/ProcessTable.tsx` · `test/scroll.test.ts` · `test/ui.test.tsx` |
 
 ## Two invariants worth the extra words
 
@@ -71,3 +73,14 @@ standing between a confirmation dialog and killing the wrong program.
 **I-21 (selection by PID).** The selected row *is* the kill target. If selection
 were an index, a re-sort arriving between keypress and confirmation would slide a
 different process under the cursor. Keying on PID makes that impossible.
+
+**I-26 (windowed table).** The table used to render a fixed `slice(0, rows)`
+while the cursor was free to move to the end of the list, so holding *down* walked
+the selection straight off the bottom of the screen and the cursor vanished —
+with `enter` and `k` still acting on a row nobody could see. The window is now
+derived during render from the selected index, not stored, so a re-sort, a
+filter, a resize or a `+` expansion can never strand the cursor off-screen even
+for one frame. The same budget fix keeps the frame inside the terminal: the
+column header and the "… N others" roll-up are two lines the table prints around
+its rows, and leaving them uncounted pushed the frame two lines past the bottom,
+scrolling the app's own header away.

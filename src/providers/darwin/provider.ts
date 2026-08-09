@@ -12,7 +12,7 @@ import type {
   RawProcess,
   ProcessesData,
 } from '../../core/types.js';
-import { selectWorkingSet } from '../../core/workingSet.js';
+import { selectWorkingSet, WORKING_SET_SIZE } from '../../core/workingSet.js';
 import { isProtectedName } from '../../kill/guards.js';
 import type { MetricsProvider } from '../types.js';
 import { BIN, run } from './exec.js';
@@ -201,7 +201,7 @@ export class DarwinProvider implements MetricsProvider {
     }
   }
 
-  async processes(): Promise<ProcessesData> {
+  async processes(limit: number = WORKING_SET_SIZE): Promise<ProcessesData> {
     // Hot columns only: 22ms rather than 48ms. See C-1.
     const hot = parsePsHot(await run(BIN.ps, ['-Ao', 'pid,ppid,time,rss']));
     const now = Date.now();
@@ -245,7 +245,7 @@ export class DarwinProvider implements MetricsProvider {
      * steady system is rare.
      */
     let all = hot.map(build);
-    let { visible, others } = selectWorkingSet(all);
+    let { visible, others } = selectWorkingSet(all, limit);
 
     if (visible.some((p) => !this.metaCache.has(p.pid))) {
       const metas = parsePsStatic(await run(BIN.ps, ['-Ao', 'pid,lstart,user,state,comm']));
@@ -254,7 +254,7 @@ export class DarwinProvider implements MetricsProvider {
       // cache cannot grow without bound.
       this.metaCache = new Map(metas.filter((m) => live.has(m.pid)).map((m) => [m.pid, m]));
       all = hot.map(build);
-      ({ visible, others } = selectWorkingSet(all));
+      ({ visible, others } = selectWorkingSet(all, limit));
     }
 
     // Built from every row, so the ancestor guard can walk out of the

@@ -1,5 +1,5 @@
 import { energyProxy } from '../../core/scoring.js';
-import { selectWorkingSet } from '../../core/workingSet.js';
+import { selectWorkingSet, WORKING_SET_SIZE } from '../../core/workingSet.js';
 import type {
   BatteryData,
   CpuData,
@@ -161,7 +161,7 @@ export class MockProvider implements MetricsProvider {
     return f ? `${f.command} --type=renderer --enable-features=Foo` : null;
   }
 
-  async processes(): Promise<ProcessesData> {
+  async processes(limit: number = WORKING_SET_SIZE): Promise<ProcessesData> {
     this.tick();
     const all: ProcessSample[] = [];
 
@@ -203,7 +203,7 @@ export class MockProvider implements MetricsProvider {
       });
     }
 
-    const { visible, others } = selectWorkingSet(all);
+    const { visible, others } = selectWorkingSet(all, limit);
     const parents = new Map<number, number>(all.map((p) => [p.pid, p.ppid]));
     return { total: all.length, visible, others, parents, energyAccurate: false };
   }

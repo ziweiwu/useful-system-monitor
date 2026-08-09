@@ -17,12 +17,32 @@ const EN_BAR = 5;
 const EN_NUM = 6;
 const USER = 9;
 const NAME_MAX = 34;
+/** Trailing gutter: one space plus the scrollbar cell. */
+const GUTTER = 2;
 
 /** Widths are derived from terminal width so nothing ever wraps. See I-19. */
 export function columnLayout(totalWidth: number) {
   const fixed = CURSOR + PID + 1 + MARK + CPU_BAR + CPU_NUM + 2 + MEM_NUM + 2 + EN_BAR + 1 + EN_NUM + 2;
-  const name = Math.max(10, Math.min(NAME_MAX, totalWidth - fixed - USER));
+  const name = Math.max(10, Math.min(NAME_MAX, totalWidth - fixed - USER - GUTTER));
   return { name, user: USER };
+}
+
+/**
+ * Per-row scrollbar glyphs for a window of `windowSize` rows starting at
+ * `offset` within a list of `total`.
+ *
+ * Returns an empty array when everything fits, so a short list renders no
+ * gutter content at all rather than a full-height thumb that cannot move.
+ */
+export function scrollbarCells(total: number, windowSize: number, offset: number): boolean[] {
+  if (windowSize <= 0 || total <= windowSize) return [];
+  const thumb = Math.max(1, Math.round((windowSize * windowSize) / total));
+  const maxOffset = total - windowSize;
+  const travel = windowSize - thumb;
+  const top = maxOffset > 0 ? Math.round((offset / maxOffset) * travel) : 0;
+  // Clamped so a rounded thumb can never hang off the end of the track.
+  const start = Math.min(Math.max(0, top), travel);
+  return Array.from({ length: windowSize }, (_, i) => i >= start && i < start + thumb);
 }
 
 /**
@@ -48,12 +68,15 @@ const Row = memo(function Row({
   width,
   totalEnergy,
   totalWatts,
+  bar,
 }: {
   p: ProcessSample;
   selected: boolean;
   width: number;
   totalEnergy: number;
   totalWatts: number | null;
+  /** Scrollbar gutter: true = thumb, false = track, null = list fits. */
+  bar: boolean | null;
 }) {
   const { name, user } = columnLayout(width);
   const cpu = p.cpuPercent ?? 0;
@@ -91,6 +114,8 @@ const Row = memo(function Row({
       <Text color={p.user === 'root' ? theme.root : theme.dim}>
         {padEnd(truncate(p.user, user), user)}
       </Text>
+      <Text> </Text>
+      <Text color={bar ? theme.mem : theme.track}>{bar === null ? ' ' : bar ? '█' : '│'}</Text>
     </Text>
   );
 });
@@ -101,21 +126,34 @@ export const ProcessTable = memo(function ProcessTable({
   selectedPid,
   width,
   rows,
+  offset = 0,
   totalEnergy,
   totalWatts,
   energyAccurate = false,
+  canExpand = false,
 }: {
   processes: readonly ProcessSample[];
   others: OthersRollup;
   selectedPid: number | null;
   width: number;
   rows: number;
+  /**
+   * First row of the visible window. I-26: the window follows the selection,
+   * so the cursor is always on screen no matter how far down the list it is.
+   */
+  offset?: number;
   totalEnergy: number;
   totalWatts: number | null;
   energyAccurate?: boolean;
+  /** Whether `+` would still widen the working set, for the roll-up hint. */
+  canExpand?: boolean;
 }) {
   const { name, user } = columnLayout(width);
-  const shown = processes.slice(0, rows);
+  // Clamped here as well as by the caller: `rows` shrinks on a terminal resize,
+  // and a stale offset would otherwise render a window past the end.
+  const start = Math.max(0, Math.min(offset, Math.max(0, processes.length - rows)));
+  const shown = processes.slice(start, start + rows);
+  const bars = scrollbarCells(processes.length, rows, start);
   const showWatts = wattsAreMeaningful(totalWatts);
   const othersWatts = estimateWatts(others.energy, totalEnergy, totalWatts);
 
@@ -143,7 +181,7 @@ export const ProcessTable = memo(function ProcessTable({
         {'  '}
         {padEnd('USER', user)}
       </Text>
-      {shown.map((p) => (
+      {shown.map((p, i) => (
         <Row
           key={p.pid}
           p={p}
@@ -151,12 +189,17 @@ export const ProcessTable = memo(function ProcessTable({
           width={width}
           totalEnergy={totalEnergy}
           totalWatts={totalWatts}
+          bar={bars.length ? (bars[i] ?? false) : null}
         />
       ))}
       {others.count > 0 && (
         <Text color={theme.dim}>
           {' '.repeat(CURSOR)}
-          {padEnd('', PID)} {padEnd(`… ${others.count} others`, name)}
+          {padEnd('', PID)}{' '}
+          {padEnd(
+            truncate(canExpand ? `… ${others.count} others  (+ show more)` : `… ${others.count} others`, name),
+            name,
+          )}
           {' '.repeat(MARK)}
           {padStart(others.cpuPercent.toFixed(1), CPU_BAR + CPU_NUM)}
           {'  '}

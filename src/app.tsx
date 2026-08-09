@@ -4,6 +4,7 @@ import { age, clockTime, duration } from './core/format.js';
 import { sortProcesses, type SortKey } from './core/scoring.js';
 import type { ProcessSample } from './core/types.js';
 import { truncate } from './core/width.js';
+import { stepCostNote, stepLabel, WORKING_SET_STEPS } from './core/workingSet.js';
 import { useProcessHistory } from './hooks/useProcessHistory.js';
 import { useSampler } from './hooks/useSampler.js';
 import { useTerminalSize } from './hooks/useTerminalSize.js';
@@ -39,7 +40,10 @@ export interface AppProps {
 export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   const { exit } = useApp();
   const { columns, rows } = useTerminalSize();
-  const { snapshot, histories, refresh } = useSampler(provider, tiers);
+  /* Index into WORKING_SET_STEPS. `+` widens the set, `-` narrows it. */
+  const [wsStep, setWsStep] = useState(0);
+  const workingSetSize = WORKING_SET_STEPS[wsStep]!;
+  const { snapshot, histories, refresh } = useSampler(provider, tiers, workingSetSize);
 
   const [view, setView] = useState<View>('overview');
   const [sortKey, setSortKey] = useState<SortKey>('cpu');
@@ -52,6 +56,8 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   const [toast, setToast] = useState<{ text: string; bad: boolean } | null>(null);
   const [detailPid, setDetailPid] = useState<number | null>(null);
   const [commandLine, setCommandLine] = useState<string | null>(null);
+  /** First visible row. Derived state; `viewOffset` below is the truth. */
+  const [scrollTop, setScrollTop] = useState(0);
 
   /*
    * The clock and the sample-age readouts derive from the newest panel sample
@@ -229,6 +235,10 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     else if (input === 'm') setSortKey('mem');
     else if (input === 'e') setSortKey('energy');
     else if (input === 'r') refresh();
+    // `=` is the same physical key as `+`, so expanding does not need shift.
+    else if (input === '+' || input === '=')
+      setWsStep((i) => Math.min(WORKING_SET_STEPS.length - 1, i + 1));
+    else if (input === '-' || input === '_') setWsStep((i) => Math.max(0, i - 1));
     else if (input === '/') setFilterMode(true);
     else if (key.return) {
       if (selectedPid !== null) setDetailPid(selectedPid);
@@ -241,9 +251,38 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     }
   });
 
-  const chromeRows = 16;
-  const tableRows = Math.max(3, rows - chromeRows);
+  /*
+   * Everything on screen that is not a process row: the app header, the four
+   * cards, the core strip, the status line, the footer and their margins — plus
+   * the two lines ProcessTable prints around its rows (the column header and
+   * the "… N others" roll-up). Those last two used to be uncounted, so the
+   * frame ran two lines past the terminal and scrolled its own header away.
+   */
+  const CHROME_ROWS = 18;
+  const tableRows = Math.max(3, rows - CHROME_ROWS - (toast ? 2 : 0));
   const width = Math.max(60, columns - 2);
+
+  /*
+   * I-26: the visible window always contains the selection.
+   *
+   * Derived during render rather than stored, so a re-sort, a filter change, a
+   * resize or a `+` expansion can never leave the cursor stranded off-screen
+   * for a frame. `scrollTop` only remembers where the window was, so ordinary
+   * up/down movement inside the window does not drag the list around.
+   */
+  const selIndex = filtered.findIndex((p) => p.pid === selectedPid);
+  const viewOffset = useMemo(() => {
+    const max = Math.max(0, filtered.length - tableRows);
+    const cur = Math.min(Math.max(0, scrollTop), max);
+    if (selIndex < 0) return cur;
+    if (selIndex < cur) return selIndex;
+    if (selIndex >= cur + tableRows) return Math.max(0, selIndex - tableRows + 1);
+    return cur;
+  }, [scrollTop, selIndex, filtered.length, tableRows]);
+
+  useEffect(() => {
+    if (viewOffset !== scrollTop) setScrollTop(viewOffset);
+  }, [viewOffset, scrollTop]);
 
   const totalEnergy =
     (procData?.visible.reduce((s, p) => s + (p.energy ?? 0), 0) ?? 0) +
@@ -295,7 +334,12 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
       {view === 'overview' && (
         <Box flexDirection="column" marginTop={1}>
           <Text color={theme.dim}>
-            {procData ? `top ${procData.visible.length} of ${procData.total}` : 'sampling…'}
+            {procData
+              ? filtered.length === 0
+                ? 'no matches'
+                : `${viewOffset + 1}-${Math.min(viewOffset + tableRows, filtered.length)} of ${filtered.length}` +
+                  ` · top ${stepLabel(workingSetSize)} of ${procData.total}${stepCostNote(workingSetSize)}`
+              : 'sampling…'}
             {' · sort '}
             <Text color={theme.mem}>{sortKey}</Text>
             {' · filter '}
@@ -314,6 +358,8 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
               selectedPid={selectedPid}
               width={width}
               rows={tableRows}
+              offset={viewOffset}
+              canExpand={wsStep < WORKING_SET_STEPS.length - 1}
               totalEnergy={totalEnergy}
               totalWatts={batt?.watts ?? null}
               energyAccurate={procData.energyAccurate}
@@ -361,7 +407,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
 
       {/* Footer */}
       <Box marginTop={1}>
-        <Text color={theme.dim}>
+        {/* I-19: the key hints are the widest fixed string in the app, so they
+            are truncated rather than allowed to wrap at narrow widths. */}
+        <Text color={theme.dim} wrap="truncate">
           {filterMode
             ? 'type to filter   enter apply   esc clear'
             : detailPid !== null
@@ -370,7 +418,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
               ? killCheck?.allowed
                 ? 't SIGTERM   k SIGKILL (twice)   esc cancel'
                 : 'esc back'
-              : 'up/dn move   enter details   k kill   / filter   c m e sort   1-4 view   q quit'}
+              : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  1-4 view  q quit'}
         </Text>
       </Box>
     </Box>

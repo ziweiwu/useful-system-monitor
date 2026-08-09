@@ -38,7 +38,8 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 
 | Key | What it does |
 |---|---|
-| <kbd>↑</kbd> <kbd>↓</kbd> | pick an app |
+| <kbd>↑</kbd> <kbd>↓</kbd> | pick an app — the list scrolls to follow you |
+| <kbd>+</kbd> <kbd>-</kbd> | show more apps, or fewer (50 → 150 → 300 → all) |
 | <kbd>enter</kbd> | see more about it |
 | <kbd>k</kbd> | close it |
 | <kbd>/</kbd> | search |
