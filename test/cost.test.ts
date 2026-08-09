@@ -105,3 +105,17 @@ describe.skipIf(!isDarwin)('I-9: sysmon must not drain the battery it monitors',
     expect(b.visible.length).toBeLessThanOrEqual(50);
   }, 30_000);
 });
+
+describe.skipIf(!isDarwin)('battery absence is a state, not a failure', () => {
+  it('reports a batteryless Mac without throwing', async () => {
+    const p = new DarwinProvider();
+    // Passes on laptops (present) and on desktops / CI runners (absent); the
+    // point is that neither path throws.
+    const b = await p.battery();
+    expect(typeof b.present).toBe('boolean');
+    if (!b.present) {
+      expect(b.onAcPower).toBe(true);
+      expect(b.watts).toBeNull();
+    }
+  }, 20_000);
+});

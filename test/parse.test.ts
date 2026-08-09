@@ -237,6 +237,14 @@ describe('parsePmset', () => {
   it('returns null when there is no battery', () => {
     expect(parsePmset('Now drawing from AC Power\n')).toBeNull();
   });
+
+  it('null means "desktop Mac", which the provider must not treat as an error', () => {
+    // Mac mini, Studio, Pro, iMac and every CI runner report no battery.
+    // Throwing here would show an error panel on a machine working perfectly.
+    for (const out of ['Now drawing from AC Power\n', '', 'No adapter attached.\n']) {
+      expect(parsePmset(out)).toBeNull();
+    }
+  });
 });
 
 describe('parseSignedInt64: the unsigned Amperage trap', () => {

@@ -33,6 +33,15 @@ export const BatteryView = memo(function BatteryView({
     return <Text color={theme.dim}>Battery data unavailable.</Text>;
   }
 
+  if (!batt.present) {
+    return (
+      <Text color={theme.dim}>
+        This Mac has no battery — it runs on AC power, so there is nothing to
+        attribute energy against.
+      </Text>
+    );
+  }
+
   const top = procs
     ? procs.visible.toSorted((a, b) => (b.energy ?? 0) - (a.energy ?? 0)).slice(0, 8)
     : [];

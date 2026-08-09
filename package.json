@@ -1,7 +1,7 @@
 {
   "name": "useful-system-monitor",
   "version": "0.1.0",
-  "description": "Terminal dashboard showing which processes are eating your CPU, memory and battery on macOS \u2014 and letting you safely kill them.",
+  "description": "Find what's draining your Mac's CPU, memory and battery \u2014 a fast terminal dashboard that ranks every process by what it actually costs you, and kills the offenders safely.",
   "type": "module",
   "bin": {
     "useful-system-monitor": "./dist/cli.js"
@@ -14,7 +14,7 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
     "screenshot": "tsx scripts/screenshot.tsx",
-    "screenshot:svg": "FORCE_COLOR=3 COLS=100 ROWS=30 tsx scripts/gen-svg.tsx docs/screenshot.svg",
+    "screenshot:svg": "FORCE_COLOR=3 COLS=126 ROWS=46 tsx scripts/gen-svg.tsx docs/screenshot.svg",
     "start": "tsx src/cli.tsx",
     "test": "vitest run",
     "test:watch": "vitest",

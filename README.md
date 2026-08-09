@@ -1,12 +1,29 @@
 # useful-system-monitor
 
-A terminal dashboard that answers one question fast: **what is eating my CPU,
-memory and battery right now — and how do I kill it safely?**
+**Your Mac is hot, the fan is loud, and the battery says two hours. Which app is
+doing it?**
 
-`top` and `htop` cover CPU and memory but have no battery attribution and no
-safe kill affordances. Activity Monitor has both but is a GUI.
+`useful-system-monitor` answers that in one screen. It ranks every process by
+what it actually costs you — CPU, memory, and *watts* — and lets you kill the
+offender without taking your session down with it.
 
-![The dashboard: CPU, memory, disk and battery gauges above a process table sorted by CPU](docs/screenshot.svg)
+![The dashboard: CPU, memory, disk and battery gauges above a process table ranked by CPU](docs/screenshot.svg)
+
+`top` and `htop` show CPU and memory but cannot tell you what is draining the
+battery, and offer no guardrails when you kill something. Activity Monitor knows
+both and is a GUI you have to leave the terminal for. This sits in the gap.
+
+- **Ranks by real cost.** Instantaneous CPU (not the lifetime average `ps`
+  reports), resident memory, and an estimated wattage per process.
+- **Names the battery culprit.** A dedicated battery view turns the ranking into
+  a decision: *killing this saves ~3.5 W, about ten more minutes.*
+- **Kills safely.** Critical system processes are refused outright, your own
+  ancestors are protected, and a recycled PID aborts the kill instead of hitting
+  something innocent.
+- **Costs almost nothing to run.** 1.3% of one core, measured — a monitor that
+  drains your battery would be a bad joke.
+- **Reads clearly.** One colour per metric, severity only where high means bad,
+  and every state legible without colour at all.
 
 ## Install
 
@@ -153,6 +170,19 @@ The two that matter most: the kill target is bound to `(pid, startTime)` so a
 recycled PID can never be killed by mistake (I-16), and selection is keyed by
 PID rather than row index, so a re-sort arriving mid-keystroke cannot slide a
 different process under the cursor (I-21).
+
+## Screenshots
+
+The images above are generated from the real app, not redrawn:
+
+```sh
+npm run screenshot:svg          # regenerates docs/screenshot.svg
+```
+
+They are SVG so they stay crisp and text-selectable. To use a real terminal
+capture instead, drop a PNG at `docs/screenshot.png` and point the image at it —
+a native capture will render block characters exactly as your terminal font
+does.
 
 ## Contributing
 

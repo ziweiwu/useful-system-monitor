@@ -158,7 +158,25 @@ export class DarwinProvider implements MetricsProvider {
       run(BIN.ioreg, ['-rn', 'AppleSmartBattery', '-w0']),
     ]);
     const base = parsePmset(pmsetOut);
-    if (!base) throw new Error('no battery reported by pmset');
+    if (!base) {
+      /*
+       * No battery is a normal state, not an error: every desktop Mac (mini,
+       * Studio, Pro, iMac) and every CI runner reports none. Throwing here
+       * would degrade the panel to "error" on a machine that is working
+       * perfectly, so report absence and let the UI say so.
+       */
+      return {
+        present: false,
+        percent: 0,
+        charging: false,
+        onAcPower: true,
+        timeRemainingMin: null,
+        watts: null,
+        cycleCount: null,
+        healthPercent: null,
+        temperatureC: null,
+      };
+    }
     const detail = parseIoregBattery(ioregOut);
     return {
       present: base.present,

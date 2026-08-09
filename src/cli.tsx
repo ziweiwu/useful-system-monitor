@@ -64,7 +64,7 @@ Options
   -h, --help
 
 Keys
-  up/dn move   k kill   / filter   c m e sort   1-4 view   r refresh   q quit
+  up/dn move   enter details   k kill   / filter   c m e sort   1-4 view   q quit
 
 Notes
   Energy is estimated from CPU time by default; macOS's own Energy Impact

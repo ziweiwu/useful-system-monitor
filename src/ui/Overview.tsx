@@ -94,6 +94,14 @@ export const Overview = memo(function Overview({
           title="BATT"
           width={cardWidth}
           color={theme.battery}
+          // A desktop Mac has no battery; that is a fact to report, not a gap.
+          unavailable={
+            snapshot.battery.status === 'error'
+              ? snapshot.battery.message
+              : batt && !batt.present
+                ? 'no battery — on AC power'
+                : undefined
+          }
           pct={batt?.percent ?? 0}
           headline={
             batt
@@ -101,9 +109,8 @@ export const Overview = memo(function Overview({
               : '—'
           }
           history={histories.battery.toArray()}
-          unavailable={snapshot.battery.status === 'error' ? snapshot.battery.message : undefined}
           lines={
-            batt
+            batt && batt.present
               ? [
                   [
                     batt.watts !== null && Math.abs(batt.watts) >= 0.5
