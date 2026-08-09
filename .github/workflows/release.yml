@@ -40,6 +40,9 @@ jobs:
           npm run build
 
       - name: Check the tag matches package.json
+        # Tag pushes only: on a manual dispatch GITHUB_REF_NAME is the branch
+        # name, so this compared "main" against the version and always failed.
+        if: github.ref_type == 'tag'
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           PKG=$(node -p "require('./package.json').version")
