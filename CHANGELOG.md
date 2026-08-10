@@ -3,6 +3,16 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## Unreleased
+
+### Fixed
+
+- CI's smoke test still passed `--top`, removed in 0.6.0, so `main` went red the
+  moment that release landed. The smoke test now lives in `scripts/smoke.sh`,
+  runs from both CI and the release workflow, and checks the things only a real
+  build can get wrong: `--version` matching the package it shipped in, `--json`
+  degrading correctly off a TTY, and an unknown option exiting non-zero.
+
 ## 0.6.0
 
 ### Removed

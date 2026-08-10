@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "verify:kill": "tsx scripts/verify-kill.ts",
+    "verify:smoke": "bash scripts/smoke.sh",
     "verify:selfcost": "tsx scripts/verify-selfcost.tsx",
     "verify:workingset": "tsx scripts/verify-workingset.ts"
   },

@@ -35,9 +35,4 @@ jobs:
         run: npm run build
 
       - name: Smoke test the built CLI
-        run: |
-          node dist/cli.js --help
-          # Not a TTY here, so this must degrade to one-shot output rather than
-          # trying to start the dashboard.
-          node dist/cli.js --json --top 3 > /tmp/out.json
-          node -e "const j=require('/tmp/out.json'); if(!j.processes?.length) throw new Error('no processes in JSON output'); console.log('ok:', j.processes.length, 'processes')"
+        run: npm run verify:smoke

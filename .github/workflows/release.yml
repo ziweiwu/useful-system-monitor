@@ -38,6 +38,10 @@ jobs:
           npm run typecheck
           npm test
           npm run build
+          # The same smoke test CI runs. Without it a release can publish while
+          # CI is red, which is how 0.6.0 shipped against a workflow still
+          # passing a flag that had been removed.
+          npm run verify:smoke
 
       - name: Check the tag matches package.json
         # Tag pushes only: on a manual dispatch GITHUB_REF_NAME is the branch
