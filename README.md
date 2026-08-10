@@ -85,26 +85,32 @@ Piped or redirected, it prints one shot of plain text instead of taking over
 the terminal — so it composes, and it works from cron:
 
 ```sh
-useful-system-monitor | head -5
+useful-system-monitor | head -8
 useful-system-monitor --json | jq '.processes[0].name'
-useful-system-monitor --top 20 --sort mem     # the 20 biggest memory users
+
+# the 20 biggest memory users
+useful-system-monitor --json | jq -r '.processes | sort_by(-.rssBytes)[:20][] | .name'
 ```
 
-`--json` includes the version that produced it, so a consumer can tell which
+There is no row-count or sort option, on purpose: `--json` hands over the whole
+working set, and `head` and `jq` already do that job better than a flag could.
+The JSON includes the version that produced it, so a consumer can tell which
 shape it is reading.
 
 ## Extras
 
 ```
 --json              Print the numbers instead of the dashboard
---top N             How many apps to list in that output (default 10)
---sort cpu|mem|energy   How to order them (default cpu)
---interval SECONDS  How often the dashboard refreshes, 1-3600 (default 10)
+--interval SECONDS  How often the dashboard refreshes (default 10)
 --energy=accurate   More precise battery numbers, at a small cost in speed
 --mock              Try it with fake data, without touching your system
 -h, --help          The full help, with examples
--v, --version       Which version you have
+--version           Which version you have
 ```
+
+Six options, and each one buys something the terminal cannot: what is measured,
+how often, and where it comes from. Everything about *presenting* the numbers
+belongs to the dashboard's keys, or to `head` and `jq`.
 
 It exits 0 when it worked, 2 if you passed something it does not understand,
 and 1 if it could not read the machine. An option it does not recognise is an

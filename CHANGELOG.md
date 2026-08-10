@@ -3,6 +3,19 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## Unreleased
+
+### Removed
+
+- `--top` and `--sort`. Both only shaped one-shot output, which `head` and `jq`
+  already do better; `--json` now hands over the whole working set instead of
+  guessing how much of it you wanted. Text output is the busiest 10 by CPU.
+- `-v` and `-V`. `--version` is the one spelling.
+- The upper bounds on `--interval` and `--top`. Nothing motivated them, and
+  `--interval 7200` for a lazy background pane is a fair thing to want. The
+  floor of 1s stays: that is the one that stops a negative value reaching
+  `setInterval`.
+
 ## 0.5.0
 
 ### Added

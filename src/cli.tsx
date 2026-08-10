@@ -2,9 +2,8 @@
 import { createRequire } from 'node:module';
 import { render } from 'ink';
 import { bytes, percent } from './core/format.js';
-import { parseArgs, SORT_KEYS, type Options } from './core/options.js';
+import { parseArgs, type Options } from './core/options.js';
 import { sortProcesses } from './core/scoring.js';
-import { WORKING_SET_SIZE } from './core/workingSet.js';
 import { DarwinProvider } from './providers/darwin/provider.js';
 import { MockProvider } from './providers/mock/provider.js';
 import { DEFAULT_TIERS, type MetricsProvider, type Tiers } from './providers/types.js';
@@ -27,18 +26,16 @@ Usage
 
 Options
   --json              One-shot JSON to stdout instead of the dashboard
-  --top N             Rows of processes in one-shot output (default 10).
-                      No effect on the dashboard, which fills the terminal.
-  --sort ${SORT_KEYS.join('|')}
-                      Order of the one-shot rows (default cpu). In the
-                      dashboard, press c, m or e instead.
-  --interval SECONDS  Dashboard refresh, 1-3600 (default 10). Lower is more
+  --interval SECONDS  Dashboard refresh, 1 or more (default 10). Lower is more
                       responsive and costs more CPU; no effect one-shot.
   --energy=accurate   Use macOS Energy Impact instead of the CPU-time estimate.
                       Costs ~1s of CPU per 60s sample (~5x the default budget).
   --mock              Run with scripted data, without touching the system
   -h, --help          Show this help
-  -v, --version       Print the version
+  --version           Print the version
+
+  There is no row-count or sort option: the dashboard sorts with c, m and e,
+  and --json hands over the whole working set so head and jq can do the rest.
 
 Keys (dashboard)
   left/right   move between the five screens; 1-5 jump straight to one
@@ -50,7 +47,7 @@ Keys (dashboard)
 Examples
   useful-system-monitor                        open the dashboard
   useful-system-monitor --json | jq .cpu       the numbers, for a script
-  useful-system-monitor --top 20 --sort mem    the 20 biggest memory users
+  useful-system-monitor | head -8              the busiest few, as text
   useful-system-monitor --interval 2           refresh faster to catch a spike
 
 Exit status
@@ -67,21 +64,25 @@ Notes
 `;
 
 /** One-shot, pipe-friendly output. Used when stdout is not a TTY. See I-22. */
+/* Rows of text, before piping. Enough to answer "what is busy right now" at a
+   glance; `head` trims it further and --json ignores it entirely. */
+const TEXT_ROWS = 10;
+
 async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
-  /* The working set has to cover the requested rows, or `--top 200` would be
-     silently capped at the default 50 and report fewer rows than asked for. */
-  const limit = Math.max(o.top, WORKING_SET_SIZE);
   // Two samples are required: CPU% is always a delta, never a lifetime average.
-  await provider.processes(limit);
+  await provider.processes();
   await new Promise((r) => setTimeout(r, 300));
   const [cpu, mem, disk, batt, procs] = await Promise.all([
     provider.cpu(),
     provider.memory(),
     provider.disk(),
     provider.battery(),
-    provider.processes(limit),
+    provider.processes(),
   ]);
-  const top = sortProcesses(procs.visible, o.sort).slice(0, o.top);
+  /* JSON gets the whole working set: a consumer that wants ten rows sorted by
+     memory has jq, and guessing on its behalf is what --top and --sort were. */
+  const ranked = sortProcesses(procs.visible, 'cpu');
+  const top = o.json ? ranked : ranked.slice(0, TEXT_ROWS);
 
   if (o.json) {
     process.stdout.write(
