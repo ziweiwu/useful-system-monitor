@@ -12,12 +12,22 @@ jobs:
     # declares os: ["darwin"], so npm refuses to install anywhere else.
     runs-on: macos-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    strategy:
+      fail-fast: false
+      # Both Node lines package.json still claims to support: 24 is the current
+      # LTS, 22 is in maintenance until April 2027. Testing only the newest
+      # would leave the `engines` field an untested promise.
+      matrix:
+        node: [22, 24]
 
-      - uses: actions/setup-node@v4
+    name: check (node ${{ matrix.node }})
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - run: npm ci

@@ -138,8 +138,8 @@ version.
 
 ## Requirements
 
-A Mac, and [Node.js](https://nodejs.org) 20 or newer. Linux isn't supported yet
-— contributions welcome.
+A Mac, and [Node.js](https://nodejs.org) 22 or newer — the two release lines
+Node still supports. Linux isn't supported yet — contributions welcome.
 
 Running it barely costs anything: about 1% of one CPU core. A monitor that ran
 your battery down would rather defeat the point.

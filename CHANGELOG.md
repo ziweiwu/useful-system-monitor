@@ -5,6 +5,18 @@ public surface is the command line, the JSON shape, and the keys.
 
 ## Unreleased
 
+### Changed
+
+- Requires Node 22 or newer. Node 20 reached end of life on 2026-04-30, so
+  `engines: ">=20"` was a promise about an unsupported runtime.
+- CI now runs on both Node lines that are still supported — 24, the current
+  LTS, and 22, in maintenance until April 2027 — so the `engines` range is
+  tested rather than asserted. Releases are published from 24.
+- `@types/node` tracks 22, the *lowest* supported runtime, so a Node 24-only
+  API cannot slip in and typecheck.
+- `actions/checkout` and `actions/setup-node` moved to v7; v4 ran on the
+  deprecated Node 20 action runtime.
+
 ### Fixed
 
 - CI's smoke test still passed `--top`, removed in 0.6.0, so `main` went red the

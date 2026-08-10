@@ -19,15 +19,18 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      # Publish from the current LTS. CI proves the package also runs on 22.
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
 
-      # Trusted Publishing needs npm 11.5.1+; Node 22 ships an older npm.
+      # Trusted Publishing needs npm 11.5.1+. Node 24 ships 11.17, so this is
+      # belt-and-braces rather than a fix — but it costs seconds and it is what
+      # keeps publishing working if the Node version here ever moves back.
       - run: npm install -g npm@latest
 
       - run: npm ci
