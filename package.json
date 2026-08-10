@@ -1,6 +1,6 @@
 {
   "name": "useful-system-monitor",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "See what's using up your Mac — and close the apps that are hogging it. CPU, memory, disk and battery at a glance, right in your terminal.",
   "type": "module",
   "bin": {
