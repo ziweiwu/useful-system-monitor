@@ -49,6 +49,12 @@ public surface is the command line, the JSON shape, and the keys.
   exceeded", an infinite loop rather than a layout glitch. The table is dropped
   entirely rather than drawn with no rows, and the window used for the scroll
   arithmetic is never zero.
+- **The first ten seconds after launch showed no CPU data at all.** Every rate
+  here is a delta, and the second sample — the first that can show a number —
+  waited out the full refresh interval, so the dashboard opened with every
+  CPU% reading `—` and the gauge reading 0.0%. The two delta-based collectors
+  now take one extra sample 700 ms after launch. It is one extra `ps` per
+  launch, not a faster tier. See I-29.
 
 ## 0.7.0
 

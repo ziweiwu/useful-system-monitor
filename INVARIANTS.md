@@ -35,6 +35,7 @@ collectors, and the kill path. All invariants below are enforced and tested.
 | I-9c | Widening the working set with `+` adds no rendered rows (the table is windowed, I-26). Measured per `processes()` call, interleaved A/B: cap 50 **27.3ms**, 150 **25.1ms**, 300 **26.5ms** — free, within noise. `all` is **90.4ms (+0.63% of one core at the 10s tier)** because the static `ps` then refetches every tick; the UI labels that step with its cost | `npm run verify:workingset` |
 | I-10 | History lives in fixed-capacity ring buffers, and per-process history only for the working set, evicted on exit | `core/ring.ts` · `hooks/useProcessHistory.ts` · `test/ring.test.ts` · `test/history.test.ts` |
 | I-11 | A collector failure degrades only its own panel; it never crashes the app or blanks other panels | `hooks/useSampler.ts` · `ui/Gauge.tsx` |
+| I-29 | The first screen shows real numbers within a second of launch, not a tier later. Every rate is a delta, so the collectors that produce one take a second sample immediately rather than waiting out the interval | `hooks/useSampler.ts` · `test/priming.test.ts` · `test/priming.render.test.tsx` |
 
 ## Kill safety
 
@@ -121,6 +122,15 @@ disabled for the entire machine**. The same inheritance made
 `sysctl vm.swapusage` print `1024,00M` and report swap as 0 B. `LC_ALL` has to
 be *removed* rather than overridden: it outranks the individual categories, so
 setting `LC_TIME=C` alongside it does nothing at all.
+
+**I-29 (a delta needs two samples, and the second one cannot wait).** I-1 is
+right that the first observation of a PID yields `null` rather than a fabricated
+zero. The consequence is that the *second* observation is the first that can
+show a number, and it used to arrive a whole tier later — so on the default 10s
+interval the dashboard opened with every CPU% reading `—` and the gauge reading
+0.0% for ten seconds, which is most of the time anyone looks at it. One extra
+early sample closes the window without raising the rate: the intervals keep the
+phase they were created with, so it costs a single extra `ps` per launch.
 
 **I-27 (five screens, one strip).** Five screens behind number keys documented
 only in a footer that truncates at 80 columns is a feature nobody finds. The tab

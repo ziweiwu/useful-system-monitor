@@ -5,6 +5,16 @@ import type { MetricsProvider, Tiers } from '../providers/types.js';
 
 export const HISTORY_LEN = 60;
 
+/**
+ * How soon after launch the delta-based collectors take their second sample.
+ *
+ * Long enough that `ps`'s centisecond CPU-time column still quantises finely
+ * (~1.4% per process), short enough that the first real numbers are on screen
+ * before the user has finished reading the header. Never shortened below the
+ * point where the two samples could land in the same centisecond tick.
+ */
+export const PRIMING_DELAY_MS = 700;
+
 export interface Histories {
   cpu: Ring;
   memory: Ring;
@@ -134,8 +144,32 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSi
       setInterval(() => void runProcs(), tiers.processes),
     ];
 
+    /*
+     * The priming sample, so the first screen is not empty for a whole tier.
+     *
+     * Both CPU sources are deltas by construction: CpuDeltaTracker returns null
+     * the first time it sees a PID (I-1), and per-core utilisation divides two
+     * os.cpus() readings taken microseconds apart. The run above is therefore
+     * only ever the *first* half of a measurement, and the second half used to
+     * arrive on the next tick — so on the default 10s tier the app opened with
+     * every CPU% reading "—" and the gauge reading 0.0% for ten seconds, which
+     * is exactly when the user is looking at it.
+     *
+     * One extra early run closes the window instead of raising the rate: the
+     * intervals above keep the phase they were created with, so this costs a
+     * single extra `ps` per launch and nothing thereafter. The delta is over
+     * true elapsed wall-clock either way, so a short first window is noisier
+     * but not wrong — `ps` TIME has centisecond resolution, which over 700ms
+     * quantises to ~1.4%. `oneShot` in cli.tsx has always primed this way.
+     */
+    const priming = setTimeout(() => {
+      void runCpu();
+      void runProcs();
+    }, PRIMING_DELAY_MS);
+
     return () => {
       cancelled = true;
+      clearTimeout(priming);
       for (const t of timers) clearInterval(t);
     };
   }, [provider, tiers, histories]);
