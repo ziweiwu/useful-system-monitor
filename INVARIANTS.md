@@ -55,7 +55,7 @@ an error.
 | # | Invariant | Where |
 |---|---|---|
 | I-18 | Render is a pure function of `(Snapshot, UiState)`; no I/O in components | `ui/*` |
-| I-19 | Layout never overflows terminal width. Widths use display-width, not `String.length` | `core/width.ts` · `test/width.test.ts` · `test/ui.test.tsx` |
+| I-19 | Layout never overflows terminal width, at **any** size the dashboard draws at. Widths use display-width, not `String.length`, and a column is dropped rather than floored below what fits | `core/width.ts` · `ui/ProcessTable.ts` · `test/width.test.ts` · `test/ui.test.tsx` |
 | I-20 | Sort is stable and total — ties broken by PID — so rows do not jitter at equal CPU | `core/scoring.ts` · `test/scoring.test.ts` |
 | I-21 | Selection is keyed by **PID, not row index**. A re-sort under the cursor must never move the kill target | `app.tsx` · `test/ui.test.tsx` |
 | I-22 | No TUI when stdout is not a TTY; one-shot text or `--json` instead | `cli.tsx` |
@@ -63,7 +63,7 @@ an error.
 | I-24 | Data to stdout, errors to stderr, exit 0/non-zero. Errors state cause *and* remedy. An unknown option or an unusable value is an error with its own exit status (2), **never ignored** — ignoring them returned rows in no order (`--sort bogus`) and spun the render loop at ~1000Hz (`--interval -5`) | `cli.tsx` · `core/options.ts` · `test/options.test.ts` |
 | I-25 | Every interactive action has a non-interactive equivalent, and the build identifies itself to both a human and a script | `cli.tsx` (`--json` carries the whole working set, `--version`, and `version` in the JSON) |
 | I-25b | An option has to buy something the terminal cannot: what is measured, how often, or where it comes from. Row counts and ordering are `head` and `jq`'s job | `core/options.ts` · `test/options.test.ts` |
-| I-26 | The process table is a scrolling window that always contains the selection, and **no mode on any screen ever exceeds the terminal height**. Lists whose length comes from the machine — cores, mounted volumes, top processes — are budgeted and roll up what will not fit | `app.tsx` · `core/rows.ts` · `ui/*` · `test/rows.test.ts` · `test/scroll.test.ts` · `test/ui.test.tsx` |
+| I-26 | The process table is a scrolling window that always contains the selection, and **no mode on any screen ever exceeds the terminal height**. Lists whose length comes from the machine — cores, mounted volumes, top processes — are budgeted and roll up what will not fit, and *fixed* sections are dropped in priority order when even they will not fit | `app.tsx` · `core/rows.ts` · `ui/*` · `test/rows.test.ts` · `test/scroll.test.ts` · `test/ui.test.tsx` |
 | I-27 | Every screen is reachable by walking left/right as well as by its number key, the strip on screen names the current one, and the arrows wrap rather than dead-ending | `core/views.ts` · `ui/ViewTabs.tsx` · `test/views.test.ts` · `test/ui.test.tsx` |
 
 ## The invariants worth the extra words

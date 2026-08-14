@@ -46,7 +46,10 @@ export function CpuView({
 
   return (
     <Box flexDirection="column">
-      <Text>
+      {/* I-19: load averages are three unbounded numbers, so this line grows
+          with the machine. Unwrapped it ran to 53 cells at 50 columns and cost
+          the screen a second row that maxRows had not budgeted for. */}
+      <Text wrap="truncate">
         <Text bold color={theme.headline}>
           {cpu.system.toFixed(1)}%
         </Text>
@@ -122,11 +125,27 @@ export function MemView({
     ['free', mem.freeBytes],
   ];
 
-  /* Fixed: headline, sparkline + blank, the five breakdown bars, the blank and
-     the two summary lines below them. TOP MEMORY costs a blank and a title. */
-  const CHROME = 3 + rows.length + 3;
+  /*
+   * Row budget, spent in priority order. See I-26.
+   *
+   * CHROME used to be `3 + rows.length + 3` — counted, but never checked: the
+   * headline, the five breakdown bars and the two summary lines were drawn
+   * whatever maxRows said, so on a 14-row terminal this screen ran two lines
+   * past the bottom. Only the TOP MEMORY list ever gave way.
+   *
+   * The breakdown is what the screen is for, so the summary goes first, then
+   * the breakdown rolls up, then the process list takes what is left.
+   */
+  const HEAD = 3;
+  const SUMMARY = 3;
+  const TOP_CHROME = 2;
+  let spare = Math.max(0, maxRows - HEAD);
+  const showSummary = spare >= rows.length + SUMMARY;
+  if (showSummary) spare -= SUMMARY;
+  const breakdown = fitList(rows.length, spare);
+  spare -= breakdown.shown + (breakdown.hidden > 0 ? 1 : 0);
   const topList = procs ? procs.visible.toSorted((a, b) => b.rssBytes - a.rssBytes) : [];
-  const topN = Math.max(0, Math.min(6, topList.length, maxRows - CHROME - 2));
+  const topN = Math.max(0, Math.min(6, topList.length, spare - TOP_CHROME));
 
   return (
     <Box flexDirection="column">
@@ -142,25 +161,37 @@ export function MemView({
       <Box marginBottom={1}>
         <Sparkline values={histories.memory.toArray()} width={Math.min(60, width - 4)} color={theme.mem} />
       </Box>
-      {rows.map(([label, v]) => (
-        <Text key={label}>
+      {rows.slice(0, breakdown.shown).map(([label, v]) => (
+        <Text key={label} wrap="truncate">
           <Text color={theme.dim}>{padEnd(label, 12)}</Text>
           <Bar pct={(v / mem.totalBytes) * 100} width={barW} color={theme.mem} />
           <Text color={theme.text}>{padStart(bytes(v), 8)}</Text>
         </Text>
       ))}
-      <Box marginTop={1}>
-        <Text color={theme.dim}>
-          available {bytes(mem.availableBytes)}
-          <Text color={theme.dim}>{'   (free + reclaimable inactive)'}</Text>
+      {breakdown.hidden > 0 && (
+        <Text color={theme.dim} wrap="truncate">
+          {`… ${breakdown.hidden} more — taller terminal to see them`}
         </Text>
-      </Box>
-      <Box>
-        <Text color={mem.swapUsedBytes > mem.swapTotalBytes * 0.7 ? theme.cpuHigh : theme.dim}>
-          swap {bytes(mem.swapUsedBytes)} / {bytes(mem.swapTotalBytes)}
-          {mem.swapUsedBytes > mem.swapTotalBytes * 0.7 ? '   ! heavy swap pressure' : ''}
-        </Text>
-      </Box>
+      )}
+      {showSummary && (
+        <>
+          <Box marginTop={1}>
+            <Text color={theme.dim} wrap="truncate">
+              available {bytes(mem.availableBytes)}
+              <Text color={theme.dim}>{'   (free + reclaimable inactive)'}</Text>
+            </Text>
+          </Box>
+          <Box>
+            <Text
+              wrap="truncate"
+              color={mem.swapUsedBytes > mem.swapTotalBytes * 0.7 ? theme.cpuHigh : theme.dim}
+            >
+              swap {bytes(mem.swapUsedBytes)} / {bytes(mem.swapTotalBytes)}
+              {mem.swapUsedBytes > mem.swapTotalBytes * 0.7 ? '   ! heavy swap pressure' : ''}
+            </Text>
+          </Box>
+        </>
+      )}
       {topN > 0 && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={theme.mem}>

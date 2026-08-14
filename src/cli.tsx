@@ -59,8 +59,9 @@ Notes
   Energy is estimated from CPU time by default; macOS's own Energy Impact
   costs ~1s of CPU per sample, which would make this tool a battery drain.
 
-  Colour follows NO_COLOR and the terminal's capabilities. The dashboard
-  wants at least 80x24; below that it drops detail rather than overflow.
+  Colour follows NO_COLOR and the terminal's capabilities. The dashboard is
+  laid out for 80x24 and adapts down to 50x10, dropping detail rather than
+  overflowing; below 50x10 it says so instead of drawing a broken frame.
 `;
 
 /** One-shot, pipe-friendly output. Used when stdout is not a TTY. See I-22. */

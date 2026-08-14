@@ -76,19 +76,34 @@ export function DiskView({
   const barW = Math.max(8, Math.min(30, width - mountW - 36));
 
   /*
-   * Row budget. Fixed: the headline, the sparkline and its blank, and the
-   * VOLUMES title; the two notes below cost a blank and a line each.
+   * Row budget, spent in priority order. See I-26.
+   *
+   * The two notes below the list were subtracted from the budget but drawn
+   * unconditionally, so on a short terminal they were charged for and printed
+   * anyway — at 10 rows this screen drew eight lines into a budget of five.
+   * They give way before the list does now.
    *
    * Both notes are computed from every volume, not just the visible ones — a
-   * full disk that got rolled up is exactly the one worth warning about.
+   * full disk that got rolled up is exactly the one worth warning about, so
+   * the over-90% warning is the last thing dropped.
    */
-  const CHROME = 4;
-  const listBudget = maxRows - CHROME - (anyNet ? 2 : 0) - (full.length ? 2 : 0);
+  const HEAD = 3;
+  const LIST_CHROME = 1;
+  /** A note is only worth its two lines if the list keeps a row of its own. */
+  const affords = (spare: number) => spare - 2 >= LIST_CHROME + 1;
+  let spare = Math.max(0, maxRows - HEAD);
+  const showNet = anyNet && affords(spare);
+  if (showNet) spare -= 2;
+  const showFull = full.length > 0 && affords(spare);
+  if (showFull) spare -= 2;
+  const listBudget = spare - LIST_CHROME;
+  const showList = listBudget > 0;
   const fit = fitList(volumes.length, listBudget);
 
   return (
     <Box flexDirection="column">
-      <Text>
+      {/* I-19: mount paths and the sample age both grow this line. */}
+      <Text wrap="truncate">
         <Text bold color={theme.headline}>
           {bytes(disk.usedBytes)}
         </Text>
@@ -110,13 +125,15 @@ export function DiskView({
         />
       </Box>
 
-      <Text bold color={theme.disk}>
-        VOLUMES
-      </Text>
+      {showList && (
+        <Text bold color={theme.disk}>
+          VOLUMES
+        </Text>
+      )}
       {volumes.slice(0, fit.shown).map((v) => {
         const pct = pctOf(v);
         return (
-          <Text key={v.mount}>
+          <Text key={v.mount} wrap="truncate">
             <Text color={theme.text}>{padEnd(truncate(v.mount, mountW), mountW + 1)}</Text>
             <Bar pct={pct} width={barW} color={diskSeverity(pct)} />
             <Text color={theme.headline}>{padStart(pct.toFixed(0) + '%', 5)}</Text>
@@ -131,7 +148,7 @@ export function DiskView({
         <Text color={theme.dim}>{`… ${fit.hidden} more volumes — taller terminal to see them`}</Text>
       )}
 
-      {anyNet && (
+      {showNet && (
         <Box marginTop={1}>
           <Text color={theme.dim} wrap="truncate">
             {/* Worth saying: a stalled share is the usual reason this panel is
@@ -141,7 +158,7 @@ export function DiskView({
         </Box>
       )}
 
-      {full.length > 0 && (
+      {showFull && (
         <Box marginTop={1}>
           {/* I-19: one truncated line. Wrapping this pushed the footer off a
               24-row terminal whenever two volumes were full at once. */}

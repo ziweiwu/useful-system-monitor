@@ -22,6 +22,33 @@ public surface is the command line, the JSON shape, and the keys.
 - **Swap read 0 B in every comma-decimal locale**, from the same inheritance:
   `sysctl vm.swapusage` printed `total = 1024,00M` and the parser stopped at
   the comma. It now accepts either separator, on top of the pinned locale.
+- **The dashboard corrupted terminals narrower than 73 columns or shorter than
+  22 rows.** Several places floored a width instead of fitting one, which is
+  how a layout ends up wider than the frame it is drawn into:
+  - every process row was one cell wider than its box below 73 columns, so Ink
+    wrapped each one and the table cost twice its budgeted height. The USER
+    column, then the energy column, are given up now — the name, which no other
+    screen can supply, is the last to go.
+  - the header's hardware line pushed the clock out and became two lines,
+    which put every row budget below it off by one.
+  - the four overview cards had a 14-column floor each, so they asked for 59
+    columns on a 60-column terminal. Cards that do not fit are dropped.
+  - the table's row budget was `max(3, rows - 19)`; a floor is not a fit. The
+    cards and then the core strip are dropped instead, so the process list —
+    the only thing that answers "what is using up my Mac" — survives longest.
+  - the memory, disk and battery screens drew fixed sections whose height they
+    had counted but never checked; the kill confirmation was a hardcoded
+    64-column box 14 rows tall. Both now size to the terminal, and the kill
+    panel keeps the process's name and the cancel key at every size.
+  Below 50x10 the app says the terminal is too small rather than drawing a
+  broken frame. See I-19, I-26.
+- **A short terminal plus a kill toast could spin the render loop.** "The
+  visible window contains the selection" (I-26) has no solution for a window of
+  zero rows, and the offset is a fixpoint written back into state, so it
+  alternated between two values on every render — React's "Maximum update depth
+  exceeded", an infinite loop rather than a layout glitch. The table is dropped
+  entirely rather than drawn with no rows, and the window used for the scroll
+  arithmetic is never zero.
 
 ## 0.7.0
 

@@ -17,14 +17,48 @@ const EN_BAR = 5;
 const EN_NUM = 6;
 const USER = 9;
 const NAME_MAX = 34;
+const NAME_MIN = 10;
 /** Trailing gutter: one space plus the scrollbar cell. */
 const GUTTER = 2;
+/** Columns before the name that no layout gives up: cursor, PID, CPU, memory. */
+const CORE = CURSOR + PID + 1 + MARK + CPU_BAR + CPU_NUM + 2 + MEM_NUM + 2;
+/** The energy bar, its number, and the gap after it. */
+const ENERGY = EN_BAR + 1 + EN_NUM + 2;
 
-/** Widths are derived from terminal width so nothing ever wraps. See I-19. */
-export function columnLayout(totalWidth: number) {
-  const fixed = CURSOR + PID + 1 + MARK + CPU_BAR + CPU_NUM + 2 + MEM_NUM + 2 + EN_BAR + 1 + EN_NUM + 2;
-  const name = Math.max(10, Math.min(NAME_MAX, totalWidth - fixed - USER - GUTTER));
-  return { name, user: USER };
+/** Narrowest table that can still name a process. Below this, see MIN_COLUMNS. */
+export const MIN_TABLE_WIDTH = CORE + GUTTER + NAME_MIN;
+
+export interface ColumnLayout {
+  name: number;
+  /** 0 when the terminal cannot carry the USER column. */
+  user: number;
+  /** False when it cannot carry the energy bar and its number either. */
+  energy: boolean;
+}
+
+/**
+ * Widths derived from terminal width so nothing ever wraps. See I-19.
+ *
+ * The name used to be floored at 10 columns and everything else kept, which
+ * meant that at 72 columns or fewer the row was simply wider than the box Ink
+ * drew it in: every row wrapped onto a second line carrying nothing but the
+ * scrollbar glyph, the table cost twice the height `CHROME_ROWS` had budgeted,
+ * and the frame ran off the bottom of the terminal. A floor is not a fit.
+ *
+ * So columns are given up instead, in the order they stop being worth their
+ * width. USER goes first — on a personal Mac nearly every row says the same
+ * name. Energy goes second; the BATTERY screen still shows it in full. The
+ * name goes last, because it is the only column here that cannot be recovered
+ * from another screen, and a table of bare PIDs is not a system monitor.
+ */
+export function columnLayout(totalWidth: number): ColumnLayout {
+  for (const [user, energy] of [[USER, true], [0, true], [0, false]] as const) {
+    const name = totalWidth - CORE - (energy ? ENERGY : 0) - user - GUTTER;
+    if (name >= NAME_MIN) return { name: Math.min(NAME_MAX, name), user, energy };
+  }
+  // Narrower than MIN_TABLE_WIDTH; app.tsx refuses to draw the dashboard at all
+  // rather than let this overflow.
+  return { name: NAME_MIN, user: 0, energy: false };
 }
 
 /**
@@ -78,7 +112,7 @@ const Row = memo(function Row({
   /** Scrollbar gutter: true = thumb, false = track, null = list fits. */
   bar: boolean | null;
 }) {
-  const { name, user } = columnLayout(width);
+  const { name, user, energy: showEnergy } = columnLayout(width);
   const cpu = p.cpuPercent ?? 0;
   const cpuBar = barCells(cpu, CPU_BAR);
   const enBar = barCells(p.energy ?? 0, EN_BAR);
@@ -105,15 +139,25 @@ const Row = memo(function Row({
       </Text>
       <Text>{'  '}</Text>
       <Text color={theme.mem}>{padStart(bytes(p.rssBytes), MEM_NUM)}</Text>
-      <Text>{'  '}</Text>
-      <Text color={theme.battery}>{'█'.repeat(enBar.filled)}</Text>
-      <Text color={theme.track}>{'░'.repeat(enBar.empty)}</Text>
-      <Text> </Text>
-      <Text color={theme.battery}>{padStart(powerLabel(watts, p.energy, showWatts), EN_NUM)}</Text>
-      <Text>{'  '}</Text>
-      <Text color={p.user === 'root' ? theme.root : theme.dim}>
-        {padEnd(truncate(p.user, user), user)}
-      </Text>
+      {showEnergy && (
+        <>
+          <Text>{'  '}</Text>
+          <Text color={theme.battery}>{'█'.repeat(enBar.filled)}</Text>
+          <Text color={theme.track}>{'░'.repeat(enBar.empty)}</Text>
+          <Text> </Text>
+          <Text color={theme.battery}>
+            {padStart(powerLabel(watts, p.energy, showWatts), EN_NUM)}
+          </Text>
+        </>
+      )}
+      {user > 0 && (
+        <>
+          <Text>{'  '}</Text>
+          <Text color={p.user === 'root' ? theme.root : theme.dim}>
+            {padEnd(truncate(p.user, user), user)}
+          </Text>
+        </>
+      )}
       <Text> </Text>
       <Text color={bar ? theme.mem : theme.track}>{bar === null ? ' ' : bar ? '█' : '│'}</Text>
     </Text>
@@ -148,7 +192,7 @@ export const ProcessTable = memo(function ProcessTable({
   /** Whether `+` would still widen the working set, for the roll-up hint. */
   canExpand?: boolean;
 }) {
-  const { name, user } = columnLayout(width);
+  const { name, user, energy: showEnergy } = columnLayout(width);
   // Clamped here as well as by the caller: `rows` shrinks on a terminal resize,
   // and a stale offset would otherwise render a window past the end.
   const start = Math.max(0, Math.min(offset, Math.max(0, processes.length - rows)));
@@ -166,20 +210,23 @@ export const ProcessTable = memo(function ProcessTable({
         {padStart('CPU%', CPU_BAR + CPU_NUM)}
         {'  '}
         {padStart('MEM', MEM_NUM)}
-        {'  '}
-        {/* "est" is dropped only when the numbers are genuinely measured. */}
-        {padStart(
-          showWatts
-            ? energyAccurate
-              ? 'POWER'
-              : 'POWER est'
-            : energyAccurate
-              ? 'ENERGY'
-              : 'ENERGY est',
-          EN_BAR + 1 + EN_NUM,
-        )}
-        {'  '}
-        {padEnd('USER', user)}
+        {/* Both headers follow the row layout exactly, so a column dropped at a
+            narrow width cannot leave its heading behind. */}
+        {showEnergy && '  '}
+        {showEnergy &&
+          /* "est" is dropped only when the numbers are genuinely measured. */
+          padStart(
+            showWatts
+              ? energyAccurate
+                ? 'POWER'
+                : 'POWER est'
+              : energyAccurate
+                ? 'ENERGY'
+                : 'ENERGY est',
+            EN_BAR + 1 + EN_NUM,
+          )}
+        {user > 0 && '  '}
+        {user > 0 && padEnd('USER', user)}
       </Text>
       {shown.map((p, i) => (
         <Row
@@ -204,8 +251,9 @@ export const ProcessTable = memo(function ProcessTable({
           {padStart(others.cpuPercent.toFixed(1), CPU_BAR + CPU_NUM)}
           {'  '}
           {padStart(bytes(others.rssBytes), MEM_NUM)}
-          {'  '}
-          {padStart(powerLabel(othersWatts, others.energy, showWatts), EN_BAR + 1 + EN_NUM)}
+          {showEnergy && '  '}
+          {showEnergy &&
+            padStart(powerLabel(othersWatts, others.energy, showWatts), EN_BAR + 1 + EN_NUM)}
         </Text>
       )}
     </Box>

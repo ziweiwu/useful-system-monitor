@@ -18,9 +18,24 @@ import { DiskView } from './ui/DiskView.js';
 import { KillModal } from './ui/KillModal.js';
 import { Overview } from './ui/Overview.js';
 import { ProcessDetail } from './ui/ProcessDetail.js';
-import { ProcessTable } from './ui/ProcessTable.js';
+import { MIN_TABLE_WIDTH, ProcessTable } from './ui/ProcessTable.js';
 import { theme } from './ui/theme.js';
 import { ViewTabs } from './ui/ViewTabs.js';
+
+const BRAND = 'useful-system-monitor';
+/** "20:30:36" — clockTime is fixed width, so the header can budget around it. */
+const CLOCK_WIDTH = 8;
+
+/*
+ * The smallest terminal the dashboard will draw into.
+ *
+ * Width: the narrowest process table that can still fit a name, plus the two
+ * columns app.tsx keeps as a margin. Height: the overview's fixed chrome with
+ * both the cards and the core strip given up — see OVERVIEW_FIXED — plus a row
+ * of headroom, so the minimum is not also the point at which the table is empty.
+ */
+export const MIN_COLUMNS = MIN_TABLE_WIDTH + 2;
+export const MIN_ROWS = 10;
 
 export interface AppProps {
   provider: MetricsProvider;
@@ -270,34 +285,56 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   });
 
   /*
-   * Everything on screen that is not a process row: the app header, the tab
-   * strip, the four cards, the core strip, the status line, the footer and
-   * their margins — plus the two lines ProcessTable prints around its rows (the
-   * column header and the "… N others" roll-up). Those last two used to be
-   * uncounted, so the frame ran two lines past the terminal and scrolled its
-   * own header away.
-   */
-  const CHROME_ROWS = 19;
-  /*
-   * The detail panel's fixed height: the app header and footer, the panel's two
-   * borders, its title, five fields, two block labels, three sparklines and the
-   * key hints. Everything that is left goes to the two wrapped blocks.
+   * The overview's row budget, spent in priority order.
    *
-   * Its separators and the gap below the header are budgeted separately because
-   * both are dropped on a short terminal — at 80x24 with a protected process
-   * (which adds a warning line) the panel was two rows taller than the screen
-   * even with single-line blocks.
+   * OVERVIEW_FIXED is everything that is on screen no matter how short the
+   * terminal is: the app header, the tab strip, the status line, the table's
+   * own column header and "… N others" roll-up, the footer, and their margins.
+   * The cards and the core strip are not in it, because at some height they
+   * stop being affordable and the process table — the only part that answers
+   * "what is using up my Mac" — has to win.
+   *
+   * This used to be one constant, 19, with `Math.max(3, rows - 19)` under it.
+   * A floor is not a fit: on a terminal shorter than 22 rows the table drew
+   * three rows into a budget of one and the frame scrolled its own header
+   * away. Dropping a section is the only way to actually get shorter. See I-26.
    */
-  const DETAIL_FIXED_ROWS = 18;
-  /* Rows left for the two wrapped blocks, given `sep` blank rows between the
-     panel's four groups. A protected process spends one more on its warning. */
-  const detailRoomFor = (sep: number) =>
-    rows - DETAIL_FIXED_ROWS - 4 * sep - (detailProc?.protected ? sep + 1 : 0);
-  /* Keep the separators whenever one line per block still fits with them. */
-  const compactDetail = detailRoomFor(1) < 2;
-  const detailBlockRows = detailRoomFor(compactDetail ? 0 : 1);
-  const tableRows = Math.max(3, rows - CHROME_ROWS - (toast ? 2 : 0));
-  const width = Math.max(60, columns - 2);
+  const OVERVIEW_FIXED = 7;
+  /** The table's own column header and its "… N others" roll-up. */
+  const TABLE_CHROME = 2;
+  const CARDS_ROWS = 8;
+  /** The core strip plus the blank line above it. */
+  const CORES_ROWS = 2;
+  /** Below this the table costs more in headers than it returns in rows. */
+  const MIN_TABLE_ROWS = 3;
+  /* Cards go before the core strip: the strip is ten glyphs of the same number
+     the CPU card already shows, and the CPU screen draws it per core in full. */
+  let spare = rows - OVERVIEW_FIXED - (toast ? 2 : 0);
+  const showCards = spare - CARDS_ROWS >= TABLE_CHROME + MIN_TABLE_ROWS;
+  if (showCards) spare -= CARDS_ROWS;
+  const showCores = spare - CORES_ROWS >= TABLE_CHROME + MIN_TABLE_ROWS;
+  if (showCores) spare -= CORES_ROWS;
+  /*
+   * The table's two chrome lines are charged only when it is drawn, so that a
+   * toast — which costs two rows and appears exactly when a kill has just
+   * happened on a short terminal — can push the table out entirely instead of
+   * leaving it with a header, a roll-up and no rows.
+   *
+   * `tableRows` is never 0 while the table renders: a window of zero rows
+   * cannot contain the selection, which makes `viewOffset` below unsatisfiable.
+   */
+  const showTable = spare >= TABLE_CHROME + 1;
+  const tableRows = showTable ? spare - TABLE_CHROME : 0;
+  /*
+   * I-19: never wider than the frame Ink actually draws.
+   *
+   * This was `Math.max(60, columns - 2)`, which on a terminal narrower than 62
+   * laid the whole app out wider than the terminal — the exact failure
+   * useTerminalSize's own comment warns about. Below MIN_COLUMNS the app says
+   * so instead (see `tooSmall`), so nothing here has to cope with a width that
+   * cannot hold a row.
+   */
+  const width = Math.max(1, columns - 2);
   /*
    * Rows a full-screen view may draw into: everything except the header, the
    * tab strip, the blank line above and below the content, and the footer.
@@ -319,11 +356,22 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
    */
   const selIndex = filtered.findIndex((p) => p.pid === selectedPid);
   const viewOffset = useMemo(() => {
-    const max = Math.max(0, filtered.length - tableRows);
+    /*
+     * The window is at least one row here even when the table is not drawn.
+     *
+     * "The window contains the selection" has no solution for a window of zero
+     * rows, and this is a fixpoint: the effect below writes the result back to
+     * `scrollTop`, which feeds straight back in. At `tableRows === 0` it
+     * alternated between `selIndex` and `selIndex + 1` on every render, which
+     * React reports as "Maximum update depth exceeded" — an infinite render
+     * loop, not a layout glitch. The old `Math.max(3, …)` row floor hid this.
+     */
+    const windowRows = Math.max(1, tableRows);
+    const max = Math.max(0, filtered.length - windowRows);
     const cur = Math.min(Math.max(0, scrollTop), max);
     if (selIndex < 0) return cur;
     if (selIndex < cur) return selIndex;
-    if (selIndex >= cur + tableRows) return Math.max(0, selIndex - tableRows + 1);
+    if (selIndex >= cur + windowRows) return Math.max(0, selIndex - windowRows + 1);
     return cur;
   }, [scrollTop, selIndex, filtered.length, tableRows]);
 
@@ -336,6 +384,38 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     (procData?.others.energy ?? 0);
   const batt = snapshot.battery.status === 'ok' ? snapshot.battery.data : null;
 
+  /*
+   * I-26: the one size where the honest answer is "not here".
+   *
+   * Every screen degrades — cards drop, columns drop, lists roll up — but the
+   * process table still needs room to name a process, and the overview still
+   * needs its header, status line and footer. Below that, a frame can only be
+   * drawn by overflowing, which corrupts the terminal rather than merely
+   * looking cramped. Saying so in one line is the only non-destructive option,
+   * and it tells the user the thing they can act on: the size to grow to.
+   */
+  const tooSmall = columns < MIN_COLUMNS || rows < MIN_ROWS;
+  if (tooSmall) {
+    return (
+      <Box flexDirection="column" width={Math.max(1, columns)}>
+        <Text color={theme.danger} wrap="truncate">
+          {truncate(`terminal too small: ${columns}x${rows}`, Math.max(1, columns))}
+        </Text>
+        <Text color={theme.dim} wrap="truncate">
+          {truncate(`needs at least ${MIN_COLUMNS}x${MIN_ROWS}`, Math.max(1, columns))}
+        </Text>
+      </Box>
+    );
+  }
+
+  /* host() is async, so the first frame has no hardware info yet. Say that
+     plainly rather than show the placeholder "unknown · 1 cores", which is a
+     visible falsehood even for one frame. */
+  const hardwareLine =
+    (snapshot.host.cores > 0 && snapshot.host.model !== 'unknown'
+      ? `${snapshot.host.model} · ${snapshot.host.cores} cores · up ${duration(snapshot.host.uptimeSec)}`
+      : 'detecting hardware…') + (demo ? '  [MOCK DATA]' : '');
+
   const ages =
     `cpu ${snapshot.cpu.status === 'ok' ? age(snapshot.cpu.sampledAt, now) : '—'}` +
     ` · proc ${snapshot.processes.status === 'ok' ? age(snapshot.processes.sampledAt, now) : '—'}` +
@@ -345,20 +425,22 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     <Box flexDirection="column" width={width}>
       {/* Header */}
       <Box justifyContent="space-between">
-        {/* I-19: the hardware line grows with the model name, so it is
-            truncated rather than allowed to wrap the header into two rows. */}
+        {/*
+         * I-19: truncated against a measured budget, not by `wrap` alone.
+         *
+         * `wrap="truncate"` clips this Text to its own box, and under
+         * space-between that box is as wide as the string wants to be — so
+         * once the hardware line grew past the terminal it pushed the clock
+         * out, Ink wrapped the row, and the header silently became two lines.
+         * Every row budget below counts it as one, so the whole frame ran a
+         * line past the bottom of the terminal on any narrow window.
+         */}
         <Text wrap="truncate">
           <Text bold color={theme.mem}>
-            useful-system-monitor{' '}
+            {BRAND}{' '}
           </Text>
           <Text color={theme.dim}>
-            {/* host() is async, so the first frame has no hardware info yet.
-                Show that plainly rather than the placeholder "unknown · 1
-                cores", which is a visible falsehood even for one frame. */}
-            {snapshot.host.cores > 0 && snapshot.host.model !== 'unknown'
-              ? `${snapshot.host.model} · ${snapshot.host.cores} cores · up ${duration(snapshot.host.uptimeSec)}`
-              : 'detecting hardware…'}
-            {demo ? '  [MOCK DATA]' : ''}
+            {truncate(hardwareLine, Math.max(0, width - BRAND.length - 1 - CLOCK_WIDTH - 1))}
           </Text>
         </Text>
         <Text color={theme.dim}>{clockTime(now)}</Text>
@@ -366,11 +448,17 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
 
       {/* Hidden in the two modes below, where the number and arrow keys are
           inert and a strip of screen names would only mislead. */}
-      {!dashboardHidden && <ViewTabs active={view} />}
+      {!dashboardHidden && <ViewTabs active={view} width={width} />}
 
       <Box marginTop={1} flexDirection="column">
         {dashboardHidden ? null : view === 'overview' ? (
-          <Overview snapshot={snapshot} histories={histories} width={width} />
+          <Overview
+            snapshot={snapshot}
+            histories={histories}
+            width={width}
+            showCards={showCards}
+            showCores={showCores}
+          />
         ) : null}
         {!dashboardHidden && view === 'cpu' && (
           <CpuView snapshot={snapshot} histories={histories} width={width} maxRows={viewRows} />
@@ -420,7 +508,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
             {'      '}
             {ages}
           </Text>
-          {procData && (
+          {procData && showTable && (
             <ProcessTable
               processes={filtered}
               others={procData.others}
@@ -444,10 +532,8 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
             history={history.get(detailProc.pid)}
             commandLine={commandLine}
             width={width}
-            compact={compactDetail}
-            /* The panel is fixed-height apart from the two wrapped blocks, so
-               those absorb whatever the terminal cannot fit. See I-26. */
-            maxLinesPerBlock={Math.max(1, Math.floor(detailBlockRows / 2))}
+            /* Same budget as a detail screen: both replace the dashboard. */
+            maxRows={viewRows}
           />
         </Box>
       )}
@@ -464,6 +550,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
             armedKill={armedKill}
             totalEnergy={totalEnergy}
             totalWatts={batt?.watts ?? null}
+            width={width}
+            /* Same budget as a detail screen: both replace the dashboard. */
+            maxRows={viewRows}
           />
         </Box>
       )}

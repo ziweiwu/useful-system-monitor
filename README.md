@@ -51,8 +51,10 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 The strip along the top shows which screen you are on and what the other four
 are, so nothing is hidden behind a key you have to know about.
 
-The dashboard wants a terminal at least 80x24. Below that it drops detail
-rather than spilling past the bottom of your screen.
+The dashboard looks its best at 80x24 and adapts down to 50x10 — it drops the
+cards, the core strip and then whole columns rather than spilling past the edge
+of your screen, and it reflows while you drag the window. Below 50x10 it says
+the terminal is too small instead of drawing a broken frame.
 
 ## Finding what's draining your battery
 

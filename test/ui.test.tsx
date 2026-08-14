@@ -748,3 +748,215 @@ describe('I-19: the layout follows the terminal when it is resized', () => {
     }
   });
 });
+
+/*
+ * The sizes below 80x24 that the app used to corrupt.
+ *
+ * Every existing layout test above starts at 80x24, which is why these shipped:
+ * at 72 columns every process row was one cell wider than its box and wrapped,
+ * costing the table twice its budgeted height; the header's hardware line
+ * pushed the clock out and became two lines; and four cards floored at 14
+ * columns each asked for 59 columns on a 60-column terminal. See I-19, I-26.
+ */
+describe('I-19 / I-26: the layout holds below 80x24', () => {
+  const SIZES: Array<[number, number]> = [
+    [50, 10], [50, 14], [56, 12], [60, 14], [60, 20], [64, 16],
+    [70, 18], [72, 22], [76, 20], [80, 24],
+  ];
+
+  it.each(SIZES)('every screen fits a %ix%i terminal', async (columns, rows) => {
+    for (const key of ['1', '2', '3', '4', '5']) {
+      const app = await mount(columns, rows);
+      try {
+        app.stdin.write(key);
+        await wait(250);
+        const frame = lines(app.lastFrame());
+        expect(frame.length).toBeLessThanOrEqual(rows);
+        for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+      } finally {
+        app.restore();
+      }
+    }
+  });
+
+  it.each(SIZES)('the kill confirmation fits a %ix%i terminal', async (columns, rows) => {
+    const app = await mount(columns, rows);
+    try {
+      app.stdin.write('k');
+      await wait(300);
+      const frame = lines(app.lastFrame());
+      expect(frame.length).toBeLessThanOrEqual(rows);
+      for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('gives up the USER column before it lets a row wrap', async () => {
+    // The row is one <Text>: if it does not fit, Ink wraps it and the scrollbar
+    // glyph lands on a line of its own, which is how the table used to cost two
+    // rows per process.
+    const app = await mount(70, 24);
+    try {
+      const frame = lines(app.lastFrame());
+      expect(frame.some((l) => /^\s*>\s+\d+/.test(l))).toBe(true);
+      expect(frame.join('\n')).not.toContain('USER');
+      // No line consisting only of the scrollbar gutter.
+      expect(frame.filter((l) => /^[█│]$/.test(l.trim()) && l.trim())).toHaveLength(0);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('keeps the process name at every width it will draw at', async () => {
+    // Dropping columns is only correct if the one column you cannot infer from
+    // another screen survives. A table of bare PIDs is not a system monitor.
+    // The name is truncated at narrow widths ("Google Ch…"), so this asserts
+    // that a name is *there*, not which one.
+    for (const columns of [50, 60, 72, 80, 120]) {
+      const app = await mount(columns, 24);
+      try {
+        const rows = lines(app.lastFrame()).filter((l) => /^\s*>?\s*\d{2,}\s/.test(l));
+        expect(rows.length).toBeGreaterThan(0);
+        for (const r of rows) {
+          // PID, then at least three characters of a name before the bars.
+          expect(r).toMatch(/^\s*>?\s*\d{2,}\s+\S{3,}/);
+        }
+      } finally {
+        app.restore();
+      }
+    }
+  });
+
+  it('drops the cards and the core strip rather than overflowing a short terminal', async () => {
+    const app = await mount(80, 12);
+    try {
+      const frame = lines(app.lastFrame());
+      expect(frame.length).toBeLessThanOrEqual(12);
+      // The table is what survives: it is the only thing that answers the
+      // question the app exists to answer.
+      expect(frame.join('\n')).toContain('PID');
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('says the terminal is too small instead of drawing a corrupted frame', async () => {
+    for (const [columns, rows] of [[40, 20], [80, 8], [30, 6]] as const) {
+      const app = await mount(columns, rows);
+      try {
+        const frame = lines(app.lastFrame());
+        expect(frame.join('\n')).toContain('too small');
+        expect(frame.length).toBeLessThanOrEqual(rows);
+        for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+      } finally {
+        app.restore();
+      }
+    }
+  });
+
+  it('recovers when a too-small terminal is resized back up', async () => {
+    const app = await mount(40, 12);
+    try {
+      expect(app.lastFrame() ?? '').toContain('too small');
+      process.stdout.columns = 100;
+      process.stdout.rows = 30;
+      process.stdout.emit('resize');
+      await wait(300);
+      const frame = lines(app.lastFrame());
+      expect(frame.join('\n')).not.toContain('too small');
+      expect(frame.join('\n')).toContain('PID');
+      expect(frame.length).toBeLessThanOrEqual(30);
+    } finally {
+      app.restore();
+    }
+  });
+
+  it('fits a protected process, which costs both panels an extra warning line', async () => {
+    // The row budget missing this line is how the detail panel used to run two
+    // rows past the bottom of an 80x24 terminal; at 50x10 there is no slack at
+    // all, so it is the case worth pinning.
+    for (const [columns, rows] of [[50, 10], [56, 13], [64, 16], [80, 24]] as const) {
+      for (const [last, marker] of [['\r', 'esc back'], ['k', 'REFUSED']] as const) {
+        const app = await mount(columns, rows);
+        try {
+          for (const k of ['/', 'WindowServer', ENTER, last]) {
+            app.stdin.write(k);
+            await wait(120);
+          }
+          await wait(200);
+          const frame = lines(app.lastFrame());
+          expect(frame.join('\n')).toContain(marker);
+          expect(frame.length).toBeLessThanOrEqual(rows);
+          for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+        } finally {
+          app.restore();
+        }
+      }
+    }
+  }, 30_000);
+
+  it('does not spin the render loop when a toast squeezes the table to nothing', async () => {
+    /*
+     * "The visible window contains the selection" has no solution for a window
+     * of zero rows, and `viewOffset` is a fixpoint written back to `scrollTop`.
+     * At `tableRows === 0` it alternated between selIndex and selIndex+1 on
+     * every render — an infinite loop, which React reports as "Maximum update
+     * depth exceeded". The kill toast costs two rows and appears exactly when
+     * this can happen, so it is the way in.
+     */
+    const errors: unknown[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((...a) => errors.push(a));
+    const app = await mount(60, 10);
+    try {
+      app.stdin.write('k');
+      await wait(200);
+      app.stdin.write('t');
+      await wait(600);
+      const frame = lines(app.lastFrame());
+      expect(frame.length).toBeLessThanOrEqual(10);
+      expect(errors.map(String).join(' ')).not.toMatch(/Maximum update depth/);
+    } finally {
+      spy.mockRestore();
+      app.restore();
+    }
+  }, 20_000);
+
+  it('I-27: names the screen you are on at every width it draws at', async () => {
+    // `wrap="truncate"` alone rendered the fifth screen as "[5 DISK…" at 50
+    // columns — closing bracket and arrow hint cut off. The inactive tabs drop
+    // to bare numbers instead, which are still the keys that select them.
+    for (const columns of [50, 60, 72, 80, 120]) {
+      for (const [key, label] of [['1', 'OVERVIEW'], ['3', 'MEMORY'], ['5', 'DISK']] as const) {
+        const app = await mount(columns, 24);
+        try {
+          app.stdin.write(key);
+          await wait(200);
+          const strip = lines(app.lastFrame())[1] ?? '';
+          expect(strip).toContain(`[${key} ${label}]`);
+          expect(strip).toContain('←/→');
+          expect(displayWidth(strip)).toBeLessThanOrEqual(columns);
+        } finally {
+          app.restore();
+        }
+      }
+    }
+  }, 30_000);
+
+  it('reflows down to a small terminal as well as up', async () => {
+    const app = await mount(120, 40);
+    try {
+      for (const [columns, rows] of [[60, 16], [50, 10], [90, 28]] as const) {
+        process.stdout.columns = columns;
+        process.stdout.rows = rows;
+        process.stdout.emit('resize');
+        await wait(250);
+        const frame = lines(app.lastFrame());
+        expect(frame.length).toBeLessThanOrEqual(rows);
+        for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+      }
+    } finally {
+      app.restore();
+    }
+  });
+});
