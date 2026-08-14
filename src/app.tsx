@@ -211,14 +211,21 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     async (target: ProcessSample, signal: 'SIGTERM' | 'SIGKILL') => {
       if (killing.current) return;
       killing.current = true;
-      // I-16: the identity observed right now, not the one in the last sample.
-      const live = await liveIdentity(
-        provider,
-        procData?.visible.find((p) => p.pid === target.pid),
-        target.pid,
-      );
-      const outcome = sendSignal(target, signal, guardCtx, { live, kill: killFn });
-      killing.current = false;
+      /* try/finally, not a bare reset: if anything in here threw, the flag
+         would stay set and the kill key would stop working for the rest of the
+         session — a silent, permanent failure of the one destructive action. */
+      let outcome;
+      try {
+        // I-16: the identity observed right now, not the one in the last sample.
+        const live = await liveIdentity(
+          provider,
+          procData?.visible.find((p) => p.pid === target.pid),
+          target.pid,
+        );
+        outcome = sendSignal(target, signal, guardCtx, { live, kill: killFn });
+      } finally {
+        killing.current = false;
+      }
       setKillTarget(null);
       setArmedKill(false);
       if (outcome.ok) {
