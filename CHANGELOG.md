@@ -7,6 +7,55 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **The PID-reuse guard (I-16) silently did nothing in the case it exists for.**
+  The kill path compared the target's start time against the *last process
+  sample*, which is two problems. It looked the target up in the top-50 working
+  set, and a recycled PID belongs to a brand-new process — no CPU history, a
+  small RSS — so it is almost never in that set; when the lookup missed, the
+  parameter was `undefined`, which meant "not checked" and the comparison was
+  skipped entirely rather than failed. And even on a hit, the sample can be a
+  whole refresh interval old, so a PID recycled inside that window still
+  carried the previous process's start time. The identity is now read at signal
+  time (`ps -o lstart= -p PID`, ~15 ms), and "could not verify" is a distinct,
+  refusing state rather than a synonym for "fine".
+- **The ancestor guard (I-13) failed open whenever the process sample was
+  missing.** Its parent map comes from that sample, and the map is empty when
+  the collector errors — a `ps` timeout under load is enough — while the
+  confirmation panel stays open across it. An empty map read as "no ancestors",
+  so the rule that stops you killing the shell you are sitting in stopped
+  applying. It is now read as "no answer", and refused.
+- **`--interval` above 24.8 days spun the render loop at ~1000 Hz.**
+  `setInterval` takes a signed 32-bit millisecond count, so a larger delay is
+  silently clamped to 1 ms: `--interval 3000000` measured 265 fires in 300 ms.
+  That is the same failure the lower bound was added to prevent, reached from
+  the other end. The accepted range is now 1 to 2147483 seconds.
+- **A non-finite sample silently collapsed bars and sparklines.** `barCells`
+  and `sparkline` are pure width arithmetic and NaN passes straight through
+  them — `'█'.repeat(NaN)` is `''` — so one bad value drew a 10-cell bar as 0
+  cells and a 5-cell sparkline as 4 characters, breaking the layout with no
+  error anywhere. Both clamp non-finite input now, and the two ratios that
+  could produce it (the overview's disk gauge, and the values pushed into the
+  history rings) guard their denominators, so a NaN cannot lodge in a ring and
+  poison the scale of every sparkline drawn from it.
+- **The detail panel and the kill confirmation could be on screen at once.**
+  They are described as mutually exclusive modes but were two independent
+  conditionals, and `useInput` reads its state from the render that created it —
+  so two keys arriving in one chunk (enter then k, which is how you would
+  naturally kill something you have just inspected) were both handled against
+  the same stale closure and opened both. The frame then stacked a detail
+  panel, a confirmation dialog and a toast — 28 lines into a 19-row terminal —
+  with the footer offering "esc back" over a confirmation for an irreversible
+  action. Found by fuzzing keypresses; input already resolved kill-first, and
+  now the render and the footer do too.
+- **A failing `host()` took the whole app down.** It is the one collector not
+  driven by `poll()`, so nothing caught its rejection, and an unhandled
+  rejection terminates the process — the exact failure I-11 exists to rule out.
+  `commandLine()` had the same gap. Both degrade to their placeholder now
+  ("detecting hardware…", "loading…") instead of crashing.
+- **Per-process history was keyed by PID alone**, so a PID recycled while still
+  in the working set inherited the dead process's rings and the detail panel
+  drew another program's CPU and memory history under this one's name. The
+  rings are keyed by `(pid, startTime)` now, like every other identity here.
 - **Process names showed as `pid 1234` on any Mac not set to English.**
   Collectors inherited the user's locale, and `ps -o lstart` formats the start
   time through `strftime`: a German Mac printed `Mi. 12 Aug. 19:39:58 2026`, a
