@@ -17,9 +17,20 @@
 
 /** Refresh floor. Below a second the render cost dominates the sample, and a
     negative value used to reach `setInterval`, which clamps to 1ms and spins
-    the render loop at ~1000Hz. There is deliberately no ceiling: a very lazy
-    background pane is a legitimate thing to want. */
+    the render loop at ~1000Hz. */
 export const MIN_INTERVAL_SEC = 1;
+
+/**
+ * Refresh ceiling: the largest delay a timer can actually hold.
+ *
+ * There was deliberately no ceiling — a very lazy background pane is a
+ * legitimate thing to want — but that reasoning stops at the 32-bit boundary.
+ * `setInterval` takes a signed 32-bit millisecond count, so anything past
+ * 2^31-1 ms (24.8 days) is silently clamped to **1 ms**: `--interval 3000000`
+ * measured 265 fires in 300 ms. That is the same ~1000Hz render spin the lower
+ * bound exists to prevent, reached from the other end.
+ */
+export const MAX_INTERVAL_SEC = Math.floor(2_147_483_647 / 1000);
 
 export interface Options {
   accurateEnergy: boolean;
@@ -86,10 +97,10 @@ export function parseArgs(argv: readonly string[]): ParseResult {
         const raw = take();
         if (raw === null) return { ok: false, error: `${name} needs a value` };
         const n = Number(raw);
-        if (!Number.isFinite(n) || n < MIN_INTERVAL_SEC) {
+        if (!Number.isFinite(n) || n < MIN_INTERVAL_SEC || n > MAX_INTERVAL_SEC) {
           return {
             ok: false,
-            error: `--interval needs a number of seconds, ${MIN_INTERVAL_SEC} or more (got "${raw}")`,
+            error: `--interval needs a number of seconds between ${MIN_INTERVAL_SEC} and ${MAX_INTERVAL_SEC} (got "${raw}")`,
           };
         }
         o.interval = n;

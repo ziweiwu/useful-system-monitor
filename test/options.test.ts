@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_OPTIONS, MIN_INTERVAL_SEC, parseArgs } from '../src/core/options.js';
+import {
+  DEFAULT_OPTIONS,
+  MAX_INTERVAL_SEC,
+  MIN_INTERVAL_SEC,
+  parseArgs,
+} from '../src/core/options.js';
 
 /** The parsed options, or a failure if the arguments were rejected. */
 function ok(argv: string[]) {
@@ -94,5 +99,29 @@ describe('option parsing', () => {
   it('combines options in any order', () => {
     const o = ok(['--json', '--mock', '--interval=3']);
     expect(o).toMatchObject({ json: true, mock: true, interval: 3 });
+  });
+});
+
+describe('I-24: an interval a timer cannot hold is an error, not a no-op', () => {
+  /*
+   * setInterval takes a signed 32-bit millisecond count, so a delay past
+   * 2^31-1 ms is silently clamped to 1 ms. `--interval 3000000` measured 265
+   * fires in 300 ms — the same ~1000Hz render spin the lower bound exists to
+   * prevent, reached from the other end.
+   */
+  it('rejects a value past the 32-bit timer ceiling', () => {
+    const r = parseArgs(['--interval', String(MAX_INTERVAL_SEC + 1)]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/between/);
+  });
+
+  it('accepts the ceiling itself, and it still fits a timer', () => {
+    const r = parseArgs(['--interval', String(MAX_INTERVAL_SEC)]);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.options.interval! * 1000).toBeLessThanOrEqual(2_147_483_647);
+  });
+
+  it('still rejects the value that used to spin the loop', () => {
+    expect(parseArgs(['--interval', '3000000']).ok).toBe(false);
   });
 });
