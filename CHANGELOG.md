@@ -3,7 +3,7 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
-## Unreleased
+## 0.8.0
 
 ### Fixed
 
