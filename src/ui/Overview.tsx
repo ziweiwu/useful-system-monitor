@@ -7,6 +7,12 @@ import { CoreStrip } from './CoreStrip.js';
 import { Gauge } from './Gauge.js';
 import { severity, theme } from './theme.js';
 
+/* Guarded denominator: DiskView already did this, the overview did not, and a
+   zero-block mount put NaN straight into the gauge and into the history ring. */
+function pctOf(used: number, total: number): number {
+  return total > 0 ? (used / total) * 100 : 0;
+}
+
 export const Overview = memo(function Overview({
   snapshot,
   histories,
@@ -43,8 +49,8 @@ export const Overview = memo(function Overview({
   const disk = snapshot.disk.status === 'ok' ? snapshot.disk.data : null;
   const batt = snapshot.battery.status === 'ok' ? snapshot.battery.data : null;
 
-  const memPct = mem ? (mem.usedBytes / mem.totalBytes) * 100 : 0;
-  const diskPct = disk ? (disk.usedBytes / disk.totalBytes) * 100 : 0;
+  const memPct = mem ? pctOf(mem.usedBytes, mem.totalBytes) : 0;
+  const diskPct = disk ? pctOf(disk.usedBytes, disk.totalBytes) : 0;
 
   /* Ordered most to least worth the width; `fit` takes from the front. */
   const cards = [

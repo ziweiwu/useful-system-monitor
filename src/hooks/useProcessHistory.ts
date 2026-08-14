@@ -8,6 +8,16 @@ export interface ProcHistory {
   cpu: Ring;
   mem: Ring;
   energy: Ring;
+  /**
+   * Which process these rings belong to.
+   *
+   * A PID on its own is not an identity: recycle it while the process is still
+   * inside the working set and the new one inherits the dead one's sparklines,
+   * so the detail panel draws another program's history under this name. The
+   * delta tracker already treats a PID as (pid, counter direction) for the same
+   * reason — see I-3.
+   */
+  startTime: number;
 }
 
 /**
@@ -28,11 +38,12 @@ export function useProcessHistory(data: ProcessesData | null) {
     for (const p of data.visible) {
       live.add(p.pid);
       let h = map.get(p.pid);
-      if (!h) {
+      if (!h || h.startTime !== p.startTime) {
         h = {
           cpu: new Ring(PROC_HISTORY_LEN),
           mem: new Ring(PROC_HISTORY_LEN),
           energy: new Ring(PROC_HISTORY_LEN),
+          startTime: p.startTime,
         };
         map.set(p.pid, h);
       }

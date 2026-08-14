@@ -32,13 +32,29 @@ export function severity(pct: number): string {
 
 export const BLOCKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'] as const;
 
+/*
+ * I-19: a value that is not a number must still occupy its cell.
+ *
+ * Both functions below are pure width arithmetic, and NaN propagates straight
+ * through it: `'█'.repeat(NaN)` is '' and `BLOCKS[NaN]` is undefined, so a
+ * single bad sample silently made a bar 0 cells wide instead of 10, and a
+ * sparkline 4 characters instead of 5 — a layout break with no error anywhere.
+ * NaN reaches here from any ratio with a zero denominator (df reporting 0
+ * blocks for a mount), and once one lands in a history ring it also poisons
+ * the Math.max() that scales the whole sparkline, for sixty samples.
+ */
+function finite(n: number): number {
+  return Number.isFinite(n) ? n : 0;
+}
+
 /** Unicode block sparkline. All glyphs are single-width (see width.ts). */
 export function sparkline(values: readonly number[], width: number, max = 100): string {
-  if (width <= 0) return '';
+  if (!Number.isFinite(width) || width <= 0) return '';
+  const scale = Number.isFinite(max) && max > 0 ? max : 100;
   const slice = values.slice(-width);
   const pad = width - slice.length;
   const cells = slice.map((v) => {
-    const r = Math.max(0, Math.min(1, v / max));
+    const r = Math.max(0, Math.min(1, finite(v) / scale));
     return BLOCKS[Math.min(BLOCKS.length - 1, Math.round(r * (BLOCKS.length - 1)))]!;
   });
   return ' '.repeat(Math.max(0, pad)) + cells.join('');
@@ -46,6 +62,7 @@ export function sparkline(values: readonly number[], width: number, max = 100): 
 
 /** Horizontal bar: filled cells plus a dim track remainder. */
 export function barCells(pct: number, width: number): { filled: number; empty: number } {
-  const f = Math.max(0, Math.min(width, Math.round((pct / 100) * width)));
-  return { filled: f, empty: width - f };
+  const w = Math.max(0, Math.trunc(finite(width)));
+  const f = Math.max(0, Math.min(w, Math.round((finite(pct) / 100) * w)));
+  return { filled: f, empty: w - f };
 }
