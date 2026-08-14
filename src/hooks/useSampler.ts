@@ -110,20 +110,37 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSi
     }
 
     const runCpu = poll('cpu', () => provider.cpu(), setCpu, (d) => histories.cpu.push(d.system));
+    /* A ratio, or 0 when there is no denominator. A NaN pushed into a ring
+       stays there for HISTORY_LEN samples and poisons the Math.max() that
+       scales the sparkline drawn from it. See I-19. */
+    const ratio = (used: number, total: number) => (total > 0 ? (used / total) * 100 : 0);
     const runMem = poll('memory', () => provider.memory(), setMemory, (d) =>
-      histories.memory.push((d.usedBytes / d.totalBytes) * 100),
+      histories.memory.push(ratio(d.usedBytes, d.totalBytes)),
     );
     const runDisk = poll('disk', () => provider.disk(), setDisk, (d) =>
-      histories.disk.push((d.usedBytes / d.totalBytes) * 100),
+      histories.disk.push(ratio(d.usedBytes, d.totalBytes)),
     );
     const runBattery = poll('battery', () => provider.battery(), setBattery, (d) =>
       histories.battery.push(d.percent),
     );
     const runProcs = poll('processes', () => provider.processes(sizeRef.current), setProcesses);
 
-    void provider.host().then((h) => {
-      if (!cancelled) setHost(h);
-    });
+    /*
+     * I-11: host() is the one collector that does not go through poll(), so it
+     * is the one whose rejection nothing was catching — and an unhandled
+     * rejection takes the whole process down with a React stack trace, which is
+     * the exact failure mode this invariant exists to rule out. The sentinel
+     * host renders as "detecting hardware…", which is the right thing to keep
+     * showing when the hardware cannot be identified.
+     */
+    void provider
+      .host()
+      .then((h) => {
+        if (!cancelled) setHost(h);
+      })
+      .catch(() => {
+        /* keep EMPTY_HOST */
+      });
 
     const runAll = () => {
       void runCpu();
