@@ -1,5 +1,5 @@
 import { Box, Text, useApp, useInput } from 'ink';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { age, clockTime, duration } from './core/format.js';
 import { sortProcesses, type SortKey } from './core/scoring.js';
 import type { ProcessSample } from './core/types.js';
@@ -9,7 +9,7 @@ import { stepCostNote, stepLabel, WORKING_SET_STEPS } from './core/workingSet.js
 import { useProcessHistory } from './hooks/useProcessHistory.js';
 import { useSampler } from './hooks/useSampler.js';
 import { useTerminalSize } from './hooks/useTerminalSize.js';
-import { checkKill, processName, type GuardContext } from './kill/guards.js';
+import { checkKill, processName, type GuardContext, type LiveIdentity } from './kill/guards.js';
 import { sendSignal, type KillFn } from './kill/signal.js';
 import type { MetricsProvider, Tiers } from './providers/types.js';
 import { BatteryView } from './ui/BatteryView.js';
@@ -36,6 +36,32 @@ const CLOCK_WIDTH = 8;
  */
 export const MIN_COLUMNS = MIN_TABLE_WIDTH + 2;
 export const MIN_ROWS = 10;
+
+/**
+ * Who the PID belongs to *now*, for the PID-reuse guard. See I-16.
+ *
+ * Prefers a fresh read from the provider over the last sample, because the
+ * sample can be a whole tier old — and a PID recycled inside that window still
+ * carries the old process's start time in it, which is precisely the case the
+ * guard is supposed to catch. The sample is the fallback for providers that
+ * cannot read one process on demand; when neither can answer, the result says
+ * so and `checkKill` refuses rather than guessing.
+ */
+async function liveIdentity(
+  provider: MetricsProvider,
+  sampled: ProcessSample | undefined,
+  pid: number,
+): Promise<LiveIdentity> {
+  if (provider.identity) {
+    try {
+      const id = await provider.identity(pid);
+      return id ? { known: true, startTime: id.startTime } : { known: false, gone: true };
+    } catch {
+      return { known: false, gone: false };
+    }
+  }
+  return sampled ? { known: true, startTime: sampled.startTime } : { known: false, gone: false };
+}
 
 export interface AppProps {
   provider: MetricsProvider;
@@ -145,9 +171,16 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     }
     let cancelled = false;
     setCommandLine(null);
-    void provider.commandLine?.(detailPid).then((c) => {
-      if (!cancelled) setCommandLine(c);
-    });
+    /* I-11 again: a provider that rejects here must cost the detail panel its
+       argv line, not take the app down. The panel renders null as "loading…". */
+    void provider
+      .commandLine?.(detailPid)
+      .then((c) => {
+        if (!cancelled) setCommandLine(c);
+      })
+      .catch(() => {
+        if (!cancelled) setCommandLine(null);
+      });
     return () => {
       cancelled = true;
     };
@@ -170,14 +203,22 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     [filtered, selectedPid],
   );
 
+  /* One signal at a time: `doKill` awaits a fresh identity read, and without
+     this a second keypress during that await would send a second signal. */
+  const killing = useRef(false);
+
   const doKill = useCallback(
-    (target: ProcessSample, signal: 'SIGTERM' | 'SIGKILL') => {
-      const live = procData?.visible.find((p) => p.pid === target.pid);
-      const outcome = sendSignal(target, signal, guardCtx, {
-        // I-16: compare against the start time observed right now.
-        liveStartTime: live?.startTime,
-        kill: killFn,
-      });
+    async (target: ProcessSample, signal: 'SIGTERM' | 'SIGKILL') => {
+      if (killing.current) return;
+      killing.current = true;
+      // I-16: the identity observed right now, not the one in the last sample.
+      const live = await liveIdentity(
+        provider,
+        procData?.visible.find((p) => p.pid === target.pid),
+        target.pid,
+      );
+      const outcome = sendSignal(target, signal, guardCtx, { live, kill: killFn });
+      killing.current = false;
       setKillTarget(null);
       setArmedKill(false);
       if (outcome.ok) {
@@ -193,7 +234,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
         setToast({ text: outcome.error, bad: true });
       }
     },
-    [guardCtx, killFn, onKilled, procData, refresh],
+    [guardCtx, killFn, onKilled, procData, provider, refresh],
   );
 
   useInput((input, key) => {
@@ -218,10 +259,10 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
       } else if (killCheck?.allowed) {
         // Signal keys are inert on a refused target; esc is the only way out.
         if (input === 't') {
-          doKill(killTarget, 'SIGTERM');
+          void doKill(killTarget, 'SIGTERM');
         } else if (input === 'k') {
           // I-15: SIGKILL needs a second, distinct press.
-          if (armedKill) doKill(killTarget, 'SIGKILL');
+          if (armedKill) void doKill(killTarget, 'SIGKILL');
           else setArmedKill(true);
         }
       }
@@ -274,10 +315,14 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     else if (input === '-' || input === '_') setWsStep((i) => Math.max(0, i - 1));
     else if (input === '/') setFilterMode(true);
     else if (key.return) {
-      if (selectedPid !== null) setDetailPid(selectedPid);
+      if (selectedPid !== null) {
+        setKillTarget(null);
+        setDetailPid(selectedPid);
+      }
     } else if (input === 'k') {
       const target = filtered.find((p) => p.pid === selectedPid);
       if (target) {
+        setDetailPid(null);
         setKillTarget(target);
         setArmedKill(false);
       }
@@ -525,7 +570,20 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
         </Box>
       )}
 
-      {detailProc && (
+      {/*
+        * I-16 aside, these are the two modes that take over the screen, and
+        * exactly one of them may be drawn.
+        *
+        * They used to be two independent conditionals, and `useInput` reads
+        * `killTarget` and `detailPid` from the render that created it — so two
+        * keys arriving in one chunk (enter then k, which is how you would
+        * naturally kill something you just inspected) were both handled
+        * against the same stale closure and set both. The frame then stacked a
+        * detail panel, a kill confirmation and a toast: 28 lines into a 19-row
+        * terminal, with the footer offering "esc back" over a confirmation
+        * dialog. Input already resolves kill-first, so the render does too.
+        */}
+      {killTarget === null && detailProc && (
         <Box>
           <ProcessDetail
             p={detailProc}
@@ -573,13 +631,13 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
         <Text color={theme.dim} wrap="truncate">
           {filterMode
             ? 'type to filter   enter apply   esc clear'
-            : detailPid !== null
-              ? 'k kill   esc back'
-              : killTarget
+            : killTarget
               ? killCheck?.allowed
                 ? 't SIGTERM   k SIGKILL (twice)   esc cancel'
                 : 'esc back'
-              : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  q quit'}
+              : detailPid !== null
+                ? 'k kill   esc back'
+                : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  q quit'}
         </Text>
       </Box>
     </Box>

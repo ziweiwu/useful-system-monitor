@@ -922,6 +922,53 @@ describe('I-19 / I-26: the layout holds below 80x24', () => {
     }
   }, 20_000);
 
+  it('never stacks the detail panel and the kill confirmation', async () => {
+    /*
+     * `useInput` reads killTarget and detailPid from the render that created
+     * it, so two keys arriving in one chunk — enter then k, which is how you
+     * would naturally kill something you just inspected — were both handled
+     * against the same stale closure and set both. They were two independent
+     * conditionals in the render, so the frame stacked a detail panel, a kill
+     * confirmation and a toast: 28 lines into a 19-row terminal, with the
+     * footer offering "esc back" over a confirmation dialog.
+     */
+    for (const [columns, rows] of [[72, 19], [72, 16], [80, 24], [100, 30]] as const) {
+      const app = await mount(columns, rows);
+      try {
+        // No await between them: one chunk, one closure.
+        app.stdin.write(ENTER);
+        app.stdin.write('k');
+        await wait(400);
+        const frame = lines(app.lastFrame());
+        const text = frame.join('\n');
+
+        const bothOpen = text.includes('[k] kill') && /KILL PROCESS|REFUSED/.test(text);
+        expect(bothOpen).toBe(false);
+        expect(frame.length).toBeLessThanOrEqual(rows);
+        for (const l of frame) expect(displayWidth(l)).toBeLessThanOrEqual(columns);
+      } finally {
+        app.restore();
+      }
+    }
+  }, 30_000);
+
+  it('the footer names the mode that is actually on screen', async () => {
+    const app = await mount(80, 24);
+    try {
+      app.stdin.write(ENTER);
+      app.stdin.write('k');
+      await wait(400);
+      const text = lines(app.lastFrame()).join('\n');
+      // Input resolves kill-first, so the hints must say so too.
+      if (/KILL PROCESS|REFUSED/.test(text)) {
+        expect(text).toMatch(/SIGTERM|esc back/);
+        expect(text).not.toContain('enter info');
+      }
+    } finally {
+      app.restore();
+    }
+  }, 20_000);
+
   it('I-27: names the screen you are on at every width it draws at', async () => {
     // `wrap="truncate"` alone rendered the fifth screen as "[5 DISK…" at 50
     // columns — closing bracket and arrow hint cut off. The inactive tabs drop
