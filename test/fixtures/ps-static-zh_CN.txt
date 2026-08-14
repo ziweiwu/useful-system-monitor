@@ -1,0 +1,6 @@
+  PID STARTED                      USER             STAT COMM
+    1 三  8月/12 19:39:58 2026   root             Ss   /sbin/launchd
+  718 四  8月/13 07:03:57 2026   root             Ss   /usr/libexec/logd
+  719 四  8月/13 07:03:57 2026   root             Ss   /usr/libexec/smd
+  720 四  8月/13 07:03:57 2026   root             Ss   /usr/libexec/UserEventAgent
+  722 四  8月/13 07:03:57 2026   root             Ss   /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd

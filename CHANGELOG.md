@@ -3,6 +3,26 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## Unreleased
+
+### Fixed
+
+- **Process names showed as `pid 1234` on any Mac not set to English.**
+  Collectors inherited the user's locale, and `ps -o lstart` formats the start
+  time through `strftime`: a German Mac printed `Mi. 12 Aug. 19:39:58 2026`, a
+  Chinese one `三  8月/12 19:39:58 2026`, a British one `Wed 12 Aug ...` — none
+  of which matched the C-locale form the parser reads, so no row got a name, a
+  user or a start time. Because a process this tool cannot name is treated as
+  protected, **the kill path was silently disabled for the whole machine**.
+  Collectors now spawn with `LC_TIME` and `LC_NUMERIC` pinned to `C` and
+  `LC_ALL` removed — it outranks the categories, so overriding them while it
+  survived would have done nothing. `LC_CTYPE` is left alone so non-ASCII
+  process names are still returned as UTF-8. The parser also recovers a name
+  from a localised date it cannot otherwise read. See I-28.
+- **Swap read 0 B in every comma-decimal locale**, from the same inheritance:
+  `sysctl vm.swapusage` printed `total = 1024,00M` and the parser stopped at
+  the comma. It now accepts either separator, on top of the pinned locale.
+
 ## 0.7.0
 
 ### Changed

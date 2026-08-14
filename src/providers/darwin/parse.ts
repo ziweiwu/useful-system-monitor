@@ -52,19 +52,39 @@ export function parsePsHot(stdout: string): RawProcess[] {
 }
 
 /**
- * `ps -Ao pid,lstart,user,state,comm`.
+ * `ps -Ao pid,lstart,user,state,comm`, in the C locale.
  *
  * `lstart` is five whitespace-separated tokens with a padded day
  * ("Sat Aug  1 17:46:44 2026"), and COMM is a path that may itself contain
  * spaces, so this is positional rather than a naive split.
  */
+const PS_STATIC_C =
+  /^\s*(\d+)\s+(\S+\s+\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(\S+)\s+(\S+)\s+(.*)$/;
+
+/**
+ * The same line when `lstart` did not come out in the C locale.
+ *
+ * `exec.ts` pins LC_TIME so this should be unreachable, but a name is the one
+ * column a user cannot work around — a table of "pid 1234" is unusable, and
+ * that is what a single unrecognised date format used to produce for every row
+ * on the machine. The only structure every locale shares is the clock, so this
+ * anchors on the first HH:MM:SS and takes an optional trailing year.
+ *
+ * It recovers the name, the user and the state. It does *not* recover
+ * `startTime`: Date.parse cannot read a localised month, and inventing a value
+ * for the field the PID-reuse guard binds to (I-16) would be worse than
+ * admitting it is unknown.
+ */
+const PS_STATIC_ANY_LOCALE =
+  /^\s*(\d+)\s+(\S.*?\d{1,2}:\d{2}:\d{2}(?:\s+\d{4})?)\s+(\S+)\s+(\S+)\s+(.*)$/;
+
 export function parsePsStatic(stdout: string): ProcessMeta[] {
   const out: ProcessMeta[] = [];
   const lines = stdout.split('\n');
   for (let i = 1; i < lines.length; i++) {
     const raw = lines[i]!;
     if (!raw.trim()) continue;
-    const m = /^\s*(\d+)\s+(\S+\s+\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(\S+)\s+(\S+)\s+(.*)$/.exec(raw);
+    const m = PS_STATIC_C.exec(raw) ?? PS_STATIC_ANY_LOCALE.exec(raw);
     if (!m) continue;
     const pid = Number(m[1]);
     const started = Date.parse(m[2]!.replace(/\s+/g, ' '));
@@ -120,11 +140,18 @@ export function parseMemory(
    */
   const used = wired + active + compressed;
 
+  /*
+   * `sysctl vm.swapusage` formats through LC_NUMERIC, so a comma-decimal
+   * locale prints "total = 1024,00M". `exec.ts` pins LC_NUMERIC=C, but a
+   * comma is accepted here too: the previous pattern stopped at the separator
+   * and reported a machine with 1 GB of swap as having none.
+   */
   const swapNum = (label: string): number => {
-    const m = new RegExp(`${label}\\s*=\\s*([\\d.]+)([KMG])`, 'i').exec(swapUsage);
+    const m = new RegExp(`${label}\\s*=\\s*(\\d+(?:[.,]\\d+)?)([KMG])`, 'i').exec(swapUsage);
     if (!m) return 0;
     const mult = { K: 1024, M: 1024 ** 2, G: 1024 ** 3 }[m[2]!.toUpperCase()] ?? 1;
-    return Number(m[1]) * mult;
+    const n = Number(m[1]!.replace(',', '.'));
+    return Number.isFinite(n) ? n * mult : 0;
   };
 
   const usedClamped = Math.min(totalBytes, used);

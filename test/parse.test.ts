@@ -107,6 +107,60 @@ describe('parsePsStatic against real output', () => {
   });
 });
 
+describe('I-28: ps -o lstart is formatted by strftime', () => {
+  /*
+   * Captured from this machine under LC_ALL. `exec.ts` now pins LC_TIME=C so
+   * the real collector never sees these, but the parser recovering the *name*
+   * from them is what stops a single unrecognised date format from turning the
+   * whole table into "pid 1234" rows again:
+   *
+   *   de_DE  "Mi. 12 Aug. 19:39:58 2026"   day and month swapped, both abbreviated
+   *   zh_CN  "三  8月/12 19:39:58 2026"     four tokens, no Latin month at all
+   *   en_GB  "Wed 12 Aug 19:39:58 2026"    day before month
+   */
+  it.each(['de_DE', 'zh_CN', 'en_GB'])('still names every process under %s', (locale) => {
+    const raw = fixture(`ps-static-${locale}.txt`);
+    const metas = parsePsStatic(raw);
+    const dataLines = raw.split('\n').filter((l) => l.trim()).length - 1;
+
+    expect(metas.length).toBe(dataLines);
+    expect(metas.find((m) => m.pid === 1)?.command).toBe('/sbin/launchd');
+    for (const m of metas) {
+      expect(m.command).not.toBe('');
+      expect(m.user).toBe('root');
+      expect(m.state).toBe('Ss');
+    }
+  });
+
+  it('keeps a command path that contains spaces intact under a foreign locale', () => {
+    const line =
+      '  PID STARTED USER STAT COMM\n' +
+      '  501 Mi. 12 Aug. 19:39:58 2026    ziweiwu          S    /Applications/Google Chrome.app/Contents/MacOS/Google Chrome\n';
+    expect(parsePsStatic(line)[0]!.command).toBe(
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    );
+  });
+
+  it('reports an unreadable start time as unknown rather than inventing one', () => {
+    // I-16 binds a kill to (pid, startTime). A localised month cannot be parsed
+    // back to an instant, and a plausible-looking guess would be worse than 0.
+    const zh = parsePsStatic(fixture('ps-static-zh_CN.txt'));
+    expect(zh[0]!.startTime).toBe(0);
+    // The C locale, which is what the collector actually runs in, still does.
+    expect(parsePsStatic(fixture('ps-static.txt'))[0]!.startTime).toBeGreaterThan(0);
+  });
+});
+
+describe('I-28: sysctl formats numbers through LC_NUMERIC', () => {
+  it('reads swap written with a comma decimal separator', () => {
+    // "total = 1024,00M" in every comma-decimal locale. The old pattern stopped
+    // at the comma and reported a machine with 1 GB of swap as having none.
+    const mem = parseMemory(fixture('vm_stat.txt'), fixture('swapusage-de_DE.txt'), 16 * 1024 ** 3);
+    expect(mem.swapTotalBytes).toBe(1024 * 1024 ** 2);
+    expect(mem.swapUsedBytes).toBeCloseTo(80.31 * 1024 ** 2, 0);
+  });
+});
+
 describe('I-5: memory reconciles', () => {
   const mem = parseMemory(fixture('vm_stat.txt'), fixture('swapusage.txt'), 16 * 1024 ** 3);
 

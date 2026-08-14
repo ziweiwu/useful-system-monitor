@@ -22,6 +22,7 @@ collectors, and the kill path. All invariants below are enforced and tested.
 | I-4b | The delta map tracks **every** PID, not just the working set, so a process entering the top 50 already has a real CPU% | `core/deltas.ts` |
 | I-5 | Memory reconciles: `used + free == total`, via `vm_stat`. `os.freemem()` is rejected — it read 170 MB on a machine with >1 GB free. "Used" excludes reclaimable inactive pages | `providers/darwin/parse.ts` · `test/parse.test.ts` |
 | I-6 | System and per-core CPU come from `os.cpus()` only, never from summing process rows: `kernel_task` (PID 0) is invisible to `ps` | `core/deltas.ts` |
+| I-28 | Collectors spawn in a locale they can parse. `LC_TIME` and `LC_NUMERIC` are pinned to `C` and `LC_ALL` removed, because `ps -o lstart` and `sysctl vm.swapusage` format their output through it; `LC_CTYPE` is left alone so non-ASCII names survive | `providers/darwin/exec.ts` · `test/exec.test.ts` · `test/parse.test.ts` |
 
 ## Liveness and cost
 
@@ -107,6 +108,19 @@ overrun the terminal were found the same way:
   than the frame Ink drew and the fourth card came out clipped and ragged. Both
   now fall back to 80x24. Laying out narrower than the renderer wastes space;
   laying out wider corrupts the frame.
+
+**I-28 (the locale is part of the interface to `ps`).** Every collector here is
+a text parser pointed at a command that formats its output through the C
+library's locale, and the app inherited the user's. `ps -o lstart` runs the
+start time through `strftime`, so a Mac set to German printed
+`Mi. 12 Aug. 19:39:58 2026` and one set to Chinese `三  8月/12 19:39:58 2026` —
+neither of which matches the five-token C form the parser reads. Every row in
+the table fell back to `pid 1234` with user `?`, and because a process this tool
+cannot name is treated as protected (I-14), **the kill path was silently
+disabled for the entire machine**. The same inheritance made
+`sysctl vm.swapusage` print `1024,00M` and report swap as 0 B. `LC_ALL` has to
+be *removed* rather than overridden: it outranks the individual categories, so
+setting `LC_TIME=C` alongside it does nothing at all.
 
 **I-27 (five screens, one strip).** Five screens behind number keys documented
 only in a footer that truncates at 80 columns is a feature nobody finds. The tab
