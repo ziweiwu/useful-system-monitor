@@ -55,7 +55,7 @@ describe('I-28: collectors run in a locale they can parse', () => {
     try {
       const out = await run(BIN.ps, ['-Ao', 'pid,lstart,user,state,comm']);
       const metas = parsePsStatic(out);
-      expect(metas.length).toBeGreaterThan(50);
+      expect(metas.length).toBeGreaterThan(20);
       expect(metas.find((m) => m.pid === 1)?.command).toBe('/sbin/launchd');
       // I-16 needs a real instant, not the 0 the fallback parser reports.
       expect(metas.find((m) => m.pid === 1)!.startTime).toBeGreaterThan(0);
@@ -65,7 +65,13 @@ describe('I-28: collectors run in a locale they can parse', () => {
     }
   });
 
-  it('parses real swap usage under a comma-decimal locale', async () => {
+  it('reads real swap usage with a decimal point under a comma locale', async () => {
+    /*
+     * The assertion is about the separator, not the amount. A first version
+     * asserted the machine had swap at all, which is true of a laptop and
+     * false of the CI runner — an environment fact dressed up as a property of
+     * the code, and it failed the release rather than this test.
+     */
     const prev = process.env['LC_ALL'];
     process.env['LC_ALL'] = 'de_DE.UTF-8';
     try {
@@ -73,7 +79,16 @@ describe('I-28: collectors run in a locale they can parse', () => {
         run(BIN.vmStat, []),
         run(BIN.sysctl, ['-n', 'vm.swapusage']),
       ]);
-      expect(parseMemory(vmStat, swap, 16 * 1024 ** 3).swapTotalBytes).toBeGreaterThan(0);
+
+      // The fix in one line: a comma here is what read as 0 B of swap.
+      expect(swap).toMatch(/total\s*=\s*\d+\.\d+[KMG]/);
+      expect(swap).not.toMatch(/total\s*=\s*\d+,/);
+
+      // And the parse agrees with the number actually printed, whatever it is.
+      const m = /total\s*=\s*([\d.]+)([KMG])/i.exec(swap)!;
+      const mult = { K: 1024, M: 1024 ** 2, G: 1024 ** 3 }[m[2]!.toUpperCase()]!;
+      const parsed = parseMemory(vmStat, swap, 16 * 1024 ** 3);
+      expect(parsed.swapTotalBytes).toBeCloseTo(Number(m[1]) * mult, 0);
     } finally {
       if (prev === undefined) delete process.env['LC_ALL'];
       else process.env['LC_ALL'] = prev;

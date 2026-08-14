@@ -3,6 +3,17 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## 0.8.1
+
+### Fixed
+
+- The v0.8.0 release never published: a test asserted that the host had swap
+  configured, which is true of a laptop and false of the CI runner — an
+  environment fact dressed up as a property of the code. It now asserts what
+  the fix actually guarantees (a `.` decimal separator under a comma locale)
+  and that the parse agrees with whatever number is printed, so it holds on a
+  machine with no swap at all. Everything below shipped in this release.
+
 ## 0.8.0
 
 ### Fixed
