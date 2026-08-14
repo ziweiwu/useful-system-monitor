@@ -78,6 +78,17 @@ const PS_STATIC_C =
 const PS_STATIC_ANY_LOCALE =
   /^\s*(\d+)\s+(\S.*?\d{1,2}:\d{2}:\d{2}(?:\s+\d{4})?)\s+(\S+)\s+(\S+)\s+(.*)$/;
 
+/**
+ * One `lstart` field to an epoch, or 0 when it cannot be read.
+ *
+ * 0 means "unknown", and callers must treat it as unverifiable rather than as
+ * a timestamp — it is what the PID-reuse guard (I-16) binds a kill to.
+ */
+export function parseLstart(field: string): number {
+  const t = Date.parse(field.trim().replace(/\s+/g, ' '));
+  return Number.isFinite(t) ? t : 0;
+}
+
 export function parsePsStatic(stdout: string): ProcessMeta[] {
   const out: ProcessMeta[] = [];
   const lines = stdout.split('\n');
@@ -87,10 +98,9 @@ export function parsePsStatic(stdout: string): ProcessMeta[] {
     const m = PS_STATIC_C.exec(raw) ?? PS_STATIC_ANY_LOCALE.exec(raw);
     if (!m) continue;
     const pid = Number(m[1]);
-    const started = Date.parse(m[2]!.replace(/\s+/g, ' '));
     out.push({
       pid,
-      startTime: Number.isFinite(started) ? started : 0,
+      startTime: parseLstart(m[2]!),
       user: m[3]!,
       state: m[4]!,
       command: m[5]!.trim(),

@@ -1,5 +1,5 @@
 import type { ProcessSample } from '../core/types.js';
-import { checkKill, type GuardContext, type KillRefusal } from './guards.js';
+import { checkKill, type GuardContext, type KillRefusal, type LiveIdentity } from './guards.js';
 
 export type Signal = 'SIGTERM' | 'SIGKILL';
 
@@ -16,14 +16,19 @@ const defaultKill: KillFn = (pid, signal) => {
 
 /**
  * Sends a signal, but only after `checkKill` passes. See I-15, I-17.
+ *
+ * `live` is required, and has no "not checked" value on purpose: this is the
+ * only place a signal is actually sent, so it is the one place where skipping
+ * the PID-reuse check has consequences. A caller with nothing to offer passes
+ * `{ known: false, gone: false }` and is refused. See I-16.
  */
 export function sendSignal(
   target: ProcessSample,
   signal: Signal,
   ctx: GuardContext,
-  opts: { liveStartTime?: number; kill?: KillFn } = {},
+  opts: { live: LiveIdentity; kill?: KillFn },
 ): KillOutcome {
-  const check = checkKill(target, ctx, opts.liveStartTime);
+  const check = checkKill(target, ctx, opts.live);
   if (!check.allowed) return { ok: false, refusal: check.refusal };
 
   const kill = opts.kill ?? defaultKill;

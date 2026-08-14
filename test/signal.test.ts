@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { GuardContext } from '../src/kill/guards.js';
+import type { GuardContext, LiveIdentity } from '../src/kill/guards.js';
 import { sendSignal } from '../src/kill/signal.js';
 import { sample } from './helpers.js';
 
-const ctx: GuardContext = { selfPid: 999, parents: new Map() };
+/* A real parent map: an empty one now means "no process sample" and is
+   refused outright, which would mask everything these cases are about. */
+const ctx: GuardContext = { selfPid: 999, parents: new Map([[999, 1]]) };
+
+/* These cases are about signal delivery, so the identity always checks out;
+   the refusal paths live in guards.test.ts. */
+const live: LiveIdentity = { known: true, startTime: 1_000 };
 
 function errno(code: string): NodeJS.ErrnoException {
   const e = new Error(code) as NodeJS.ErrnoException;
@@ -14,7 +20,7 @@ function errno(code: string): NodeJS.ErrnoException {
 describe('I-15 / I-17: signal delivery', () => {
   it('sends the requested signal when allowed', () => {
     const kill = vi.fn();
-    const out = sendSignal(sample({ pid: 700 }), 'SIGTERM', ctx, { kill });
+    const out = sendSignal(sample({ pid: 700 }), 'SIGTERM', ctx, { live, kill });
     expect(out.ok).toBe(true);
     expect(kill).toHaveBeenCalledWith(700, 'SIGTERM');
   });
@@ -23,7 +29,7 @@ describe('I-15 / I-17: signal delivery', () => {
     const kill = vi.fn(() => {
       throw errno('ESRCH');
     });
-    const out = sendSignal(sample({ pid: 700 }), 'SIGTERM', ctx, { kill });
+    const out = sendSignal(sample({ pid: 700 }), 'SIGTERM', ctx, { live, kill });
     expect(out.ok).toBe(true);
   });
 
@@ -31,7 +37,7 @@ describe('I-15 / I-17: signal delivery', () => {
     const kill = vi.fn(() => {
       throw errno('EPERM');
     });
-    const out = sendSignal(sample({ pid: 700 }), 'SIGKILL', ctx, { kill });
+    const out = sendSignal(sample({ pid: 700 }), 'SIGKILL', ctx, { live, kill });
     expect(out.ok).toBe(false);
     if (!out.ok && 'error' in out) {
       expect(out.error).toMatch(/sudo/);
@@ -43,7 +49,7 @@ describe('I-15 / I-17: signal delivery', () => {
     const kill = vi.fn(() => {
       throw new Error('boom');
     });
-    const out = sendSignal(sample({ pid: 700 }), 'SIGTERM', ctx, { kill });
+    const out = sendSignal(sample({ pid: 700 }), 'SIGTERM', ctx, { live, kill });
     expect(out.ok).toBe(false);
     if (!out.ok && 'error' in out) expect(out.error).toBe('boom');
   });

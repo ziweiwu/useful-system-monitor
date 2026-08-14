@@ -175,6 +175,20 @@ export class MockProvider implements MetricsProvider {
     };
   }
 
+  /**
+   * The mock's start times are derived from the PID, so this is exact — which
+   * is what lets the kill flow exercise the same I-16 path as the real
+   * provider rather than a shortcut through the last sample.
+   */
+  async identity(pid: number): Promise<{ startTime: number } | null> {
+    if (this.killed.has(pid)) return null;
+    const f = FAKE.find((x) => x.pid === pid);
+    if (f) return { startTime: 1_700_000_000_000 + f.pid * 1000 };
+    const i = pid - 20000;
+    if (i >= 0 && i < TOTAL_PROCESSES) return { startTime: 1_700_000_000_000 + i };
+    return null;
+  }
+
   async commandLine(pid: number): Promise<string | null> {
     const f = FAKE.find((x) => x.pid === pid);
     return f ? `${f.command} --type=renderer --enable-features=Foo` : null;

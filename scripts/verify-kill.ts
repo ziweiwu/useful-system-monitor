@@ -37,6 +37,10 @@ const main = async () => {
   const target = all.find((p) => p.pid === pid);
   const ctx: GuardContext = { selfPid: process.pid, parents: data.parents };
 
+  /* I-16: the identity has to be real. A synthesised startTime of 0 means
+     "unknown", and the guard now refuses that rather than treating it as a
+     timestamp — which is the whole point, so the script has to read one. */
+  const born = await provider.identity(pid);
   if (!target) {
     // An idle process may not make the top-50, which is expected; construct the
     // sample directly so the signal path is still exercised.
@@ -45,7 +49,7 @@ const main = async () => {
   const sample = target ?? {
     pid,
     ppid: process.pid,
-    startTime: 0,
+    startTime: born?.startTime ?? 0,
     command: process.execPath,
     user: 'ziweiwu',
     state: 'S',
@@ -55,7 +59,11 @@ const main = async () => {
     protected: false,
   };
 
-  const out = sendSignal(sample, 'SIGTERM', ctx);
+  /* Read again at signal time, exactly as the app does. */
+  const id = await provider.identity(pid);
+  const out = sendSignal(sample, 'SIGTERM', ctx, {
+    live: id ? { known: true, startTime: id.startTime } : { known: false, gone: true },
+  });
   console.log('sendSignal ->', JSON.stringify(out));
   await wait(500);
   console.log(`after SIGTERM: alive=${alive(pid)}  ${alive(pid) ? 'FAIL' : 'OK'}`);

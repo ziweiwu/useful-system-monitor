@@ -23,6 +23,7 @@ import {
   parseIoregBattery,
   parseMemory,
   parsePmset,
+  parseLstart,
   parsePsHot,
   parsePsStatic,
 } from './parse.js';
@@ -191,6 +192,25 @@ export class DarwinProvider implements MetricsProvider {
       healthPercent: detail.healthPercent ?? null,
       temperatureC: detail.temperatureC ?? null,
     };
+  }
+
+  /**
+   * `ps -o lstart= -p PID`, read at signal time. See I-16.
+   *
+   * Deliberately its own tiny spawn rather than a lookup in the last sample:
+   * the whole point is that it is newer than the sample. ~15ms, paid once, on
+   * an action the user is being asked to confirm anyway.
+   */
+  async identity(pid: number): Promise<{ startTime: number } | null> {
+    let out: string;
+    try {
+      out = await run(BIN.ps, ['-o', 'lstart=', '-p', String(pid)]);
+    } catch {
+      // ps exits non-zero when no process matches: the process is gone.
+      return null;
+    }
+    if (!out.trim()) return null;
+    return { startTime: parseLstart(out) };
   }
 
   async commandLine(pid: number): Promise<string | null> {

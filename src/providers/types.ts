@@ -29,6 +29,19 @@ export interface MetricsProvider {
    */
   processes(limit?: number): Promise<ProcessesData>;
   /**
+   * The identity of one live process, read *now* rather than from the last
+   * sample. `null` means no process with that PID exists any more.
+   *
+   * This is what makes I-16 real. Binding a kill to (pid, startTime) is only
+   * worth anything if the start time it compares against is fresh: a PID
+   * recycled inside the sampling interval matches the *old* process's start
+   * time in the last sample, and the guard waves it through. A provider that
+   * cannot answer must say so by omitting this method, and the caller then
+   * refuses rather than signalling something it cannot identify.
+   */
+  identity?(pid: number): Promise<{ startTime: number } | null>;
+
+  /**
    * Full argv for one process, fetched on demand.
    *
    * Not part of the regular sample: carrying full command lines for ~800

@@ -29,7 +29,26 @@ export type KillRefusal =
   | { kind: 'self'; message: string }
   | { kind: 'ancestor'; message: string }
   | { kind: 'protected'; message: string }
-  | { kind: 'recycled'; message: string };
+  | { kind: 'recycled'; message: string }
+  | { kind: 'unverifiable'; message: string };
+
+/**
+ * What the process table knows about the target at signal time.
+ *
+ * Deliberately a three-state value rather than an optional number. It used to
+ * be `liveStartTime?: number`, and "the caller could not find the process" and
+ * "the caller did not look" were the same value — so the PID-reuse check
+ * (I-16) silently did nothing in exactly the case it exists for. A recycled
+ * PID belongs to a brand-new process, which has no CPU history and a small
+ * RSS, so it is almost never in the top-50 working set the caller searched.
+ */
+export type LiveIdentity =
+  /** Read at signal time; compare it against the target. */
+  | { known: true; startTime: number }
+  /** No process with this PID exists any more. */
+  | { known: false; gone: true }
+  /** Nothing could be read. A guard that cannot verify must refuse. */
+  | { known: false; gone: false };
 
 export type KillCheck = { allowed: true } | { allowed: false; refusal: KillRefusal };
 
@@ -79,15 +98,36 @@ export function isSelfOrAncestor(pid: number, ctx: GuardContext): boolean {
 /**
  * The single entry point every kill must pass through.
  *
- * `liveStartTime` is the start time observed at signal time. Binding the target
- * to (pid, startTime) is what stops a kill landing on an unrelated process that
+ * `live` is the identity observed at signal time. Binding the target to
+ * (pid, startTime) is what stops a kill landing on an unrelated process that
  * inherited a recycled PID between selection and confirmation. See I-16.
+ * Omit it to run only the static checks — that is what the confirmation panel
+ * renders, before the user has committed to anything.
  */
 export function checkKill(
   target: ProcessSample,
   ctx: GuardContext,
-  liveStartTime?: number,
+  live?: LiveIdentity,
 ): KillCheck {
+  /*
+   * I-13 depends on the parent map, so an empty one is not "no ancestors" —
+   * it is "no answer". The map comes from the process sample, which goes away
+   * whenever that collector errors (a `ps` timeout on a loaded machine is
+   * enough), and the confirmation panel stays open across that. Refusing is
+   * the only safe reading: the alternative silently drops the guard that stops
+   * a user killing the shell they are sitting in.
+   */
+  if (ctx.parents.size === 0) {
+    return {
+      allowed: false,
+      refusal: {
+        kind: 'unverifiable',
+        message:
+          'No current process list, so this cannot be checked against the ancestors of useful-system-monitor. Press r to refresh.',
+      },
+    };
+  }
+
   if (target.pid <= 1) {
     return {
       allowed: false,
@@ -125,14 +165,38 @@ export function checkKill(
     };
   }
 
-  if (liveStartTime !== undefined && liveStartTime !== target.startTime) {
-    return {
-      allowed: false,
-      refusal: {
-        kind: 'recycled',
-        message: `PID ${target.pid} has been reused by a different process since you selected it. Aborted.`,
-      },
-    };
+  if (live !== undefined) {
+    if (!live.known) {
+      return live.gone
+        ? {
+            allowed: false,
+            refusal: {
+              kind: 'recycled',
+              message: `PID ${target.pid} has already exited — nothing to signal.`,
+            },
+          }
+        : {
+            allowed: false,
+            refusal: {
+              kind: 'unverifiable',
+              message: `Could not confirm that PID ${target.pid} is still ${processName(target.command)}. Refusing rather than signalling a process it cannot identify.`,
+            },
+          };
+    }
+    /*
+     * A start time of 0 means the date could not be read at all (see
+     * parseLstart), which is unknown, not "epoch". Treating it as a value
+     * would make two unreadable processes compare equal.
+     */
+    if (live.startTime === 0 || target.startTime === 0 || live.startTime !== target.startTime) {
+      return {
+        allowed: false,
+        refusal: {
+          kind: 'recycled',
+          message: `PID ${target.pid} is no longer the process you selected — it has been reused. Aborted.`,
+        },
+      };
+    }
   }
 
   return ALLOWED;
