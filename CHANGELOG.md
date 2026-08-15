@@ -5,8 +5,46 @@ public surface is the command line, the JSON shape, and the keys.
 
 ## Unreleased
 
+### Fixed
+
+- **Accurate energy never fell back to the estimate once it had worked.**
+  `maybeRefreshEnergy`'s failure path bumped the retry throttle but never
+  touched the data, so a lane that succeeded once and then failed forever kept
+  serving that one sample — still labelled measured, with no upper bound on its
+  age. The comment there always claimed it fell back to the estimate; the code
+  never did. Measured data is now dropped after two consecutive failures and
+  ages out after two refresh intervals regardless.
+- **A measured energy number could be attributed to a recycled PID.** `top`
+  reports a bare PID, and the map was keyed on it alone — unlike every other
+  identity-sensitive path here. A process that started *after* the sample was
+  taken cannot be the one it measured, so it now gets the estimate instead.
+- **A recycled PID kept the previous process's name.** `metaCache` was
+  consulted with `.has(pid)`, which is not an identity check, so a row showed
+  the dead process's command, user and protected flag until some unrelated new
+  PID forced a refetch — even though the delta tracker had already flagged that
+  same PID as recycled on that same tick (I-3). Kill safety was never affected,
+  since the kill path re-reads identity at signal time (I-16); this was the
+  display disagreeing with what the app already knew. The tracker now exposes
+  which PIDs it saw recycled, and the name cache evicts them.
+- **The detail panel offered `[k] kill` on a process it had just refused.** Two
+  lines below "! Protected — this tool will refuse to kill this process", the
+  legend still advertised the kill key; pressing it bought a second refusal to
+  dismiss. Both the panel's own footer and the app footer now say `esc back`
+  alone for a protected process.
+- `scripts/screenshot.tsx` did not wire `onKilled`, so a scripted kill in the
+  project's own review tool printed "SIGTERM sent to Electron" with Electron
+  still in the table above the toast. The instrument used to review the kill
+  flow misrepresented it.
+
 ### Changed
 
+- The test suite's timeout is 30s rather than vitest's 5s default. Much of it
+  mounts a real Ink app, writes keys and waits for frames — work that takes
+  hundreds of milliseconds idle and several seconds under load. Two independent
+  observations landed on this: the suite failed a different handful of tests on
+  each run at load 125 and again at 343, all passing individually, and one
+  interaction test measured 5178ms *in isolation*. A gate that fails at random
+  teaches people to re-run it rather than read it.
 - CI and the release gate now run the layout sweep and the keyboard fuzzer, not
   just the unit tests. Both are sized to a grid that demonstrably fails when a
   real regression is reinstated, which took two attempts to get right: the

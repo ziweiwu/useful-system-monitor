@@ -699,7 +699,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
                 ? 't SIGTERM   k SIGKILL (twice)   esc cancel'
                 : 'esc back'
               : detailPid !== null
-                ? 'k kill   esc back'
+                ? detailProc?.protected
+                  ? 'esc back'
+                  : 'k kill   esc back'
                 : rowActions
                   ? displayWidth(KEYS_FULL) <= width
                     ? KEYS_FULL

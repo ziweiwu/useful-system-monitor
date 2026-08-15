@@ -43,8 +43,14 @@ export class DarwinProvider implements MetricsProvider {
    */
   private readonly accurateEnergy: boolean;
   private energyImpact = new Map<number, number>();
+  /** When the last *successful* sample landed. Distinct from energyFetchedAt,
+      which only throttles retries and is bumped on failure too. */
+  private energySampledAt = 0;
   private energyFetchedAt = 0;
   private energyInFlight = false;
+  /** Consecutive failed refreshes. Age alone is too slow a signal when the
+      lane is simply broken — two refusals in a row is already an answer. */
+  private energyFailures = 0;
 
   constructor(opts: { accurateEnergy?: boolean } = {}) {
     this.accurateEnergy = opts.accurateEnergy ?? false;
@@ -59,11 +65,27 @@ export class DarwinProvider implements MetricsProvider {
       .then((m) => {
         this.energyImpact = m;
         this.energyFetchedAt = Date.now();
+        this.energySampledAt = Date.now();
+        this.energyFailures = 0;
       })
       .catch(() => {
-        // I-11: losing the accurate lane silently falls back to the estimate
-        // rather than blanking the column.
+        /*
+         * I-11: losing the accurate lane falls back to the estimate rather
+         * than blanking the column — which is what the comment here always
+         * claimed, and what the code did not do. Only `energyFetchedAt` was
+         * bumped, so a lane that had succeeded once and then failed forever
+         * kept serving that one sample, still labelled "measured", with no
+         * upper bound on its age. Silently wrong data presented as fresh is a
+         * worse failure than the honest estimate.
+         *
+         * The retry throttle is bumped here; the data is dropped once the lane
+         * has refused twice running, and ages out on its own besides.
+         */
         this.energyFetchedAt = Date.now();
+        this.energyFailures++;
+        if (this.energyFailures >= DarwinProvider.ENERGY_MAX_FAILURES) {
+          this.energyImpact = new Map();
+        }
       })
       .finally(() => {
         this.energyInFlight = false;
@@ -71,6 +93,25 @@ export class DarwinProvider implements MetricsProvider {
   }
 
   private static readonly ENERGY_INTERVAL_MS = 60_000;
+
+  /**
+   * How stale a measured sample may be before it stops counting as measured.
+   *
+   * Two refresh intervals: one missed refresh is a hiccup worth riding out,
+   * two means the lane is not working and the column should say so by
+   * reverting to the estimate.
+   */
+  private static readonly ENERGY_MAX_AGE_MS = 2 * DarwinProvider.ENERGY_INTERVAL_MS;
+
+  /** Consecutive failures after which the measured data is dropped outright. */
+  private static readonly ENERGY_MAX_FAILURES = 2;
+
+  /** Whether the measured numbers are recent enough to be called measured. */
+  private energyIsFresh(now: number): boolean {
+    return (
+      this.energyImpact.size > 0 && now - this.energySampledAt <= DarwinProvider.ENERGY_MAX_AGE_MS
+    );
+  }
 
   private readonly ncpu = os.cpus().length;
   private readonly deltas = new CpuDeltaTracker(100 * os.cpus().length);
@@ -236,10 +277,23 @@ export class DarwinProvider implements MetricsProvider {
     // already has a real CPU% instead of showing "—" for a whole interval.
     const cpuByPid = this.deltas.update(hot, now);
 
+    const energyFresh = this.energyIsFresh(now);
+
     const build = (p: RawProcess): ProcessSample => {
       const meta = this.metaCache.get(p.pid);
       const command = meta?.command ?? `pid ${p.pid}`;
       const cpuPercent = cpuByPid.get(p.pid) ?? null;
+      /*
+       * A measured number belongs to the process that was running when `top`
+       * sampled it. `top` reports a bare PID, so bind it the way everything
+       * else here binds identity: a process that started *after* the sample
+       * cannot be the one it measured, so it gets the estimate instead. See
+       * I-16 for the same reasoning on the kill path.
+       */
+      const measured =
+        energyFresh && meta && meta.startTime > 0 && meta.startTime <= this.energySampledAt
+          ? this.energyImpact.get(p.pid)
+          : undefined;
       return {
         pid: p.pid,
         ppid: p.ppid,
@@ -250,7 +304,7 @@ export class DarwinProvider implements MetricsProvider {
         cpuPercent,
         rssBytes: p.rssBytes,
         // Measured Energy Impact when the slow lane has it, estimate otherwise.
-        energy: this.energyImpact.get(p.pid) ?? energyProxy(cpuPercent),
+        energy: measured ?? energyProxy(cpuPercent),
         // Unnamed processes are treated as protected: refusing to kill
         // something we cannot identify is the safe default. See I-14.
         protected: meta ? isProtectedName(command) : true,
@@ -272,6 +326,16 @@ export class DarwinProvider implements MetricsProvider {
     let all = hot.map(build);
     let { visible, others } = selectWorkingSet(all, limit);
 
+    /*
+     * A PID the delta tracker just flagged as recycled (I-3) is a different
+     * program now, so its cached name, user and protected flag are wrong.
+     * `metaCache` was consulted with `.has(pid)`, which is not an identity
+     * check, so the row kept the dead process's name until some *unrelated*
+     * new PID happened to force a static refetch. `useProcessHistory` already
+     * evicts on exactly this signal; this is the same rule, applied here.
+     */
+    for (const pid of this.deltas.recycled) this.metaCache.delete(pid);
+
     if (visible.some((p) => !this.metaCache.has(p.pid))) {
       const metas = parsePsStatic(await run(BIN.ps, ['-Ao', 'pid,lstart,user,state,comm']));
       const live = new Set(hot.map((p) => p.pid));
@@ -290,7 +354,7 @@ export class DarwinProvider implements MetricsProvider {
       visible,
       others,
       parents,
-      energyAccurate: this.accurateEnergy && this.energyImpact.size > 0,
+      energyAccurate: this.accurateEnergy && energyFresh,
     };
   }
 }
