@@ -85,6 +85,12 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Added
 
+- `test/selection.test.tsx` pins I-21 end to end: the cursor stays on the same
+  PID across four re-sorts and across widening and narrowing the working set,
+  exactly one cursor is ever drawn through sort/filter/detail sequences, and a
+  filter matching nothing shows "no matches" with no roll-up beneath it. The
+  selected row *is* the kill target, so a re-sort sliding a different process
+  under the cursor is the failure this rules out.
 - `test/storms.test.tsx` pins three properties that had no coverage: a burst of
   forty resizes with no settle between them still lands on a coherent frame; 60
   presses of the refresh key produce a handful of collector runs rather than 60
