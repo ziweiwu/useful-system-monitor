@@ -1,7 +1,7 @@
 {
   "name": "useful-system-monitor",
   "version": "0.8.1",
-  "description": "See what's using up your Mac — and close the apps that are hogging it. CPU, memory, disk and battery at a glance, right in your terminal.",
+  "description": "See what's using up your Mac \u2014 and close the apps that are hogging it. CPU, memory, disk and battery at a glance, right in your terminal.",
   "type": "module",
   "bin": {
     "useful-system-monitor": "dist/cli.js"
@@ -13,6 +13,7 @@
     "mock": "tsx src/cli.tsx --mock",
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
+    "qa:fuzz": "tsx scripts/qa-fuzz.tsx",
     "screenshot": "tsx scripts/screenshot.tsx",
     "screenshot:svg": "FORCE_COLOR=3 COLS=100 ROWS=36 tsx scripts/gen-svg.tsx docs/screenshot.svg",
     "screenshot:svg:battery": "FORCE_COLOR=3 COLS=100 ROWS=30 tsx scripts/gen-svg.tsx docs/battery.svg 4",
@@ -21,8 +22,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "verify:kill": "tsx scripts/verify-kill.ts",
-    "verify:smoke": "bash scripts/smoke.sh",
+    "verify:layout": "tsx scripts/verify-layout.tsx",
     "verify:selfcost": "tsx scripts/verify-selfcost.tsx",
+    "verify:smoke": "bash scripts/smoke.sh",
     "verify:workingset": "tsx scripts/verify-workingset.ts"
   },
   "dependencies": {

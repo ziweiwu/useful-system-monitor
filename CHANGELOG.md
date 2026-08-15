@@ -3,6 +3,19 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## Unreleased
+
+### Added
+
+- `npm run verify:layout` sweeps every screen and mode across a grid of terminal
+  sizes and fails on any frame taller or wider than its terminal, and
+  `npm run qa:fuzz` drives random keys at random sizes from a seed. Both were
+  throwaway probes during the 0.8.x bug hunt; the fuzzer is what found the
+  detail-panel-plus-kill-confirmation stacking, which the size sweep could not
+  see, because it sends keys in bursts that land in one chunk. Keeping them
+  means the next regression is caught by a command rather than by rewriting the
+  harness. Each prints a seed to reproduce with.
+
 ## 0.8.1
 
 ### Fixed

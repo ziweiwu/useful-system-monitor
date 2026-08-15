@@ -56,7 +56,7 @@ an error.
 | # | Invariant | Where |
 |---|---|---|
 | I-18 | Render is a pure function of `(Snapshot, UiState)`; no I/O in components | `ui/*` |
-| I-19 | Layout never overflows terminal width, at **any** size the dashboard draws at. Widths use display-width, not `String.length`, and a column is dropped rather than floored below what fits | `core/width.ts` · `ui/ProcessTable.ts` · `test/width.test.ts` · `test/ui.test.tsx` |
+| I-19 | Layout never overflows terminal width, at **any** size the dashboard draws at. Widths use display-width, not `String.length`, and a column is dropped rather than floored below what fits | `core/width.ts` · `ui/ProcessTable.ts` · `test/width.test.ts` · `test/ui.test.tsx` · `npm run verify:layout` · `npm run qa:fuzz` |
 | I-20 | Sort is stable and total — ties broken by PID — so rows do not jitter at equal CPU | `core/scoring.ts` · `test/scoring.test.ts` |
 | I-21 | Selection is keyed by **PID, not row index**. A re-sort under the cursor must never move the kill target | `app.tsx` · `test/ui.test.tsx` |
 | I-22 | No TUI when stdout is not a TTY; one-shot text or `--json` instead | `cli.tsx` |
