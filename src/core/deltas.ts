@@ -24,6 +24,18 @@ export interface DeltaResult {
 export class CpuDeltaTracker {
   private prev = new Map<number, Prev>();
 
+  /**
+   * PIDs whose cumulative counter went *backwards* on the last update.
+   *
+   * That is the signature of PID reuse (I-3), and it is different from a PID
+   * simply being seen for the first time — both yield a null CPU%, but only
+   * this one means "the thing behind this number is a different program now".
+   * Exposed because anything else caching per-PID has to hear about it: a name
+   * cache keyed on `has(pid)` will happily keep showing the dead process's
+   * name, which is what it used to do.
+   */
+  readonly recycled = new Set<number>();
+
   constructor(private readonly maxPercent: number) {}
 
   /**
@@ -34,6 +46,7 @@ export class CpuDeltaTracker {
   update(procs: readonly RawProcess[], now: number): Map<number, number | null> {
     const out = new Map<number, number | null>();
     const next = new Map<number, Prev>();
+    this.recycled.clear();
 
     for (const p of procs) {
       const prev = this.prev.get(p.pid);
@@ -55,6 +68,7 @@ export class CpuDeltaTracker {
       if (dCpu < 0) {
         // I-3: cumulative CPU time went backwards -> this PID was recycled.
         // Discard the delta and treat it as a process we have not seen.
+        this.recycled.add(p.pid);
         out.set(p.pid, null);
         continue;
       }
@@ -78,6 +92,7 @@ export class CpuDeltaTracker {
 
   reset(): void {
     this.prev.clear();
+    this.recycled.clear();
   }
 }
 

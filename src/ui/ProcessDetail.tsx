@@ -206,14 +206,23 @@ export const ProcessDetail = memo(function ProcessDetail({
         </Text>
       </Box>
 
+      {/* Nielsen #5: do not offer an action this panel has already said it
+          will refuse. For a protected process the legend used to read
+          "[k] kill" two lines below "! Protected — this tool will refuse to
+          kill this process.", so the only thing pressing it bought was a
+          second refusal to dismiss. */}
       <Box marginTop={gap}>
         <Text wrap="truncate">
+          {!p.protected && (
+            <>
+              <Text bold color={theme.mem}>
+                {'  [k] '}
+              </Text>
+              <Text color={theme.dim}>kill</Text>
+            </>
+          )}
           <Text bold color={theme.mem}>
-            {'  [k] '}
-          </Text>
-          <Text color={theme.dim}>kill</Text>
-          <Text bold color={theme.mem}>
-            {'   [esc] '}
+            {p.protected ? '  [esc] ' : '   [esc] '}
           </Text>
           <Text color={theme.dim}>back</Text>
         </Text>

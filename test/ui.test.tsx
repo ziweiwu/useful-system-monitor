@@ -994,6 +994,46 @@ describe('I-19 / I-26: the layout holds below 80x24', () => {
     }
   }, 20_000);
 
+  it('does not offer a kill key on a process it has just said it will refuse', async () => {
+    /*
+     * Nielsen #5. The detail panel's legend was a hardcoded "[k] kill [esc]
+     * back", printed two lines below "! Protected — this tool will refuse to
+     * kill this process." Pressing it bought a second refusal to dismiss and
+     * nothing else.
+     */
+    const guarded = await mount(80, 30);
+    try {
+      for (const k of ['/', 'WindowServer', ENTER, ENTER]) {
+        guarded.stdin.write(k);
+        await wait(150);
+      }
+      await waitForFrame(
+        () => guarded.lastFrame(),
+        (f) => f.includes('Protected'),
+        'the detail panel for a protected process',
+      );
+      const frame = guarded.lastFrame() ?? '';
+      expect(frame).toContain('[esc] back');
+      expect(frame, 'offered [k] kill on a protected process').not.toContain('[k] kill');
+    } finally {
+      guarded.restore();
+    }
+
+    // ...and still offers it where the kill would actually go through.
+    const normal = await mount(80, 30);
+    try {
+      normal.stdin.write(ENTER);
+      await waitForFrame(
+        () => normal.lastFrame(),
+        (f) => f.includes('[esc] back'),
+        'the detail panel for an ordinary process',
+      );
+      expect(normal.lastFrame() ?? '').toContain('[k] kill');
+    } finally {
+      normal.restore();
+    }
+  }, 30_000);
+
   it('I-27: names the screen you are on at every width it draws at', async () => {
     // `wrap="truncate"` alone rendered the fifth screen as "[5 DISK…" at 50
     // columns — closing bracket and arrow hint cut off. The inactive tabs drop
