@@ -7,6 +7,17 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Added
 
+- Control characters are replaced with a visible `·` where external text enters
+  (`parsePsStatic`, `commandLine`) and again in `processName`, the funnel every
+  rendered name passes through. Defence in depth rather than a live fix: a
+  process names itself, and `exec -a $'malware\rSafari'` would otherwise draw as
+  `Safari` — `displayWidth` counts a control byte as zero cells while the
+  terminal still acts on it, so a carriage return returns the cursor to column
+  zero and the rest of the row overwrites its own start, hiding the real name
+  and the PID beside it. macOS `ps` escapes every control byte today (verified
+  with `od -c`: zero raw 0x0D bytes), so this is not reachable through the
+  current collector — but that escaping is an undocumented implementation
+  detail, and the `MetricsProvider` interface is implementable by anything.
 - `npm run verify:layout` sweeps every screen and mode across a grid of terminal
   sizes and fails on any frame taller or wider than its terminal, and
   `npm run qa:fuzz` drives random keys at random sizes from a seed. Both were

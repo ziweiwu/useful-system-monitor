@@ -1,3 +1,4 @@
+import { sanitizeText } from '../../core/width.js';
 import type {
   BatteryData,
   DiskData,
@@ -98,12 +99,15 @@ export function parsePsStatic(stdout: string): ProcessMeta[] {
     const m = PS_STATIC_C.exec(raw) ?? PS_STATIC_ANY_LOCALE.exec(raw);
     if (!m) continue;
     const pid = Number(m[1]);
+    /* Sanitised on ingest so every consumer — the table, --json, the detail
+       panel — gets a string that is safe to print. `ps` escapes control bytes
+       itself today; this does not depend on it. See sanitizeText. */
     out.push({
       pid,
       startTime: parseLstart(m[2]!),
-      user: m[3]!,
-      state: m[4]!,
-      command: m[5]!.trim(),
+      user: sanitizeText(m[3]!),
+      state: sanitizeText(m[4]!),
+      command: sanitizeText(m[5]!.trim()),
     });
   }
   return out;

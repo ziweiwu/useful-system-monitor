@@ -1,4 +1,5 @@
 import type { ProcessSample } from '../core/types.js';
+import { sanitizeText } from '../core/width.js';
 
 /**
  * All kill-safety rules, kept pure so every refusal path is unit-testable
@@ -66,7 +67,9 @@ const ALLOWED: KillCheck = { allowed: true };
 export function processName(command: string): string {
   const trimmed = command.trim();
   const parts = trimmed.split('/');
-  return parts[parts.length - 1] || trimmed;
+  /* Sanitised here as well as on ingest: this is the funnel every rendered
+     name passes through, so a provider that forgets cannot corrupt a frame. */
+  return sanitizeText(parts[parts.length - 1] || trimmed);
 }
 
 export function isProtectedName(command: string): boolean {

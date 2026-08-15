@@ -54,6 +54,50 @@ function isZeroWidth(cp: number): boolean {
   );
 }
 
+/** Matches C0 and C1 control characters — Unicode's "Other, control" class. */
+const CONTROL = /\p{Cc}/u;
+
+/**
+ * Replaces control characters with a visible placeholder.
+ *
+ * Defence in depth, not a fix for a live exploit — the distinction matters, so
+ * here is what was actually measured.
+ *
+ * A process chooses its own name, and any user can set a hostile one:
+ * `exec -a $'malware\rSafari' sleep 60`. If such a byte reached the renderer it
+ * would be genuinely bad: `displayWidth` counts a control character as zero
+ * cells, so every width and row budget would be computed as though it were
+ * absent, and the terminal would still act on it — a carriage return returns
+ * the cursor to column zero, so `malware\rSafari` draws as `Safari`, hiding
+ * both the real name and the PID beside it. A spoof in the one tool whose job
+ * is showing you what is running.
+ *
+ * macOS `ps` prevents that today: it escapes every control byte on the way out
+ * — newline to the four characters `\012`, ESC to `^[`, carriage return to
+ * `^M` — verified with `od -c`, which reports zero raw 0x0D bytes for a process
+ * named that way. (`cat -v` renders a raw CR as `^M` too, so it cannot tell the
+ * two apart; that mistake is why this was briefly believed to be reachable.)
+ *
+ * So this guards the `MetricsProvider` boundary rather than a live hole: the
+ * interface is implementable by anything, the mock is not bound by `ps`'s
+ * escaping, and that escaping is an undocumented implementation detail rather
+ * than a contract. The fast path below makes it free on clean input.
+ *
+ * A visible placeholder rather than a silent strip: a name containing something
+ * strange should look like it does.
+ */
+export function sanitizeText(s: string): string {
+  // Fast path: the overwhelming majority of names are clean, and this runs for
+  // every process on every sample.
+  if (!CONTROL.test(s)) return s;
+  let out = '';
+  for (const ch of s) {
+    const cp = ch.codePointAt(0)!;
+    out += cp < 0x20 || cp === 0x7f || (cp >= 0x80 && cp <= 0x9f) ? '·' : ch;
+  }
+  return out;
+}
+
 /** Terminal cells occupied by `s`. */
 export function displayWidth(s: string): number {
   let w = 0;

@@ -12,6 +12,7 @@ import type {
   RawProcess,
   ProcessesData,
 } from '../../core/types.js';
+import { sanitizeText } from '../../core/width.js';
 import { selectWorkingSet, WORKING_SET_SIZE } from '../../core/workingSet.js';
 import { isProtectedName } from '../../kill/guards.js';
 import type { MetricsProvider } from '../types.js';
@@ -216,7 +217,9 @@ export class DarwinProvider implements MetricsProvider {
   async commandLine(pid: number): Promise<string | null> {
     try {
       const out = await run(BIN.ps, ['-o', 'command=', '-p', String(pid)]);
-      return out.trim() || null;
+      // Full argv, chosen by the process itself — the least trustworthy string
+      // this app displays, even though `ps` escapes control bytes on the way out.
+      return sanitizeText(out.trim()) || null;
     } catch {
       // The process may have exited between selection and this call.
       return null;
