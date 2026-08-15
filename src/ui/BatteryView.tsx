@@ -34,7 +34,7 @@ export const BatteryView = memo(function BatteryView({
   const procs = snapshot.processes.status === 'ok' ? snapshot.processes.data : null;
 
   if (!batt) {
-    return <Text color={theme.dim}>Battery data unavailable.</Text>;
+    return <Text color={theme.dim}>Battery data unavailable — press r to retry.</Text>;
   }
 
   if (!batt.present) {

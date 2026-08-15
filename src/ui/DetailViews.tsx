@@ -23,7 +23,7 @@ export function CpuView({
 }) {
   const cpu = snapshot.cpu.status === 'ok' ? snapshot.cpu.data : null;
   const procs = snapshot.processes.status === 'ok' ? snapshot.processes.data : null;
-  if (!cpu) return <Text color={theme.dim}>CPU data unavailable.</Text>;
+  if (!cpu) return <Text color={theme.dim}>CPU data unavailable — press r to retry.</Text>;
 
   const barW = Math.min(36, Math.max(10, width - 34));
   const nameW = Math.max(12, Math.min(34, width - 30));
@@ -111,7 +111,7 @@ export function MemView({
 }) {
   const mem = snapshot.memory.status === 'ok' ? snapshot.memory.data : null;
   const procs = snapshot.processes.status === 'ok' ? snapshot.processes.data : null;
-  if (!mem) return <Text color={theme.dim}>Memory data unavailable.</Text>;
+  if (!mem) return <Text color={theme.dim}>Memory data unavailable — press r to retry.</Text>;
 
   const barW = Math.min(36, Math.max(10, width - 34));
   const nameW = Math.max(12, Math.min(34, width - 30));

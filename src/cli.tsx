@@ -42,7 +42,7 @@ Keys (dashboard)
   up/dn        pick a process     +/-     show more or fewer rows
   enter        details            k       close the selected app
   /            search             c m e   sort by cpu, memory, energy
-  q            quit
+  r            refresh now        q       quit
 
 Examples
   useful-system-monitor                        open the dashboard

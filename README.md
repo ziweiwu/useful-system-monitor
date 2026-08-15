@@ -46,6 +46,7 @@ echo "alias usm='useful-system-monitor'" >> ~/.zshrc && source ~/.zshrc
 | <kbd>k</kbd> | close it |
 | <kbd>/</kbd> | search |
 | <kbd>c</kbd> <kbd>m</kbd> <kbd>e</kbd> | sort by CPU, memory, or battery use |
+| <kbd>r</kbd> | refresh now, without waiting for the next sample |
 | <kbd>q</kbd> | quit |
 
 The strip along the top shows which screen you are on and what the other four

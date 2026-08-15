@@ -42,7 +42,11 @@ export function DiskView({
   const disk = snapshot.disk.status === 'ok' ? snapshot.disk.data : null;
   if (!disk) {
     const msg = snapshot.disk.status === 'error' ? snapshot.disk.message : null;
-    return <Text color={theme.dim}>{msg ? `Disk data unavailable: ${msg}` : 'Disk data unavailable.'}</Text>;
+    return (
+      <Text color={theme.dim} wrap="truncate">
+        {msg ? `Disk data unavailable: ${msg}` : 'Disk data unavailable'} — press r to retry.
+      </Text>
+    );
   }
 
   const rootPct = disk.totalBytes > 0 ? (disk.usedBytes / disk.totalBytes) * 100 : 0;

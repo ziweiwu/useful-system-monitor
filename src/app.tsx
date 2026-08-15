@@ -4,7 +4,7 @@ import { age, clockTime, duration } from './core/format.js';
 import { sortProcesses, type SortKey } from './core/scoring.js';
 import type { ProcessSample } from './core/types.js';
 import { stepView, VIEW_KEYS, type View } from './core/views.js';
-import { truncate } from './core/width.js';
+import { displayWidth, truncate } from './core/width.js';
 import { stepCostNote, stepLabel, WORKING_SET_STEPS } from './core/workingSet.js';
 import { useProcessHistory } from './hooks/useProcessHistory.js';
 import { useSampler } from './hooks/useSampler.js';
@@ -23,6 +23,23 @@ import { theme } from './ui/theme.js';
 import { ViewTabs } from './ui/ViewTabs.js';
 
 const BRAND = 'useful-system-monitor';
+
+/*
+ * The key legend, in two lengths.
+ *
+ * `r` was missing from all of them — and from `--help` and the README — while
+ * being the only way to force a sample before the next tier (up to five
+ * minutes on the disk tier), the remedy for every "data unavailable" panel,
+ * and the key a guard message already told the user to press. An accelerator
+ * documented nowhere is an accelerator nobody has.
+ *
+ * Adding it pushes the full legend past 78 cells, which is what an 80-column
+ * terminal has, and truncation would eat `q quit` from the end. So it comes in
+ * two lengths, the way the tab strip does.
+ */
+const KEYS_FULL =
+  'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  r refresh  q quit';
+const KEYS_COMPACT = 'up/dn  +/-  enter  k kill  / filter  c m e sort  r refresh  q quit';
 /** "20:30:36" — clockTime is fixed width, so the header can budget around it. */
 const CLOCK_WIDTH = 8;
 
@@ -684,7 +701,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
               : detailPid !== null
                 ? 'k kill   esc back'
                 : rowActions
-                  ? 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  q quit'
+                  ? displayWidth(KEYS_FULL) <= width
+                    ? KEYS_FULL
+                    : KEYS_COMPACT
                   : '1-5 or ←/→ screens   / filter   c m e sort   r refresh   q quit'}
         </Text>
       </Box>

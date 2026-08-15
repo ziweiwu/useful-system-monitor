@@ -7,6 +7,19 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **The refresh key was documented nowhere.** `r` forces a sample without
+  waiting for the next tier — up to five minutes on the disk tier — and it is
+  the remedy for every "data unavailable" panel. It appeared in no footer
+  legend, not in `--help`, and not in the README, while a guard message already
+  instructed the user to "Press r to refresh". An accelerator documented
+  nowhere is an accelerator nobody has. Now in all three, with the legend
+  coming in two lengths so adding it does not truncate `q quit` off the end at
+  80 columns. `test/keys-documented.test.ts` checks the keymap against its own
+  documentation so the next key cannot go missing the same way.
+- **Four dead-end error messages.** "CPU data unavailable.", and the memory,
+  battery and disk equivalents, stated a cause and no remedy — unlike every
+  other error in the app, which names one. They now say what to press.
+
 - **`truncate` and `padEnd` overran their budget on emoji with a variation
   selector.** They measured a character at a time, which cannot see that U+FE0F
   widens the character *before* it: `⚠` measures 1 alone and the selector 0
