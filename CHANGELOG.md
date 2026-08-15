@@ -7,6 +7,29 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **`truncate` and `padEnd` overran their budget on emoji with a variation
+  selector.** They measured a character at a time, which cannot see that U+FE0F
+  widens the character *before* it: `⚠` measures 1 alone and the selector 0
+  alone, but `⚠️` occupies two cells. So `truncate('⚠️abc', 3)` returned four
+  cells and `padEnd` padded one cell too far, overflowing the row it was drawn
+  in — and macOS application names really do contain emoji. `displayWidth` had
+  the rule right; the bug was that the rule existed twice. Both now consume one
+  shared generator. 33 measured cases fixed.
+- **The kill key acted on an invisible target.** The footer offered
+  "up/dn move  enter info  k kill" on all five screens, but only the overview
+  and battery screens show *which* process is selected — so pressing `k` on the
+  CPU, memory or disk screen opened a confirmation for a process that screen
+  was not displaying. The confirmation names its target, so nothing could be
+  killed blind, but a destructive key whose subject is invisible is precisely
+  the failure the footer exists to prevent. Row actions are now limited to the
+  screens that show a cursor, and the footer names only what the current screen
+  offers.
+- **The mock's memory figures did not add up.** `usedBytes` swung on its own
+  while the four component figures were constants, so the memory screen showed
+  a headline of 13.4G above bars summing to 12.3G. The real collector maintains
+  the identity (I-5: used is wired + active + compressed); the fixture did not,
+  so reviewing that screen meant first ruling out the fixture — exactly the tax
+  a mock exists to remove. `used` is now derived from the breakdown.
 - **Growing the terminal could make a list disappear.** An optional note below
   the disk and battery lists cost two rows and switched on the moment it became
   affordable — and a two-row section cannot switch on without the list beneath

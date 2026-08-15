@@ -130,17 +130,33 @@ export class MockProvider implements MetricsProvider {
   }
 
   async memory(): Promise<MemoryData> {
+    /*
+     * The breakdown is the source of truth, and `used` is derived from it —
+     * the same identity the real provider maintains (I-5: used is wired +
+     * active + compressed).
+     *
+     * It used to be the other way round: `used` swung on its own sine while
+     * the four component figures were constants, so the memory screen showed a
+     * headline of 13.4G above bars that summed to 12.3G. Nobody could tell
+     * whether that was a rendering bug or fixture noise — reviewing the screen
+     * meant first ruling out the fixture, which is exactly the tax a mock is
+     * supposed to remove.
+     */
     const total = 16 * GB;
-    const used = total * (0.84 + 0.06 * Math.sin(this.t / 9));
+    const swing = 1 + 0.05 * Math.sin(this.t / 9);
+    const wired = 4.0 * GB * swing;
+    const active = 2.4 * GB * swing;
+    const compressed = 5.9 * GB * swing;
+    const used = wired + active + compressed;
     return {
       totalBytes: total,
       usedBytes: used,
       freeBytes: 0.09 * GB,
       availableBytes: total - used,
-      wiredBytes: 4.0 * GB,
-      activeBytes: 2.4 * GB,
+      wiredBytes: wired,
+      activeBytes: active,
       inactiveBytes: 2.3 * GB,
-      compressedBytes: 5.9 * GB,
+      compressedBytes: compressed,
       swapTotalBytes: 12 * GB,
       swapUsedBytes: 10.6 * GB,
     };

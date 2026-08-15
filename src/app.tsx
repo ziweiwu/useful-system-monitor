@@ -346,12 +346,13 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     else if (input === '-' || input === '_') setWsStep((i) => Math.max(0, i - 1));
     else if (input === '/') enterFilterMode(true);
     else if (key.return) {
-      if (selectedPid !== null) {
+      if (rowActions && selectedPid !== null) {
         setKillTarget(null);
         setDetailPid(selectedPid);
       }
     } else if (input === 'k') {
-      const target = filtered.find((p) => p.pid === selectedPid);
+      /* Only where the screen shows which process this would act on. */
+      const target = rowActions ? filtered.find((p) => p.pid === selectedPid) : undefined;
       if (target) {
         setDetailPid(null);
         setKillTarget(target);
@@ -470,6 +471,19 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
    * looking cramped. Saying so in one line is the only non-destructive option,
    * and it tells the user the thing they can act on: the size to grow to.
    */
+  /*
+   * Which screens show the user *which* process the row keys act on.
+   *
+   * The overview has the table and its cursor; the battery screen marks the
+   * selected consumer with `>`. The CPU, memory and disk screens do not — yet
+   * the footer offered "up/dn move  enter info  k kill" on all five, and `k`
+   * duly opened a kill confirmation for a process the screen was not showing.
+   * The confirmation names its target, so nothing could be killed blind, but
+   * offering a destructive key whose subject is invisible is exactly the
+   * recognition-over-recall failure the footer exists to prevent.
+   */
+  const rowActions = view === 'overview' || view === 'battery';
+
   const tooSmall = columns < MIN_COLUMNS || rows < MIN_ROWS;
   if (tooSmall) {
     return (
@@ -669,7 +683,9 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
                 : 'esc back'
               : detailPid !== null
                 ? 'k kill   esc back'
-                : 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  q quit'}
+                : rowActions
+                  ? 'up/dn move  +/- rows  enter info  k kill  / filter  c m e sort  q quit'
+                  : '1-5 or ←/→ screens   / filter   c m e sort   r refresh   q quit'}
         </Text>
       </Box>
     </Box>

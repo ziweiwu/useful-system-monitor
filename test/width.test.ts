@@ -54,3 +54,36 @@ describe('I-19: layout uses display width, not string length', () => {
     expect(truncate('abc', 10)).toBe('abc');
   });
 });
+
+describe('I-19: padding and truncation agree with displayWidth', () => {
+  /*
+   * `truncate` had its own width rule — `displayWidth(ch)` per character —
+   * which cannot see that U+FE0F widens the character *before* it. `⚠`
+   * measures 1 alone and the variation selector 0 alone, but "⚠️" occupies 2
+   * cells, so every such pair was under-counted by one: `truncate('⚠️abc', 3)`
+   * returned 4 cells and `padEnd` padded one cell too far, overflowing the row
+   * it was drawn in. macOS application names really do contain emoji.
+   *
+   * Both now consume one shared generator, so the rule cannot disagree with
+   * itself. These cases are the ones that failed: 33 of them.
+   */
+  const TRICKY = ['⚠️', '⚠️abc', 'x⚠️y', '⚠️⚠️', '⚠️ Warning App', '⚠', '🔥', '🔥a', '日本', 'é', ''];
+
+  it.each(TRICKY)('padEnd(%j, n) is exactly n cells', (s) => {
+    for (const n of [0, 1, 2, 3, 4, 6, 10, 20]) {
+      expect(displayWidth(padEnd(s, n)), `padEnd(${JSON.stringify(s)}, ${n})`).toBe(n);
+    }
+  });
+
+  it.each(TRICKY)('padStart(%j, n) is exactly n cells', (s) => {
+    for (const n of [0, 1, 2, 3, 4, 6, 10, 20]) {
+      expect(displayWidth(padStart(s, n)), `padStart(${JSON.stringify(s)}, ${n})`).toBe(n);
+    }
+  });
+
+  it.each(TRICKY)('truncate(%j, n) never exceeds n cells', (s) => {
+    for (const n of [0, 1, 2, 3, 4, 6, 10, 20]) {
+      expect(displayWidth(truncate(s, n)), `truncate(${JSON.stringify(s)}, ${n})`).toBeLessThanOrEqual(n);
+    }
+  });
+});

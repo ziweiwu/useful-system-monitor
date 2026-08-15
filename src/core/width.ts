@@ -98,9 +98,18 @@ export function sanitizeText(s: string): string {
   return out;
 }
 
-/** Terminal cells occupied by `s`. */
-export function displayWidth(s: string): number {
-  let w = 0;
+/**
+ * Each character of `s` paired with the cells it adds, left to right.
+ *
+ * The single definition of how wide anything is. `truncate` used to have its
+ * own, calling `displayWidth` once per character — which cannot see that
+ * U+FE0F widens the character *before* it. `⚠` measures 1 alone and the
+ * variation selector measures 0 alone, but "⚠️" occupies 2 cells, so every
+ * such pair was under-counted by one: `truncate('⚠️abc', 3)` returned 4 cells
+ * and `padEnd` padded to one cell too many, overflowing the row. A rule
+ * implemented twice is a rule that disagrees with itself.
+ */
+function* cells(s: string): Generator<readonly [string, number]> {
   let prevWidth = 0;
   for (const ch of s) {
     const cp = ch.codePointAt(0)!;
@@ -108,15 +117,26 @@ export function displayWidth(s: string): number {
       // U+FE0F requests emoji presentation, which renders the preceding
       // narrow character in two cells (e.g. "⚠️" vs "⚠").
       if (prevWidth === 1) {
-        w += 1;
         prevWidth = 2;
+        yield [ch, 1];
+      } else {
+        yield [ch, 0];
       }
       continue;
     }
-    if (isZeroWidth(cp)) continue;
+    if (isZeroWidth(cp)) {
+      yield [ch, 0];
+      continue;
+    }
     prevWidth = isWide(cp) ? 2 : 1;
-    w += prevWidth;
+    yield [ch, prevWidth];
   }
+}
+
+/** Terminal cells occupied by `s`. */
+export function displayWidth(s: string): number {
+  let w = 0;
+  for (const [, cw] of cells(s)) w += cw;
   return w;
 }
 
@@ -127,8 +147,7 @@ export function truncate(s: string, max: number): string {
   if (max === 1) return '…';
   let out = '';
   let w = 0;
-  for (const ch of s) {
-    const cw = displayWidth(ch);
+  for (const [ch, cw] of cells(s)) {
     if (w + cw > max - 1) break;
     out += ch;
     w += cw;
