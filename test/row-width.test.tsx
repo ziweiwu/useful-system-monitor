@@ -20,9 +20,17 @@ class PoisonedRows extends MockProvider {
     const d = await super.processes(limit);
     return {
       ...d,
-      visible: d.visible.map((p, i) =>
-        i % 2 ? { ...p, cpuPercent: this.value, energy: this.value, rssBytes: this.value } : p,
-      ),
+      visible: d.visible.map((p, i) => {
+        if (i % 2 === 0) return p;
+        /* Object.assign onto a fresh object rather than a spread: the lint
+           rule is right that spreading in a map is wasteful, and this runs
+           once per row per frame. */
+        return Object.assign({}, p, {
+          cpuPercent: this.value,
+          energy: this.value,
+          rssBytes: this.value,
+        });
+      }),
     };
   }
 }

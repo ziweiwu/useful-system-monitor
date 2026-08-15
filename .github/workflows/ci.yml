@@ -46,3 +46,22 @@ jobs:
 
       - name: Smoke test the built CLI
         run: npm run verify:smoke
+
+      # The two harnesses that found the 0.8.x and 0.9.0 layout bugs. On one
+      # Node version only: they exercise rendering, not the runtime, so running
+      # them twice buys nothing. A reduced grid keeps CI to about a minute —
+      # `npm run verify:layout` with no COLS/ROWS sweeps the full 1260 frames.
+      - name: Layout sweep
+        if: matrix.node == 24
+        env:
+          COLS: 50,72,80,120
+          ROWS: 10,24,40
+        run: npm run verify:layout
+
+      # 40 seeds, not a token handful: the mode-stacking bug that prompted this
+      # harness only reproduces on seed 33, so a 12-seed run passes clean with
+      # the bug reinstated — a step that cannot fail. 40 seeds catches it in
+      # ~35s. Verified by reverting the fix and watching this go red.
+      - name: Fuzz the keyboard
+        if: matrix.node == 24
+        run: npm run qa:fuzz -- --seeds 40 --steps 60

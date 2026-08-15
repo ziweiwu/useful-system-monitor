@@ -45,6 +45,10 @@ jobs:
           # CI is red, which is how 0.6.0 shipped against a workflow still
           # passing a flag that had been removed.
           npm run verify:smoke
+          # The layout sweep and the fuzzer, on the reduced grid CI uses. A
+          # release that overflows a terminal is worse than a late release.
+          COLS=50,72,80,120 ROWS=10,24,40 npm run verify:layout
+          npm run qa:fuzz -- --seeds 40 --steps 60
 
       - name: Check the tag matches package.json
         # Tag pushes only: on a manual dispatch GITHUB_REF_NAME is the branch

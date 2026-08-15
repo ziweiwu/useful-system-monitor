@@ -3,6 +3,18 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## Unreleased
+
+### Changed
+
+- CI and the release gate now run the layout sweep and the keyboard fuzzer, not
+  just the unit tests. Both are sized to a grid that demonstrably fails when a
+  real regression is reinstated, which took two attempts to get right: the
+  first fuzz setting, 12 seeds, passed clean with the mode-stacking bug put
+  back, because that bug only reproduces on seed 33. 40 seeds catches it in
+  ~35s. A check that cannot fail is worse than no check, because it reports
+  confidence it has not earned.
+
 ## 0.9.0
 
 ### Fixed
