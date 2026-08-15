@@ -6,6 +6,7 @@ import type { CpuData, DiskData, HostInfo } from '../src/core/types.js';
 import { MockProvider } from '../src/providers/mock/provider.js';
 import { DEFAULT_TIERS, type MetricsProvider } from '../src/providers/types.js';
 import { wattsAreMeaningful } from '../src/ui/ProcessTable.js';
+import { waitForFrame } from './helpers.js';
 
 const ESC = String.fromCharCode(27);
 const DOWN = `${ESC}[B`;
@@ -22,7 +23,7 @@ function lines(frame: string | undefined): string[] {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * A machine much larger than the mock's: 24 cores and 14 mounted volumes.
+ * A machine much larger than the mock's: 24 cores and 13 mounted volumes.
  *
  * Core counts and mount counts are the two list lengths that come from the
  * hardware rather than from the design, so they are what push a screen past the
@@ -672,16 +673,38 @@ describe('I-26: every mode fits the terminal it was given', () => {
     }
   });
 
-  it('says how many volumes it could not draw', async () => {
-    const app = await mount(80, 24, () => {}, new BigMachine());
-    try {
-      app.stdin.write('5');
-      await wait(300);
-      expect(app.lastFrame() ?? '').toMatch(/… \d+ more volumes/);
-    } finally {
-      app.restore();
+  it('never stops the volume list silently — it says how many it dropped', async () => {
+    /*
+     * Asserts the property rather than a particular size. This used to expect a
+     * roll-up at 80x24, which held only because the two notes below the list
+     * each cost a blank line they had not earned; once that was fixed all 13
+     * volumes fit there, and the test failed for the right reason. The rule
+     * that matters is unchanged: a list that stops without saying so is
+     * indistinguishable from a machine with nothing more to show.
+     */
+    let sawRollUp = false;
+    for (const rows of [14, 16, 18, 20, 24, 30]) {
+      const app = await mount(80, rows, () => {}, new BigMachine());
+      try {
+        app.stdin.write('5');
+        await wait(300);
+        const frame = app.lastFrame() ?? '';
+        const drawn = lines(frame).filter((l) => /^\s*\/\S*\s+[█░]/.test(l)).length;
+        const rollUp = /… \d+ more volumes/.test(frame);
+        if (rollUp) sawRollUp = true;
+        if (drawn > 0 && drawn < 13) {
+          expect(rollUp, `${rows} rows drew ${drawn} of 13 volumes with no roll-up`).toBe(true);
+        }
+        if (drawn === 13) {
+          expect(rollUp, `${rows} rows drew all 13 volumes but still claimed more`).toBe(false);
+        }
+      } finally {
+        app.restore();
+      }
     }
-  });
+    // The sweep has to actually reach a size where volumes are dropped.
+    expect(sawRollUp).toBe(true);
+  }, 40_000);
 
   it.each([24, 30, 40])('the kill confirmation fits a %i-row terminal', async (rows) => {
     // It used to render *below* a full-height table: 40 lines in a 24-row
@@ -714,9 +737,11 @@ describe('I-26: every mode fits the terminal it was given', () => {
           app.stdin.write(k);
           await wait(150);
         }
-        await wait(300);
-        expect(app.lastFrame() ?? '').toContain('esc back');
-        expect(app.lastFrame() ?? '').toContain(marker);
+        await waitForFrame(
+          () => app.lastFrame(),
+          (f) => f.includes('esc back') && f.includes(marker),
+          `the detail panel showing ${marker} at 80x${rows}`,
+        );
         expect(lines(app.lastFrame()).length).toBeLessThanOrEqual(rows);
       } finally {
         app.restore();

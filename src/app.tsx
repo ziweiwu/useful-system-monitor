@@ -84,6 +84,30 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   const [sortKey, setSortKey] = useState<SortKey>('cpu');
   const [filter, setFilter] = useState('');
   const [filterMode, setFilterMode] = useState(false);
+  /*
+   * Filter mode is mirrored in a ref that the key handler reads and writes
+   * synchronously.
+   *
+   * `useInput` closes over the state of the render that created it, and a
+   * terminal delivers a burst of keys — a paste, or a fast typist — as one
+   * chunk, so every key in that chunk is handled against the same closure.
+   * `/` would set filterMode, and the characters after it in the same chunk
+   * would still see `false` and fall through to the main keymap: pasting
+   * "chrome" silently re-sorted by energy instead of filtering, and pasting
+   * "book" opened the kill confirmation, because `k` is the kill key.
+   *
+   * Deliberately only this mode. The kill and detail modes are left reading
+   * possibly-stale state, because there the staleness fails *safe* — keys fall
+   * through to the main keymap and do something harmless — whereas making them
+   * synchronous would let a single pasted chunk both open a confirmation and
+   * answer it. I-15 wants a second, distinct keypress, and one chunk is not
+   * two keypresses.
+   */
+  const filterModeRef = useRef(false);
+  const enterFilterMode = useCallback((on: boolean) => {
+    filterModeRef.current = on;
+    setFilterMode(on);
+  }, []);
   /** Selection is keyed by PID, never by row index. See I-21. */
   const [selectedPid, setSelectedPid] = useState<number | null>(null);
   const [killTarget, setKillTarget] = useState<ProcessSample | null>(null);
@@ -245,12 +269,12 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   );
 
   useInput((input, key) => {
-    if (filterMode) {
+    if (filterModeRef.current) {
       if (key.escape) {
-        setFilterMode(false);
+        enterFilterMode(false);
         setFilter('');
       } else if (key.return) {
-        setFilterMode(false);
+        enterFilterMode(false);
       } else if (key.backspace || key.delete) {
         setFilter((f) => f.slice(0, -1));
       } else if (input && !key.ctrl && !key.meta) {
@@ -320,7 +344,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
     else if (input === '+' || input === '=')
       setWsStep((i) => Math.min(WORKING_SET_STEPS.length - 1, i + 1));
     else if (input === '-' || input === '_') setWsStep((i) => Math.max(0, i - 1));
-    else if (input === '/') setFilterMode(true);
+    else if (input === '/') enterFilterMode(true);
     else if (key.return) {
       if (selectedPid !== null) {
         setKillTarget(null);
@@ -569,6 +593,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
               rows={tableRows}
               offset={viewOffset}
               canExpand={wsStep < WORKING_SET_STEPS.length - 1}
+              filterActive={filter.trim().length > 0}
               totalEnergy={totalEnergy}
               totalWatts={batt?.watts ?? null}
               energyAccurate={procData.energyAccurate}

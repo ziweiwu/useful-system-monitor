@@ -89,16 +89,30 @@ export function DiskView({
    */
   const HEAD = 3;
   const LIST_CHROME = 1;
-  /** A note is only worth its two lines if the list keeps a row of its own. */
-  const affords = (spare: number) => spare - 2 >= LIST_CHROME + 1;
+  /*
+   * A note costs one row, and its blank separator is bought separately.
+   *
+   * It used to cost two, switched on the moment it became affordable — and a
+   * two-row section can never switch on without the list beneath it losing a
+   * row, because it arrives one row later than the row that paid for it. So
+   * growing the terminal by one *shrank* the list: at 70 columns the disk
+   * screen showed one volume at 13 rows and none at 14, with the roll-up and
+   * a note about the hidden volumes still on screen. The arithmetic only works
+   * at a cost of one, so the separator waits until there is slack for it.
+   */
+  const NOTE = 1;
+  const affords = (spare: number) => spare - NOTE - LIST_CHROME >= 1;
   let spare = Math.max(0, maxRows - HEAD);
   const showNet = anyNet && affords(spare);
-  if (showNet) spare -= 2;
+  if (showNet) spare -= NOTE;
   const showFull = full.length > 0 && affords(spare);
-  if (showFull) spare -= 2;
+  if (showFull) spare -= NOTE;
   const listBudget = spare - LIST_CHROME;
   const showList = listBudget > 0;
   const fit = fitList(volumes.length, listBudget);
+  /* The blank lines above the notes, only once the list needs no more rows. */
+  const notes = (showNet ? 1 : 0) + (showFull ? 1 : 0);
+  const noteGap = listBudget - volumes.length >= notes ? 1 : 0;
 
   return (
     <Box flexDirection="column">
@@ -149,7 +163,7 @@ export function DiskView({
       )}
 
       {showNet && (
-        <Box marginTop={1}>
+        <Box marginTop={noteGap}>
           <Text color={theme.dim} wrap="truncate">
             {/* Worth saying: a stalled share is the usual reason this panel is
                 the slowest one to sample. */}
@@ -159,7 +173,7 @@ export function DiskView({
       )}
 
       {showFull && (
-        <Box marginTop={1}>
+        <Box marginTop={noteGap}>
           {/* I-19: one truncated line. Wrapping this pushed the footer off a
               24-row terminal whenever two volumes were full at once. */}
           <Text color={theme.cpuHigh} wrap="truncate">

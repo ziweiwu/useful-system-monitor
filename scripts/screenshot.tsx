@@ -10,7 +10,15 @@ import { DarwinProvider } from '../src/providers/darwin/provider.js';
 import { MockProvider } from '../src/providers/mock/provider.js';
 import type { Tiers } from '../src/providers/types.js';
 
-process.env['FORCE_COLOR'] = '3';
+/*
+ * FORCE_COLOR has to be set in the *environment*, not here — hence the npm
+ * script. Ink and chalk resolve their colour-support level at import time, and
+ * ESM evaluates imports before a module's own top-level statements, so an
+ * assignment on this line runs too late to have any effect. It silently did
+ * nothing: every frame this script printed was colourless, which is a poor
+ * property for the tool used to review colour. Measured: 0 escape sequences
+ * without it in the environment, 20 with.
+ */
 process.stdout.columns = Number(process.env['COLS'] ?? 100);
 process.stdout.rows = Number(process.env['ROWS'] ?? 34);
 

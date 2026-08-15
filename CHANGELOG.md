@@ -5,6 +5,48 @@ public surface is the command line, the JSON shape, and the keys.
 
 ## Unreleased
 
+### Fixed
+
+- **Growing the terminal could make a list disappear.** An optional note below
+  the disk and battery lists cost two rows and switched on the moment it became
+  affordable — and a two-row section cannot switch on without the list beneath
+  it losing a row, because it arrives one row later than the row that paid for
+  it. At 70 columns the disk screen showed one volume at 13 rows and none at
+  14, leaving a heading, a roll-up and a note *about* the volumes it had just
+  stopped showing. Notes now cost one row and buy their blank separator only
+  out of slack, so every list grows monotonically with the terminal. As a side
+  effect the disk screen now fits all volumes two rows earlier than before.
+- **Pasting into the filter ran the characters as commands.** A terminal
+  delivers a burst of keys as one chunk and `useInput` handles every key in it
+  against the state of the render that created it, so `/` set filter mode and
+  the characters after it still saw `false`: pasting "chrome" silently
+  re-sorted by energy, and pasting "book" opened the kill confirmation, because
+  `k` is the kill key. Filter mode is now read through a ref the handler
+  updates synchronously. Deliberately only that mode — for the kill and detail
+  modes the staleness fails *safe*, and making them synchronous would let one
+  pasted chunk both open a confirmation and answer it.
+- **The "… N others" roll-up ignored the active filter.** It is the tail of the
+  working-set cap, which has nothing to do with a search, so filtering for
+  "chrome" printed "… 774 others" under two matches — implying 774 more Chrome
+  processes — and filtering for something absent printed "no matches" with a
+  roll-up of 775 in the very next line. Under a filter it now reports the one
+  thing that is both true and useful: how many processes were outside the
+  searched set, and that `+` widens it.
+- **`theme.dim` failed WCAG 1.4.3.** Measured 3.39:1 on black and 2.76:1 on a
+  Tokyo-Night background against a 4.5:1 requirement, while carrying 64 pieces
+  of real text. Worse, the PID and USER cells were the only ones that did not
+  brighten on the selected row, leaving the PID at 1.97:1 on the selection
+  background — on the row the user is about to press `k` against. The palette
+  is corrected to 5.60:1 / 4.56:1, borders from 2.49:1 to 3.71:1 for 1.4.11's
+  3:1, and both cells are selection-aware. `test/contrast.test.ts` now measures
+  this rather than trusting it.
+- `scripts/screenshot.tsx` set `FORCE_COLOR` in the file, where it has no
+  effect — Ink and chalk resolve colour support at import time, and ESM
+  evaluates imports before a module's own statements. Every frame it printed
+  was silently colourless, which is a poor property for the tool used to review
+  colour. Moved to the npm script (measured: 0 escape sequences before, 20
+  after).
+
 ### Added
 
 - Control characters are replaced with a visible `·` where external text enters

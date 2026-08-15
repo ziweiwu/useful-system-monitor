@@ -124,7 +124,10 @@ const Row = memo(function Row({
       <Text bold color={selected ? theme.mem : theme.dim}>
         {selected ? ' > ' : '   '}
       </Text>
-      <Text color={theme.dim}>{padEnd(String(p.pid), PID)}</Text>
+      {/* Every other cell brightens on the selected row; this one did not, so
+          the PID sat at 1.97:1 on the selection background — on the very row
+          the user is about to press enter or k against. */}
+      <Text color={selected ? theme.text : theme.dim}>{padEnd(String(p.pid), PID)}</Text>
       <Text> </Text>
       <Text bold={selected} color={selected ? theme.headline : theme.text}>
         {padEnd(processName(p.command), name)}
@@ -153,7 +156,9 @@ const Row = memo(function Row({
       {user > 0 && (
         <>
           <Text>{'  '}</Text>
-          <Text color={p.user === 'root' ? theme.root : theme.dim}>
+          {/* Selection-aware for the same reason as the PID cell: `dim` is
+              3.25:1 against the selection background, below 4.5:1. */}
+          <Text color={p.user === 'root' ? theme.root : selected ? theme.text : theme.dim}>
             {padEnd(truncate(p.user, user), user)}
           </Text>
         </>
@@ -175,6 +180,7 @@ export const ProcessTable = memo(function ProcessTable({
   totalWatts,
   energyAccurate = false,
   canExpand = false,
+  filterActive = false,
 }: {
   processes: readonly ProcessSample[];
   others: OthersRollup;
@@ -191,6 +197,18 @@ export const ProcessTable = memo(function ProcessTable({
   energyAccurate?: boolean;
   /** Whether `+` would still widen the working set, for the roll-up hint. */
   canExpand?: boolean;
+  /**
+   * Whether a filter is narrowing `processes`.
+   *
+   * The roll-up exists so the table reconciles with the CPU and MEM cards:
+   * everything on screen, plus `others`, is the whole machine. A filter breaks
+   * that — `others` is the tail of the *working-set cap*, which has nothing to
+   * do with the search — so its totals stop describing anything the user asked
+   * for. Filtering for "chrome" and reading "… 774 others" beneath two matches
+   * implies 774 more Chrome processes; filtering for something absent printed
+   * "no matches" and a roll-up of 775 in the very next line.
+   */
+  filterActive?: boolean;
 }) {
   const { name, user, energy: showEnergy } = columnLayout(width);
   // Clamped here as well as by the caller: `rows` shrinks on a terminal resize,
@@ -239,7 +257,17 @@ export const ProcessTable = memo(function ProcessTable({
           bar={bars.length ? (bars[i] ?? false) : null}
         />
       ))}
-      {others.count > 0 && (
+      {/* Under a filter the aggregate is meaningless, but the *scope* is worth
+          saying: the search only ever covered the working set, and `+` widens
+          it — which is exactly what a user who found nothing needs to know. */}
+      {others.count > 0 && filterActive && (
+        <Text color={theme.dim} wrap="truncate">
+          {' '.repeat(CURSOR)}
+          {`… ${others.count} outside this view were not searched`}
+          {canExpand ? '  (+ widen)' : ''}
+        </Text>
+      )}
+      {others.count > 0 && !filterActive && (
         <Text color={theme.dim}>
           {' '.repeat(CURSOR)}
           {padEnd('', PID)}{' '}

@@ -15,9 +15,16 @@ export const theme = {
   battery: '#ff9e64',
   headline: '#ffffff',
   text: '#c0caf5',
-  dim: '#565f89',
+  /* Measured, not chosen by eye: the old #565f89 was 3.39:1 on black and
+     2.76:1 on a Tokyo-Night background, below WCAG 1.4.3's 4.5:1 — and it is
+     the colour of 64 pieces of real text, including the PID column, the sample
+     ages and the footer legend. This is the least lightening along the same
+     hue that clears 4.5:1 on both: 5.60:1 and 4.56:1. */
+  dim: '#7982ac',
   track: '#343a54',
-  frame: '#454c69',
+  /* Borders are non-text UI, so 1.4.11's 3:1 applies rather than 4.5:1. The
+     old #454c69 measured 2.49:1 / 2.03:1; this measures 3.71:1 / 3.02:1. */
+  frame: '#5f6683',
   selectionBg: '#2d3452',
   root: '#e0af68',
   danger: '#f7768e',

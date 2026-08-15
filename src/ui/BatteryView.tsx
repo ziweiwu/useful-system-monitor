@@ -81,13 +81,27 @@ export const BatteryView = memo(function BatteryView({
     ranked[0] && showWatts && batt.watts !== null
       ? estimateWatts(ranked[0].energy, totalEnergy, batt.watts)
       : null;
+  /*
+   * The advice costs one row; its blank separator is bought separately.
+   *
+   * It used to cost two and switch on as soon as it was affordable, and a
+   * two-row section cannot switch on without the list beneath it losing a row
+   * — it arrives one row later than the row that paid for it. So growing an
+   * 80-column terminal from 14 rows to 15 took the consumer list from one row
+   * to none, leaving a heading and advice about processes it was no longer
+   * showing.
+   */
+  const NOTE = 1;
   let spare = Math.max(0, maxRows - HEAD);
-  const showAdvice = advice !== null && advice > 0.2 && spare >= LIST_CHROME + 1 + 2;
-  if (showAdvice) spare -= 2;
+  const showAdvice =
+    advice !== null && advice > 0.2 && spare - NOTE - LIST_CHROME >= 1;
+  if (showAdvice) spare -= NOTE;
   const listBudget = spare - LIST_CHROME;
   const showList = listBudget > 0;
   const fit = fitList(ranked.length, listBudget);
   const top = ranked.slice(0, fit.shown);
+  /* The blank line above the advice, only once the list needs no more rows. */
+  const noteGap = showAdvice && listBudget - ranked.length >= 1 ? 1 : 0;
 
   return (
     <Box flexDirection="column">
@@ -160,7 +174,7 @@ export const BatteryView = memo(function BatteryView({
       )}
 
       {showAdvice && ranked[0] && batt.watts !== null && (
-        <Box marginTop={1} flexDirection="column">
+        <Box marginTop={noteGap} flexDirection="column">
           <Text color={theme.cpuMid} wrap="truncate">
             Killing {processName(ranked[0].command)} could save ~{advice.toFixed(1)} W → about +
             {Math.round((advice / Math.abs(batt.watts)) * (batt.timeRemainingMin ?? 0))} min of
