@@ -85,6 +85,13 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Added
 
+- `test/storms.test.tsx` pins three properties that had no coverage: a burst of
+  forty resizes with no settle between them still lands on a coherent frame; 60
+  presses of the refresh key produce a handful of collector runs rather than 60
+  (I-8 — overruns skip, they do not queue; measured 6); and `parseTopPower`
+  survives empty, header-only, truncated, negative, absurd and comma-decimal
+  `top` output while still reading the *last* sample block, since `top -l 2`
+  prints an all-zero block first.
 - Control characters are replaced with a visible `·` where external text enters
   (`parsePsStatic`, `commandLine`) and again in `processName`, the funnel every
   rendered name passes through. Defence in depth rather than a live fix: a
