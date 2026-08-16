@@ -16,7 +16,7 @@ import { sanitizeText } from '../../core/width.js';
 import { selectWorkingSet, WORKING_SET_SIZE } from '../../core/workingSet.js';
 import { isProtectedName } from '../../kill/guards.js';
 import type { MetricsProvider } from '../types.js';
-import { BIN, run } from './exec.js';
+import { BIN, CommandError, run } from './exec.js';
 import { sampleEnergyImpact } from './power.js';
 import {
   parseDf,
@@ -247,9 +247,21 @@ export class DarwinProvider implements MetricsProvider {
     let out: string;
     try {
       out = await run(BIN.ps, ['-o', 'lstart=', '-p', String(pid)]);
-    } catch {
-      // ps exits non-zero when no process matches: the process is gone.
-      return null;
+    } catch (err) {
+      /*
+       * `ps -p` exits 1 when no process matches. That is an answer, and it
+       * means the process is gone.
+       *
+       * Anything else — the binary missing, or the 5s timeout that I-13 already
+       * calls out as reachable on a loaded machine — is *no* answer, and must
+       * not be spelled the same way. It used to be: every failure returned
+       * null, so the confirmation panel told the user a process that is very
+       * much alive "has already exited — nothing to signal". Rethrowing lets
+       * `liveIdentity` turn it into `unverifiable`, which refuses just the
+       * same but says the true thing. See I-16.
+       */
+      if (err instanceof CommandError && err.exitCode !== null) return null;
+      throw err;
     }
     if (!out.trim()) return null;
     return { startTime: parseLstart(out) };
@@ -294,6 +306,27 @@ export class DarwinProvider implements MetricsProvider {
         energyFresh && meta && meta.startTime > 0 && meta.startTime <= this.energySampledAt
           ? this.energyImpact.get(p.pid)
           : undefined;
+      /*
+       * One unit per column, or an honest gap — never a silent swap.
+       *
+       * `top -o power -n 60` ranks at most 60 PIDs, and the guard above drops
+       * any process that started after that sample. Every other row used to
+       * fall back to `energyProxy`, which is raw CPU% in [0, 100 x ncpu] —
+       * while Energy Impact tops out around 40. So one column carried two
+       * scales an order of magnitude apart, the `e` sort put every *estimated*
+       * row above every measured one, and `estimateWatts` divided by a total
+       * that had summed both. The header said "ENERGY" with no "est" for all
+       * of it, which is precisely the confusion `energyAccurate` exists to
+       * prevent (see ProcessesData). It bit hardest after `+`, where 300 rows
+       * share 60 measurements.
+       *
+       * So while the measured lane is live, a row it does not cover reports
+       * null and renders "—". That is I-1's rule — a number that was not
+       * measured is not reported as 0 — applied to the column I-1's sibling
+       * governs. When the lane is stale or off, the whole column reverts to
+       * the estimate together and the header says "est".
+       */
+      const energy = energyFresh ? (measured ?? null) : energyProxy(cpuPercent);
       return {
         pid: p.pid,
         ppid: p.ppid,
@@ -303,8 +336,7 @@ export class DarwinProvider implements MetricsProvider {
         state: meta?.state ?? '?',
         cpuPercent,
         rssBytes: p.rssBytes,
-        // Measured Energy Impact when the slow lane has it, estimate otherwise.
-        energy: measured ?? energyProxy(cpuPercent),
+        energy,
         // Unnamed processes are treated as protected: refusing to kill
         // something we cannot identify is the safe default. See I-14.
         protected: meta ? isProtectedName(command) : true,

@@ -71,6 +71,11 @@ export interface ProcessesData {
   /**
    * True when `energy` carries macOS's measured Energy Impact rather than the
    * CPU-time estimate. Drives the column label so the two are never confused.
+   *
+   * The column is one unit or the other, never a blend: while this is true, a
+   * process the measurement did not cover reports `energy: null` (rendered
+   * "—") rather than silently borrowing the CPU-time estimate, whose scale is
+   * an order of magnitude larger.
    */
   energyAccurate: boolean;
 }

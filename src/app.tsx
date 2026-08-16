@@ -92,6 +92,13 @@ export interface AppProps {
 export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   const { exit } = useApp();
   const { columns, rows } = useTerminalSize();
+  /*
+   * Below this the dashboard is not drawn at all (see the `tooSmall` return
+   * near the bottom), so it is decided *here* rather than beside that return:
+   * `useInput` has to know, and a key handler that acts on a screen the user
+   * cannot see is the whole reason this matters. See I-15, I-26.
+   */
+  const tooSmall = columns < MIN_COLUMNS || rows < MIN_ROWS;
   /* Index into WORKING_SET_STEPS. `+` widens the set, `-` narrows it. */
   const [wsStep, setWsStep] = useState(0);
   const workingSetSize = WORKING_SET_STEPS[wsStep]!;
@@ -286,6 +293,35 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   );
 
   useInput((input, key) => {
+    /*
+     * At this size the app draws nothing but its own size complaint, so every
+     * key would act on a screen that is not there.
+     *
+     * `k` was the one that mattered: the kill confirmation is a *mode*, and a
+     * mode that is not rendered is still entered. On a 49-column terminal `k`
+     * then `t` sent SIGTERM, and `k` `k` `k` sent SIGKILL, with the process
+     * name, the "unsaved work will be lost" warning and the whole confirmation
+     * unrendered — I-15 asks for a kill confirmed *by name*, and there was no
+     * name on screen to confirm. The layout sweep drove exactly this path at 44
+     * and 49 columns and passed, because it only ever asserted that the frame
+     * did not overflow.
+     *
+     * So the only bindings left here are the two that get you out: quit, and an
+     * escape that clears any mode inherited from a resize, so growing the
+     * terminal back cannot reveal a confirmation the user has forgotten arming.
+     */
+    if (tooSmall) {
+      if (input === 'q' || (key.ctrl && input === 'c')) {
+        exit();
+      } else if (key.escape) {
+        enterFilterMode(false);
+        setKillTarget(null);
+        setArmedKill(false);
+        setDetailPid(null);
+      }
+      return;
+    }
+
     if (filterModeRef.current) {
       if (key.escape) {
         enterFilterMode(false);
@@ -501,7 +537,6 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
    */
   const rowActions = view === 'overview' || view === 'battery';
 
-  const tooSmall = columns < MIN_COLUMNS || rows < MIN_ROWS;
   if (tooSmall) {
     return (
       <Box flexDirection="column" width={Math.max(1, columns)}>

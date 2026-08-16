@@ -59,14 +59,43 @@ interface Defect {
 
 async function runSeed(seed: number, steps: number, verbose: boolean): Promise<Defect[]> {
   const rand = rng(seed);
-  const columns = 50 + Math.floor(rand() * 90);
-  const rows = 10 + Math.floor(rand() * 34);
+  /*
+   * Deliberately reaches *below* MIN_COLUMNS x MIN_ROWS.
+   *
+   * This range used to start at exactly the minimum, so the one size class the
+   * app treats specially — the one where it draws nothing but its own size
+   * complaint — was never fuzzed at all. That is where `k` then `t` sent
+   * SIGTERM with the confirmation panel unrendered: the mode was entered, just
+   * not drawn. A fuzzer whose floor is the contract cannot find a bug that
+   * lives under it.
+   */
+  const columns = 40 + Math.floor(rand() * 100);
+  const rows = 6 + Math.floor(rand() * 38);
   const size = `${columns}x${rows}`;
   const found: Defect[] = [];
 
   process.stdout.columns = columns;
   process.stdout.rows = rows;
-  const app = render(<App provider={new MockProvider()} tiers={FAST} demo killFn={() => {}} />);
+  /*
+   * I-15 wants a kill confirmed by name, so a signal that leaves the app while
+   * no confirmation is on screen is a defect however tidy the frame looks.
+   * `killFn` runs synchronously inside the key handler, so the frame it reads
+   * is the one the user was looking at when they pressed the key.
+   */
+  let mounted: { lastFrame: () => string | undefined } | null = null;
+  const blind: string[] = [];
+  const app = render(
+    <App
+      provider={new MockProvider()}
+      tiers={FAST}
+      demo
+      killFn={(pid, signal) => {
+        const f = (mounted?.lastFrame() ?? '').replace(ANSI, '');
+        if (!/KILL PROCESS|REFUSED/.test(f)) blind.push(`${signal} to ${pid}`);
+      }}
+    />,
+  );
+  mounted = app;
   await wait(300);
 
   const keys: string[] = [];
@@ -93,6 +122,10 @@ async function runSeed(seed: number, steps: number, verbose: boolean): Promise<D
   /* Two full-screen modes at once: the detail hints beside a confirmation. */
   if (text.includes('[k] kill') && /KILL PROCESS|REFUSED/.test(text)) {
     found.push({ seed, size, kind: 'two-modes', detail: 'detail panel and kill confirmation both drawn', keys });
+  }
+  /* A signal sent with nothing on screen naming its target. See I-15. */
+  for (const b of blind) {
+    found.push({ seed, size, kind: 'blind-kill', detail: `${b} with no confirmation drawn`, keys });
   }
   if (verbose) {
     console.log(`seed ${seed} (${size}) final frame:`);

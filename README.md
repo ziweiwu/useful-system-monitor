@@ -136,6 +136,12 @@ readable without colour: state is always marked with a glyph as well as a hue.
 **Numbers look stale.** Each panel shows its own age, next to the clock. Panels
 refresh on different schedules on purpose — see [INVARIANTS.md](./INVARIANTS.md).
 
+**Some rows show `—` in the energy column with `--energy=accurate`.** macOS
+measures energy for about 60 processes at a time. Rather than quietly fill the
+gaps with the CPU-time estimate — a different scale, which would sort straight
+to the top — the rows it did not measure say so. Drop the flag to get the
+estimate for everything instead.
+
 **Reporting a bug.** Include `useful-system-monitor --version` and your macOS
 version.
 

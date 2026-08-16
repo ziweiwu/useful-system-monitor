@@ -32,6 +32,27 @@ export function collectorEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.Proc
 }
 
 /**
+ * A collector command that failed.
+ *
+ * `exitCode` is the command's own status when it ran and exited non-zero, and
+ * `null` when it never ran or was killed — a missing binary, or the 5s timeout.
+ *
+ * That difference is not decoration. `ps -p PID` exits 1 with no output when no
+ * process matches, which is a real answer meaning "the process is gone"; a
+ * timeout is *no* answer at all. Collapsing both into one Error made the kill
+ * path tell the user a live process "has already exited". See I-16.
+ */
+export class CommandError extends Error {
+  constructor(
+    message: string,
+    readonly exitCode: number | null,
+  ) {
+    super(message);
+    this.name = 'CommandError';
+  }
+}
+
+/**
  * Runs a command by absolute path with no shell.
  *
  * Absolute paths matter: an interactive shell can alias these names (this
@@ -57,10 +78,18 @@ export function run(
           // show something actionable instead of a bare stack trace.
           const code = (err as NodeJS.ErrnoException).code;
           if (code === 'ENOENT') {
-            reject(new Error(`${path} not found on this system`));
+            reject(new CommandError(`${path} not found on this system`, null));
             return;
           }
-          reject(new Error(`${path} failed: ${err.message.split('\n')[0]}`));
+          /* execFile reports the exit status as a number when the command ran
+             and failed, and a string errno (or nothing, with `killed` set on
+             timeout) when it never ran. Only the former is an answer. */
+          reject(
+            new CommandError(
+              `${path} failed: ${err.message.split('\n')[0]}`,
+              typeof code === 'number' ? code : null,
+            ),
+          );
           return;
         }
         resolve(stdout);

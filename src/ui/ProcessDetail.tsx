@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Box, Text } from 'ink';
 import { bytes, percent } from '../core/format.js';
 import type { ProcessSample } from '../core/types.js';
+import { truncate, wrapToWidth } from '../core/width.js';
 import { processName } from '../kill/guards.js';
 import type { ProcHistory } from '../hooks/useProcessHistory.js';
 import { Sparkline } from './Sparkline.js';
@@ -37,14 +38,12 @@ function Block({
 }) {
   const indent = '  ';
   const avail = Math.max(20, width - indent.length);
-  const lines: string[] = [];
-  let rest = value;
-  while (rest.length > 0 && lines.length < maxLines) {
-    lines.push(rest.slice(0, avail));
-    rest = rest.slice(avail);
-  }
-  if (rest.length > 0 && lines.length > 0) {
-    lines[lines.length - 1] = `${lines[lines.length - 1]!.slice(0, avail - 1)}…`;
+  /* Wrapped by display width, not by code units — a CJK path is twice as wide
+     as it is long, and slicing by length silently threw most of it away. */
+  const wrapped = wrapToWidth(value, avail);
+  const lines = wrapped.slice(0, maxLines);
+  if (wrapped.length > lines.length && lines.length > 0) {
+    lines[lines.length - 1] = truncate(`${lines[lines.length - 1]!}…`, avail);
   }
   return (
     <Box flexDirection="column">
