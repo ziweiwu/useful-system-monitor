@@ -7,6 +7,43 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **A kill could be confirmed on a screen that was not drawn.** Below the
+  minimum terminal size (50x10) the app draws nothing but its own size
+  complaint — but the kill confirmation is a *mode*, and a mode that is not
+  rendered is still entered. On a 49-column terminal `k` then `t` sent SIGTERM,
+  and `k` `k` `k` sent SIGKILL, with the process name, the "unsaved work will be
+  lost" warning and the whole panel invisible. I-15 asks for a kill confirmed by
+  name, and there was no name on screen. The keymap is now inert at that size
+  apart from `q` and `esc` — `esc` because the mode can be inherited by dragging
+  the window narrow, and growing it back must not reveal a forgotten armed
+  confirmation. `qa:fuzz` now fuzzes *below* the minimum size (its range used to
+  start exactly at it, so the one size class the app treats specially was never
+  explored) and fails on any signal sent while no confirmation is drawn.
+- **`--energy=accurate` mixed two unit scales in one column.** `top -o power`
+  ranks at most 60 PIDs, so every other row fell back to the CPU-time estimate —
+  raw CPU%, in `[0, 100 × ncpu]` — while measured Energy Impact tops out around
+  40, and `energyAccurate` told the header to drop its "est" suffix for all of
+  it. The `e` sort therefore put every *estimated* row above every measured one,
+  and `estimateWatts` divided by a total that had summed both. It bit hardest
+  after `+`, where 300 rows share 60 measurements. While the measured lane is
+  live, a row it does not cover now reports `—` rather than borrowing the other
+  scale; when the lane is stale or off, the whole column reverts to the estimate
+  together, as before. (I-1b)
+- **A `ps` failure was reported as "the process has already exited".**
+  `identity()` caught every failure — a timeout on a loaded machine, a missing
+  binary — and returned the same `null` that means "no such process", so the
+  confirmation panel told the user that a process which is still running had
+  exited. The two are now distinguished at the boundary: `run` carries the
+  command's exit status, and only a real "no such process" answer means gone.
+  Anything else is refused as unverifiable, which refuses just the same but says
+  something true. (I-16)
+- **The detail panel clipped wide paths instead of wrapping them.** `Block`
+  split its value with `slice(0, avail)`, which counts UTF-16 units while
+  `avail` is a cell budget — so a 66-unit CJK path measuring 98 cells was packed
+  into one line and two thirds of it was truncated away, on the panel whose job
+  is telling two identically-named helpers apart, and after it had already
+  budgeted several lines. Wrapping now goes through the same display-width rule
+  as every other measurement here. (I-19)
 - **Accurate energy never fell back to the estimate once it had worked.**
   `maybeRefreshEnergy`'s failure path bumped the retry throttle but never
   touched the data, so a lane that succeeded once and then failed forever kept

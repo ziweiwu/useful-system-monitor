@@ -16,6 +16,7 @@ collectors, and the kill path. All invariants below are enforced and tested.
 | # | Invariant | Where |
 |---|---|---|
 | I-1 | Process CPU% is always a delta over a known wall-clock window, never a lifetime average. First observation yields `null`, rendered `—`, never `0` | `core/deltas.ts` · `test/deltas.test.ts` |
+| I-1b | The energy column carries **one unit**. Under `--energy=accurate`, a process the measurement did not cover reports `null` (rendered `—`) rather than borrowing the CPU-time estimate, whose scale is an order of magnitude larger | `providers/darwin/provider.ts` · `test/energy-units.test.ts` |
 | I-2 | `0 ≤ core CPU% ≤ 100`. Per-process CPU% is in `[0, 100 × ncpu]`, normalised only at render | `core/deltas.ts` · property test |
 | I-3 | Cumulative counters are non-decreasing per PID. A decrease means PID reuse → discard the delta rather than emit a negative rate | `core/deltas.ts` · `test/deltas.test.ts` |
 | I-4 | Each panel is internally atomic. Panels on different tiers are deliberately *not* globally atomic, so each shows its own sample age | `hooks/useSampler.ts` · `app.tsx` |
@@ -44,8 +45,8 @@ collectors, and the kill path. All invariants below are enforced and tested.
 | I-12 | Never signal PID ≤ 1 | `kill/guards.ts` · `test/guards.test.ts` |
 | I-13 | Never signal our own PID or any ancestor (walks the PPID chain, cycle-safe). The parent map covers **every** PID, not just the working set — ancestors are usually idle shells outside the top 50 — and an *absent* map is refused, not read as "no ancestors" | `kill/guards.ts` · `test/parse.test.ts` · `test/guards.test.ts` |
 | I-14 | A denylist of critical processes is refused outright, with the consequence explained | `kill/guards.ts` |
-| I-15 | Every kill is confirmed by name; SIGKILL needs a second, distinct keypress | `ui/KillModal.tsx` · `app.tsx` |
-| I-16 | The target is bound to `(pid, startTime)`, read **at signal time** rather than from the last sample. A PID that was recycled, has exited, or cannot be identified is refused — there is no "not checked" state | `kill/guards.ts` · `providers/*/provider.ts` · `test/guards.test.ts` · `test/kill-identity.test.tsx` |
+| I-15 | Every kill is confirmed **by name**, on screen. SIGKILL needs a second, distinct keypress. Below the minimum terminal size nothing is drawn, so the keymap is inert there apart from quit and escape: a mode that is not rendered is still *entered*, and `k` `t` used to signal with the confirmation invisible | `ui/KillModal.tsx` · `app.tsx` · `test/tiny-terminal.test.tsx` · `npm run qa:fuzz` |
+| I-16 | The target is bound to `(pid, startTime)`, read **at signal time** rather than from the last sample. A PID that was recycled, has exited, or cannot be identified is refused — there is no "not checked" state, and "`ps` could not answer" is not spelled the same as "the process is gone" | `kill/guards.ts` · `providers/*/provider.ts` · `test/guards.test.ts` · `test/kill-identity.test.tsx` · `test/identity-failure.test.ts` |
 | I-17 | `ESRCH` is success (already gone). `EPERM` surfaces a remedy and never auto-escalates to sudo | `kill/signal.ts` · `test/signal.test.ts` |
 
 Every refusal path is tested to emit **no signal at all**, not merely to return
@@ -56,7 +57,7 @@ an error.
 | # | Invariant | Where |
 |---|---|---|
 | I-18 | Render is a pure function of `(Snapshot, UiState)`; no I/O in components | `ui/*` |
-| I-19 | Layout never overflows terminal width, at **any** size the dashboard draws at. Widths use display-width, not `String.length`, and a column is dropped rather than floored below what fits | `core/width.ts` · `ui/ProcessTable.ts` · `test/width.test.ts` · `test/ui.test.tsx` · `npm run verify:layout` · `npm run qa:fuzz` |
+| I-19 | Layout never overflows terminal width, at **any** size the dashboard draws at. Widths use display-width, not `String.length`, **including when wrapping a value across lines** — and a column is dropped rather than floored below what fits | `core/width.ts` · `ui/ProcessTable.ts` · `test/width.test.ts` · `test/detail-wrap.test.tsx` · `test/ui.test.tsx` · `npm run verify:layout` · `npm run qa:fuzz` |
 | I-20 | Sort is stable and total — ties broken by PID — so rows do not jitter at equal CPU | `core/scoring.ts` · `test/scoring.test.ts` |
 | I-21 | Selection is keyed by **PID, not row index**. A re-sort under the cursor must never move the kill target | `app.tsx` · `test/ui.test.tsx` |
 | I-22 | No TUI when stdout is not a TTY; one-shot text or `--json` instead | `cli.tsx` |
@@ -92,6 +93,26 @@ from the process sample, and that sample is gone whenever the collector errors �
 a `ps` timeout on a loaded machine is enough, and the confirmation panel stays
 open across it. An empty map is "no answer", not "no ancestors", so it is
 refused rather than walked.
+
+**I-15 (a confirmation you cannot see is not a confirmation).** The kill
+confirmation is a *mode*, and I-26 says that below 50x10 the app draws nothing
+but its own size complaint. Those two met badly: the mode was still entered, so
+on a 49-column terminal `k` then `t` sent SIGTERM — and `k` `k` `k` sent SIGKILL
+— with the process name, the "unsaved work will be lost" warning and the whole
+panel unrendered. I-15 asks for a kill confirmed *by name*, and there was no
+name on screen to confirm.
+
+Two things are worth noting about how it survived. `verify:layout` drove exactly
+this path at 44 and 49 columns and passed, because it only ever asked whether
+the frame overflowed, never whether the confirmation was in it — a gate that
+checks geometry cannot see a safety property. And `qa:fuzz` drew its random
+terminal sizes from the minimum *upward*, so the one size class the app treats
+specially was never fuzzed at all; a fuzzer whose floor is the contract cannot
+find a bug that lives under it. The fuzzer now reaches below the minimum and
+fails on any signal sent while no confirmation is drawn, which reproduces the
+original bug at seed 8. The keymap itself is inert at that size apart from `q`
+and `esc` — `esc` because a mode can be inherited by dragging the window narrow,
+and growing it back must not reveal a confirmation the user forgot arming.
 
 **I-21 (selection by PID).** The selected row *is* the kill target. If selection
 were an index, a re-sort arriving between keypress and confirmation would slide a

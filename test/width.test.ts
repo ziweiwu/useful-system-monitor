@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayWidth, padEnd, padStart, truncate } from '../src/core/width.js';
+import { displayWidth, padEnd, padStart, truncate, wrapToWidth } from '../src/core/width.js';
 
 describe('I-19: layout uses display width, not string length', () => {
   it('counts ASCII as one cell each', () => {
@@ -85,5 +85,60 @@ describe('I-19: padding and truncation agree with displayWidth', () => {
     for (const n of [0, 1, 2, 3, 4, 6, 10, 20]) {
       expect(displayWidth(truncate(s, n)), `truncate(${JSON.stringify(s)}, ${n})`).toBeLessThanOrEqual(n);
     }
+  });
+});
+
+/**
+ * The detail panel's Path and Command blocks wrap long values across several
+ * lines. They used to do it with `slice(0, max)`, which counts UTF-16 units:
+ * a 66-unit CJK path measures 98 cells, so the whole thing was packed into one
+ * "line" and the renderer truncated two thirds of it away, on the one panel
+ * whose job is telling two identically-named helpers apart.
+ */
+describe('I-19: wrapToWidth breaks lines by cells, not by code units', () => {
+  const CASES = [
+    'hello world',
+    '/Applications/微信读书助手.app/Contents/MacOS/微信读书助手',
+    '⚠️⚠️⚠️⚠️⚠️',
+    '中文中文中文中文',
+    'a中b文c',
+    '🔥🔥🔥🔥',
+    '',
+  ];
+
+  it.each(CASES)('no line of %j ever exceeds the budget', (s) => {
+    for (const max of [1, 2, 3, 5, 8, 20]) {
+      for (const line of wrapToWidth(s, max)) {
+        expect(displayWidth(line), `${JSON.stringify(line)} in budget ${max}`).toBeLessThanOrEqual(max);
+      }
+    }
+  });
+
+  it.each(CASES)('keeps every character of %j at any budget a glyph fits in', (s) => {
+    // 2 cells is the widest single glyph, so nothing is dropped from here up.
+    for (const max of [2, 3, 5, 8, 20]) {
+      expect(wrapToWidth(s, max).join(''), `budget ${max}`).toBe(s);
+    }
+  });
+
+  it('drops a glyph too wide for the whole budget rather than overflowing', () => {
+    // Unreachable from the app — the only caller floors its budget at 20 —
+    // but the budget has to win here for the same reason it does in truncate.
+    expect(wrapToWidth('中', 1)).toEqual([]);
+    expect(wrapToWidth('a中b', 1)).toEqual(['a', 'b']);
+  });
+
+  it('uses the lines it is given rather than truncating into one', () => {
+    // 12 cells of CJK into a 4-cell budget is three lines, not one clipped one.
+    expect(wrapToWidth('中文中文中文', 4)).toEqual(['中文', '中文', '中文']);
+  });
+
+  it('does not split a wide glyph across the edge of a line', () => {
+    // An odd budget cannot hold a third cell, so the glyph moves down whole.
+    expect(wrapToWidth('中文中', 3)).toEqual(['中', '文', '中']);
+  });
+
+  it('returns nothing for a budget that cannot hold anything', () => {
+    expect(wrapToWidth('中文', 0)).toEqual([]);
   });
 });

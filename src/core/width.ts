@@ -165,3 +165,39 @@ export function padStart(s: string, n: number): string {
   const t = truncate(s, n);
   return ' '.repeat(Math.max(0, n - displayWidth(t))) + t;
 }
+
+/**
+ * Break `s` into lines of at most `max` cells each, measured the same way as
+ * every other width here.
+ *
+ * The detail panel used to do this with `slice(0, max)`, which counts UTF-16
+ * units: a 66-unit CJK path measures 98 cells, so the whole thing was packed
+ * into one "line" and the renderer truncated two thirds of it away — on the one
+ * panel whose stated job is telling two identically-named helpers apart. The
+ * panel had budgeted several lines and used one. Same rule as `truncate`, so
+ * the two cannot disagree. See I-19.
+ *
+ * No returned line ever exceeds `max`. As everywhere else in this module the
+ * budget wins and content gives way, so a single glyph wider than the whole
+ * budget is dropped rather than allowed to overflow — a degenerate case this
+ * app cannot reach, because the only caller floors its budget at 20 cells.
+ */
+export function wrapToWidth(s: string, max: number): string[] {
+  if (max <= 0) return [];
+  const out: string[] = [];
+  let line = '';
+  let w = 0;
+  for (const [ch, cw] of cells(s)) {
+    if (cw > max) continue;
+    // A wide glyph that would straddle the edge starts the next line instead.
+    if (w + cw > max) {
+      out.push(line);
+      line = '';
+      w = 0;
+    }
+    line += ch;
+    w += cw;
+  }
+  if (line) out.push(line);
+  return out;
+}
