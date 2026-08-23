@@ -44,6 +44,16 @@ const EMPTY_HOST: HostInfo = {
  */
 export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSize: number) {
   const [host, setHost] = useState<HostInfo>(EMPTY_HOST);
+  /*
+   * When the machine booted, in epoch ms, derived from the one `host()` sample.
+   *
+   * `host()` costs two `sysctl` spawns, so it is sampled once and never
+   * refreshed — which left `host.uptimeSec` frozen at launch and the header
+   * reading the same "up 7d 3h" three days later. The boot instant does not
+   * change, so one sample is all it ever needed: the *uptime* is derived from
+   * it at render. Null until the sample lands.
+   */
+  const [bootAt, setBootAt] = useState<number | null>(null);
   const [cpu, setCpu] = useState<Panel<Snapshot['cpu'] extends Panel<infer T> ? T : never>>(PENDING);
   const [memory, setMemory] = useState<Snapshot['memory']>(PENDING);
   const [disk, setDisk] = useState<Snapshot['disk']>(PENDING);
@@ -136,7 +146,9 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSi
     void provider
       .host()
       .then((h) => {
-        if (!cancelled) setHost(h);
+        if (cancelled) return;
+        setHost(h);
+        setBootAt(Date.now() - h.uptimeSec * 1000);
       })
       .catch(() => {
         /* keep EMPTY_HOST */
@@ -211,5 +223,5 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSi
     refreshProcesses();
   }, [workingSetSize, refreshProcesses]);
 
-  return { snapshot, histories, refresh, refreshProcesses };
+  return { snapshot, histories, refresh, refreshProcesses, bootAt };
 }

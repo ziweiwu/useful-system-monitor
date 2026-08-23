@@ -29,6 +29,23 @@ public surface is the command line, the JSON shape, and the keys.
   all of it inside ink's own two unevictable caches. `verify:smoke` asks a real
   run which React modules it actually evaluated, and `verify:longrun` measures
   the heap across 3,400 renders; both run in CI. See I-10b.
+- **The header's uptime was frozen at launch.** `host()` costs two `sysctl`
+  spawns, so it is sampled once and never refreshed — which meant `up 7d 3h`
+  still read `up 7d 3h` three days later, wrong on precisely the long sessions
+  this program is for. The boot instant does not change, so one sample was
+  always enough: the uptime is now derived from it at render, which costs
+  nothing and stays correct across sleep, because the kernel counts sleep as
+  uptime too.
+- **Two rows could overflow their box, and ink remembers every row it wraps.**
+  Ink caches wrapped text in a module-level map keyed on the string, with no
+  eviction. The overview status line embeds the machine's live process count,
+  which drifts for as long as the machine is up, so every new value minted a
+  permanent cache entry; the CPU card's detail line did the same across its
+  hundred-odd user/sys combinations. Both are now fitted to the width they have
+  before ink lays them out, so its wrap path is never reached — 386 cached rows
+  after 30 seconds against a real machine and still climbing, versus none. What
+  a narrow terminal shows is unchanged: `fitter` drops the rightmost content
+  first, which is what `wrap="truncate"` did.
 - **A kill could be confirmed on a screen that was not drawn.** Below the
   minimum terminal size (50x10) the app draws nothing but its own size
   complaint — but the kill confirmation is a *mode*, and a mode that is not

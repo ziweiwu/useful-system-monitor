@@ -4,7 +4,7 @@ import { age, clockTime, duration } from './core/format.js';
 import { sortProcesses, type SortKey } from './core/scoring.js';
 import type { ProcessSample } from './core/types.js';
 import { stepView, VIEW_KEYS, type View } from './core/views.js';
-import { displayWidth, truncate } from './core/width.js';
+import { displayWidth, fitter, truncate } from './core/width.js';
 import { stepCostNote, stepLabel, WORKING_SET_STEPS } from './core/workingSet.js';
 import { useProcessHistory } from './hooks/useProcessHistory.js';
 import { useSampler } from './hooks/useSampler.js';
@@ -102,7 +102,7 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   /* Index into WORKING_SET_STEPS. `+` widens the set, `-` narrows it. */
   const [wsStep, setWsStep] = useState(0);
   const workingSetSize = WORKING_SET_STEPS[wsStep]!;
-  const { snapshot, histories, refresh } = useSampler(provider, tiers, workingSetSize);
+  const { snapshot, histories, refresh, bootAt } = useSampler(provider, tiers, workingSetSize);
 
   const [view, setView] = useState<View>('overview');
   const [sortKey, setSortKey] = useState<SortKey>('cpu');
@@ -553,15 +553,58 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
   /* host() is async, so the first frame has no hardware info yet. Say that
      plainly rather than show the placeholder "unknown · 1 cores", which is a
      visible falsehood even for one frame. */
+  /*
+   * Uptime advances; it is not re-fetched.
+   *
+   * `host()` costs two `sysctl` spawns and is deliberately sampled once, so
+   * `host.uptimeSec` was frozen at launch and the header read the same
+   * "up 7d 3h" three days later — wrong on precisely the long sessions this
+   * program is for. Deriving it from the boot instant costs nothing and stays
+   * correct across sleep, because the kernel's uptime counts sleep too.
+   */
+  const uptimeSec = bootAt === null ? snapshot.host.uptimeSec : Math.max(0, (now - bootAt) / 1000);
+
   const hardwareLine =
     (snapshot.host.cores > 0 && snapshot.host.model !== 'unknown'
-      ? `${snapshot.host.model} · ${snapshot.host.cores} cores · up ${duration(snapshot.host.uptimeSec)}`
+      ? `${snapshot.host.model} · ${snapshot.host.cores} cores · up ${duration(uptimeSec)}`
       : 'detecting hardware…') + (demo ? '  [MOCK DATA]' : '');
 
   const ages =
     `cpu ${snapshot.cpu.status === 'ok' ? age(snapshot.cpu.sampledAt, now) : '—'}` +
     ` · proc ${snapshot.processes.status === 'ok' ? age(snapshot.processes.sampledAt, now) : '—'}` +
     ` · batt ${snapshot.battery.status === 'ok' ? age(snapshot.battery.sampledAt, now) : '—'}`;
+
+  /*
+   * I-19 said this is the widest variable string on the screen; I-10b is why it
+   * is now fitted here instead of left to `wrap="truncate"`.
+   *
+   * Ink memoises every string it has to wrap, keyed on the text, in a
+   * module-level cache that never evicts. This row overflowed with
+   * `procData.total` in it — the machine's live process count, which drifts for
+   * as long as the machine is up — plus the filter the user is typing, so it
+   * minted a permanent cache entry per distinct value. Fitting it means ink's
+   * wrap path is never reached. The segments are taken in render order, so what
+   * a narrow terminal drops is exactly what `wrap="truncate"` dropped.
+   */
+  const statusLine = (() => {
+    const fit = fitter(width);
+    return {
+      counts: fit(
+        procData
+          ? filtered.length === 0
+            ? 'no matches'
+            : `${viewOffset + 1}-${Math.min(viewOffset + tableRows, filtered.length)} of ${filtered.length}` +
+              ` · top ${stepLabel(workingSetSize)} of ${procData.total}${stepCostNote(workingSetSize)}`
+          : 'sampling…',
+      ),
+      sortLabel: fit(' · sort '),
+      sortKey: fit(sortKey),
+      filterLabel: fit(' · filter '),
+      filter: fit(filterMode ? `${filter || '…'}▏` : filter || '(none)'),
+      gap: fit('      '),
+      ages: fit(ages),
+    };
+  })();
 
   return (
     <Box flexDirection="column" width={width}>
@@ -633,22 +676,17 @@ export function App({ provider, tiers, killFn, onKilled, demo }: AppProps) {
           {/* I-19: this line is the widest variable string on the screen, and
               CHROME_ROWS budgets exactly one row for it. */}
           <Text color={theme.dim} wrap="truncate">
-            {procData
-              ? filtered.length === 0
-                ? 'no matches'
-                : `${viewOffset + 1}-${Math.min(viewOffset + tableRows, filtered.length)} of ${filtered.length}` +
-                  ` · top ${stepLabel(workingSetSize)} of ${procData.total}${stepCostNote(workingSetSize)}`
-              : 'sampling…'}
-            {' · sort '}
-            <Text color={theme.mem}>{sortKey}</Text>
-            {' · filter '}
+            {statusLine.counts}
+            {statusLine.sortLabel}
+            <Text color={theme.mem}>{statusLine.sortKey}</Text>
+            {statusLine.filterLabel}
             {filterMode ? (
-              <Text color={theme.cpuMid}>{filter || '…'}▏</Text>
+              <Text color={theme.cpuMid}>{statusLine.filter}</Text>
             ) : (
-              <Text color={filter ? theme.cpuMid : theme.dim}>{filter || '(none)'}</Text>
+              <Text color={filter ? theme.cpuMid : theme.dim}>{statusLine.filter}</Text>
             )}
-            {'      '}
-            {ages}
+            {statusLine.gap}
+            {statusLine.ages}
           </Text>
           {procData && showTable && (
             <ProcessTable
