@@ -7,6 +7,28 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **The dashboard grew to 4 GB and died after about three days.** Left open, it
+  ended in `FATAL ERROR: Ineffective mark-compacts near heap limit`. Nothing
+  this program owns was leaking — the rings, the per-process history and the
+  metadata cache were all bounded, and all 441 tests passed throughout. The
+  growth was React's *development* build, which emits Performance Tracks — about
+  40 `performance.measure()` calls per commit — into a User Timing buffer that
+  Node never caps and that nothing here reads or clears. A dashboard commits
+  forever, so the buffer grew with uptime and with nothing else: 223 KB per
+  render, ~1.9 GB/day at the 10s default. `react` picks its build from
+  `NODE_ENV`, and a CLI started from a shell has none, so the shipped binary
+  always took the development path.
+
+  The entry point is now a launcher with no static imports, which sets
+  `NODE_ENV=production` and then `await import()`s the app. Ordering cannot be
+  won any other way: `tsc` hoists its own `react/jsx-runtime` import above every
+  hand-written one, and Node evaluates CommonJS dependencies while *linking* the
+  module graph, before any ES module body in it — so setting `NODE_ENV` in the
+  first import reads correctly, passes any check made against the source, and
+  still ships a binary running development React. Growth is now 3.9 KB/render,
+  all of it inside ink's own two unevictable caches. `verify:smoke` asks a real
+  run which React modules it actually evaluated, and `verify:longrun` measures
+  the heap across 3,400 renders; both run in CI. See I-10b.
 - **A kill could be confirmed on a screen that was not drawn.** Below the
   minimum terminal size (50x10) the app draws nothing but its own size
   complaint — but the kill confirmation is a *mode*, and a mode that is not

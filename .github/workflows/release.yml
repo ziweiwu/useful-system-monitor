@@ -45,6 +45,9 @@ jobs:
           # CI is red, which is how 0.6.0 shipped against a workflow still
           # passing a flag that had been removed.
           npm run verify:smoke
+          # I-10b: the heap must be flat across a long run. 0.9.0 shipped a
+          # dashboard that died of a 4 GB mark-compact after ~82 hours.
+          npm run verify:longrun
           # The layout sweep and the fuzzer, on the reduced grid CI uses. A
           # release that overflows a terminal is worse than a late release.
           COLS=50,72,80,120 ROWS=10,24,40 npm run verify:layout
