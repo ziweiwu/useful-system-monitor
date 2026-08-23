@@ -29,6 +29,14 @@ public surface is the command line, the JSON shape, and the keys.
   all of it inside ink's own two unevictable caches. `verify:smoke` asks a real
   run which React modules it actually evaluated, and `verify:longrun` measures
   the heap across 3,400 renders; both run in CI. See I-10b.
+- **Nothing ever mounted the built dashboard.** The test suite renders the app
+  under a test renderer, and the smoke test runs `--json`, which returns before
+  `render()` is reached — so the shipped mount path had no coverage at all, and
+  a build that loaded correctly but could not mount passed everything while
+  drawing six bytes and exiting 0. `npm run verify:tui` now starts the built
+  binary, waits for a real dashboard, checks it is still drawing after the
+  launch frames drain, presses a key and checks the screen answers, and presses
+  `q` and checks it exits. It runs in CI and before a release. See I-22b.
 - **The header's uptime was frozen at launch.** `host()` costs two `sysctl`
   spawns, so it is sampled once and never refreshed — which meant `up 7d 3h`
   still read `up 7d 3h` three days later, wrong on precisely the long sessions

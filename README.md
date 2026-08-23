@@ -165,11 +165,15 @@ npm install
 npm test
 npm run mock                 # work on the interface without touching your system
 npm run verify:longrun       # heap must stay flat across a long run (I-10b)
+npm run verify:tui           # the built binary really mounts and draws (I-22b)
 ```
 
 `verify:longrun` forces `FORCE_COLOR=3` on itself: ink caches layout results
 keyed on the *decorated* string, so measuring without colour reports about a
-quarter of what a real terminal costs.
+quarter of what a real terminal costs. `verify:tui` starts the built binary
+with `scripts/tty-shim.mjs`, which makes a pipe look like a terminal so the
+dashboard path runs without a pty; `TUI_COLS` and `TUI_ROWS` set the size it
+reports, and are read by nothing else.
 
 `npm start` and `npm run mock` run under React's development build, so you get
 its warnings; the compiled binary forces the production build, because the

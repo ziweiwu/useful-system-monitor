@@ -59,6 +59,15 @@ jobs:
         if: matrix.node == 24
         run: npm run verify:longrun
 
+      # The only check that mounts the dashboard from the built binary. The
+      # suite renders `App` with ink-testing-library, and `verify:smoke` runs
+      # --json, which returns before render() is reached -- so a build that
+      # loads but cannot mount passed everything else. One did: it drew six
+      # bytes and exited 0, and the heap check called it flat. ~12s.
+      - name: End-to-end TUI check
+        if: matrix.node == 24
+        run: npm run verify:tui
+
       # The two harnesses that found the 0.8.x and 0.9.0 layout bugs. On one
       # Node version only: they exercise rendering, not the runtime, so running
       # them twice buys nothing. A reduced grid keeps CI to about a minute —

@@ -26,6 +26,7 @@
     "verify:longrun": "tsx scripts/verify-longrun.tsx",
     "verify:selfcost": "tsx scripts/verify-selfcost.tsx",
     "verify:smoke": "bash scripts/smoke.sh",
+    "verify:tui": "tsx scripts/verify-tui.ts",
     "verify:workingset": "tsx scripts/verify-workingset.ts"
   },
   "dependencies": {
