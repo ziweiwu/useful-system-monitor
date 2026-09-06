@@ -8,6 +8,11 @@
  * the real built code doing its real work. See scripts/verify-tui.ts for why
  * this is a shim rather than a pty.
  */
+/* The size the harness draws into when it does not say otherwise. Wide
+   enough for the full key legend, tall enough for the overview's cards. */
+const DEFAULT_COLS = 100;
+const DEFAULT_ROWS = 36;
+
 const define = (stream, props) => {
   for (const [k, v] of Object.entries(props)) {
     Object.defineProperty(stream, k, { value: v, configurable: true, writable: true });
@@ -16,8 +21,8 @@ const define = (stream, props) => {
 
 define(process.stdout, {
   isTTY: true,
-  columns: Number(process.env['TUI_COLS'] ?? 100),
-  rows: Number(process.env['TUI_ROWS'] ?? 36),
+  columns: Number(process.env['TUI_COLS'] ?? DEFAULT_COLS),
+  rows: Number(process.env['TUI_ROWS'] ?? DEFAULT_ROWS),
 });
 define(process.stdin, {
   isTTY: true,

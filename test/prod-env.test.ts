@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+const read = (repoPath: string) =>
+  readFileSync(new URL(`../${repoPath}`, import.meta.url), 'utf8');
 
 /**
  * I-10b. The leak this guards against is not in any structure the app owns — it

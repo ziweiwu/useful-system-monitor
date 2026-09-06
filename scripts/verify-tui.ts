@@ -56,16 +56,43 @@ const QUIT_TIMEOUT_MS = 10_000;
 
 const ESC = String.fromCharCode(27);
 const ANSI = new RegExp(`${ESC}\\[[0-9;?]*[a-zA-Z]`, 'g');
-const plain = (s: string) => s.replace(ANSI, '');
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Lines of the child's output to quote when a step fails. */
+const FAILURE_CONTEXT_LINES = 25;
+/** Bytes of the last frame to quote when a keypress goes unanswered. */
+const FAILURE_CONTEXT_BYTES = 2_000;
+/** How often to re-check a condition while waiting for the child to settle. */
+const POLL_MS = 100;
+
+function plain(text: string): string {
+  return text.replace(ANSI, '');
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 if (!existsSync(CLI)) {
   process.stderr.write(`verify:tui: ${CLI} does not exist — run \`npm run build\` first\n`);
   process.exit(1);
 }
 
-const main = async () => {
-  const child = spawn(
+/** The spawned dashboard, plus the few things every step below asks of it. */
+interface Session {
+  /** Everything written so far, ANSI stripped. */
+  drawn: () => string;
+  /** Raw bytes written so far — the growth check counts these, not glyphs. */
+  bytes: () => number;
+  /** Everything drawn since a byte offset, ANSI stripped. */
+  drawnSince: (offset: number) => string;
+  exitCode: () => number | null;
+  press: (key: string) => void;
+  fail: (message: string, extra?: string) => never;
+  /** Polls `until` to a deadline; returns whether it ever came true. */
+  settled: (until: () => boolean, deadlineMs: number) => Promise<boolean>;
+}
+
+const spawnDashboard = () =>
+  spawn(
     process.execPath,
     ['--import', SHIM, CLI, '--mock', '--interval', '1'],
     /* stdin stays open for the whole run: a closed stdin makes ink unmount at
@@ -73,10 +100,13 @@ const main = async () => {
     { stdio: ['pipe', 'pipe', 'inherit'], env: { ...process.env, TUI_COLS: '100', TUI_ROWS: '36' } },
   );
 
+const startSession = (): Session => {
+  const child = spawnDashboard();
+
   let out = '';
   child.stdout.setEncoding('utf8');
-  child.stdout.on('data', (c: string) => {
-    out += c;
+  child.stdout.on('data', (chunk: string) => {
+    out += chunk;
   });
 
   let exited: number | null = null;
@@ -84,73 +114,112 @@ const main = async () => {
     exited = code ?? 0;
   });
 
-  const fail = (msg: string, extra = ''): never => {
-    if (exited === null) child.kill('SIGKILL');
-    process.stderr.write(`\nverify:tui: ${msg}\n`);
-    if (extra) process.stderr.write(extra.split('\n').slice(-25).join('\n') + '\n');
-    process.exit(1);
+  return {
+    drawn: () => plain(out),
+    bytes: () => out.length,
+    drawnSince: (offset) => plain(out.slice(offset)),
+    exitCode: () => exited,
+    press: (key) => child.stdin.write(key),
+    fail: (message, extra = ''): never => {
+      if (exited === null) child.kill('SIGKILL');
+      process.stderr.write(`\nverify:tui: ${message}\n`);
+      if (extra) {
+        process.stderr.write(extra.split('\n').slice(-FAILURE_CONTEXT_LINES).join('\n') + '\n');
+      }
+      process.exit(1);
+    },
+    settled: async (until, deadlineMs) => {
+      const deadline = Date.now() + deadlineMs;
+      while (Date.now() < deadline && !until()) await wait(POLL_MS);
+      return until();
+    },
   };
+};
 
-  const settled = async (until: () => boolean, deadlineMs: number) => {
-    const deadline = Date.now() + deadlineMs;
-    while (Date.now() < deadline && !until()) await wait(100);
-    return until();
+/** 1. It mounts and draws a recognisable dashboard. */
+const checkMounts = async (session: Session) => {
+  const mounted = () => {
+    const screen = session.drawn();
+    return (
+      screen.includes('useful-system-monitor') && screen.includes('PID') && screen.includes('CPU')
+    );
   };
+  await session.settled(() => mounted() || session.exitCode() !== null, MOUNT_TIMEOUT_MS);
 
-  // 1. It mounts and draws a recognisable dashboard.
-  const drawn = () => plain(out);
-  const mounted = () =>
-    drawn().includes('useful-system-monitor') && drawn().includes('PID') && drawn().includes('CPU');
-  await settled(() => mounted() || exited !== null, MOUNT_TIMEOUT_MS);
-  if (exited !== null && !mounted()) {
-    fail(
-      `it exited (code ${exited}) after drawing ${out.length} bytes, without ever mounting.\n` +
+  if (session.exitCode() !== null && !mounted()) {
+    session.fail(
+      `it exited (code ${session.exitCode()}) after drawing ${session.bytes()} bytes, without ever mounting.\n` +
         '        A React core and JSX runtime from different builds fail exactly this way.',
-      drawn(),
+      session.drawn(),
     );
   }
-  if (!mounted()) fail(`no dashboard within ${MOUNT_TIMEOUT_MS}ms (${out.length} bytes)`, drawn());
-  console.log(`tui: mounted — dashboard drawn in ${out.length} bytes`);
+  if (!mounted()) {
+    session.fail(
+      `no dashboard within ${MOUNT_TIMEOUT_MS}ms (${session.bytes()} bytes)`,
+      session.drawn(),
+    );
+  }
+  console.log(`tui: mounted — dashboard drawn in ${session.bytes()} bytes`);
+};
 
-  // 2 and 3. Still alive, and still drawing — after the launch frames drain.
+/** 2 and 3. Still alive, and still drawing — after the launch frames drain. */
+const checkStillDrawing = async (session: Session) => {
   await wait(SETTLE_MS);
-  if (exited !== null) fail(`it exited (code ${exited}) ${SETTLE_MS}ms after mounting`);
-  const before = out.length;
+  if (session.exitCode() !== null) {
+    session.fail(`it exited (code ${session.exitCode()}) ${SETTLE_MS}ms after mounting`);
+  }
+
+  const before = session.bytes();
   await wait(DRAW_WINDOW_MS);
-  if (exited !== null) fail(`it exited (code ${exited}) while running`);
-  if (out.length === before) {
-    fail(
+  if (session.exitCode() !== null) session.fail(`it exited (code ${session.exitCode()}) while running`);
+  if (session.bytes() === before) {
+    session.fail(
       `not one frame in ${DRAW_WINDOW_MS}ms at --interval 1, ${SETTLE_MS}ms after mounting.\n` +
         '        It mounted and then stopped committing — which no heap check can see,\n' +
         '        because an app that never redraws never allocates.',
     );
   }
-  console.log(`tui: alive — ${out.length - before} more bytes over ${DRAW_WINDOW_MS}ms`);
+  console.log(`tui: alive — ${session.bytes() - before} more bytes over ${DRAW_WINDOW_MS}ms`);
+};
 
-  /*
-   * 4. It answers a keypress.
-   *
-   * The assertion is the *active* tab marker, `[3 MEMORY]`, not the word
-   * MEMORY: every tab label is on screen at all times, so matching the bare
-   * word passed instantly against the frame already drawn, before the key had
-   * been read at all — a check that could not fail. Only frames written after
-   * the keystroke are searched, for the same reason. See I-23 for the brackets.
-   */
-  const mark = out.length;
-  child.stdin.write('3');
-  const switched = () => plain(out.slice(mark)).includes('[3 MEMORY]');
-  if (!(await settled(switched, KEY_TIMEOUT_MS))) {
-    fail('it did not respond to `3` — raw mode or useInput is broken', drawn().slice(-2_000));
+/*
+ * 4. It answers a keypress.
+ *
+ * The assertion is the *active* tab marker, `[3 MEMORY]`, not the word MEMORY:
+ * every tab label is on screen at all times, so matching the bare word passed
+ * instantly against the frame already drawn, before the key had been read at
+ * all — a check that could not fail. Only frames written after the keystroke
+ * are searched, for the same reason. See I-23 for the brackets.
+ */
+const checkRespondsToKey = async (session: Session) => {
+  const mark = session.bytes();
+  session.press('3');
+  const switched = () => session.drawnSince(mark).includes('[3 MEMORY]');
+  if (!(await session.settled(switched, KEY_TIMEOUT_MS))) {
+    session.fail(
+      'it did not respond to `3` — raw mode or useInput is broken',
+      session.drawn().slice(-FAILURE_CONTEXT_BYTES),
+    );
   }
   console.log('tui: responsive — `3` switched to the memory screen');
+};
 
-  // 5. It quits, rather than hanging on a terminal it cannot restore.
-  child.stdin.write('q');
-  if (!(await settled(() => exited !== null, QUIT_TIMEOUT_MS))) {
-    fail(`it did not quit within ${QUIT_TIMEOUT_MS}ms of \`q\``);
+/** 5. It quits, rather than hanging on a terminal it cannot restore. */
+const checkQuits = async (session: Session) => {
+  session.press('q');
+  if (!(await session.settled(() => session.exitCode() !== null, QUIT_TIMEOUT_MS))) {
+    session.fail(`it did not quit within ${QUIT_TIMEOUT_MS}ms of \`q\``);
   }
-  if (exited !== 0) fail(`it quit with code ${exited}, expected 0`);
+  if (session.exitCode() !== 0) session.fail(`it quit with code ${session.exitCode()}, expected 0`);
   console.log('tui: quit cleanly on `q`');
+};
+
+const main = async () => {
+  const session = startSession();
+  await checkMounts(session);
+  await checkStillDrawing(session);
+  await checkRespondsToKey(session);
+  await checkQuits(session);
 
   console.log('\ntui: PASS — the built binary mounts, draws, responds and exits');
   process.exit(0);

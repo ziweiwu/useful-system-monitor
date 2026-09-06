@@ -61,9 +61,9 @@ import { render } from 'ink';
 import { App } from '../src/app.js';
 import { MockProvider } from '../src/providers/mock/provider.js';
 
-const gc = (globalThis as { gc?: () => void }).gc;
+const collectGarbage = (globalThis as { gc?: () => void }).gc;
 
-if (!gc || process.env['NODE_ENV'] !== 'production' || !process.env['FORCE_COLOR']) {
+if (!collectGarbage || process.env['NODE_ENV'] !== 'production' || !process.env['FORCE_COLOR']) {
   /*
    * Re-exec with --expose-gc and NODE_ENV=production, both of which have to be
    * true before the process starts.
@@ -86,8 +86,17 @@ if (!gc || process.env['NODE_ENV'] !== 'production' || !process.env['FORCE_COLOR
   process.exit(r.status ?? 1);
 }
 
+const BYTES_PER_KB = 1024;
+const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB;
 /** Bytes per tick this is allowed to retain. See the table above. */
-const BUDGET_BYTES_PER_TICK = 8 * 1024;
+const BUDGET_BYTES_PER_TICK = 8 * BYTES_PER_KB;
+/** V8's default old-space ceiling — the wall the shipped binary hit. */
+const HEAP_CEILING_BYTES = 4 * BYTES_PER_KB ** 3;
+/** The shipped sampling tier, which is what the projection is quoted against. */
+const DEFAULT_TIER_SECONDS = 10;
+const SECONDS_PER_DAY = 24 * 60 * 60;
+/** Beyond this the projection is noise, so it is reported as a floor instead. */
+const UNINTERESTINGLY_FAR_DAYS = 3650;
 /* Far below the 10s default so the run finishes in seconds. The leak is per
    render, not per second, so compressing the tier compresses the clock without
    changing what is being measured. */
@@ -137,11 +146,27 @@ class Stdin extends EventEmitter {
   }
 }
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const mb = (b: number) => (b / 1024 / 1024).toFixed(1);
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
-const main = async () => {
-  const stdout = new Stdout();
+function megabytes(bytes: number): string {
+  return (bytes / BYTES_PER_MB).toFixed(1);
+}
+
+interface Measurement {
+  startHeap: number;
+  grew: number;
+  bytesPerTick: number;
+  frames: number;
+  timingEntries: number;
+}
+
+/**
+ * Mounts the real dashboard against the mock, every tier compressed to TIER_MS.
+ * Frames go to a sink that counts and discards them — see Stdout.
+ */
+const mount = (stdout: Stdout) => {
   const tiers = {
     cpu: TIER_MS,
     memory: TIER_MS,
@@ -149,50 +174,67 @@ const main = async () => {
     battery: TIER_MS,
     processes: TIER_MS,
   };
-  const instance = render(<App provider={new MockProvider()} tiers={tiers} demo />, {
+  return render(<App provider={new MockProvider()} tiers={tiers} demo />, {
     stdout: stdout as never,
     stdin: new Stdin() as never,
     stderr: stdout as never,
     exitOnCtrlC: false,
     patchConsole: false,
   });
+};
 
-  const tick = async (n: number) => {
-    for (let i = 0; i < n; i++) await wait(TIER_MS);
-  };
+/** Sleeps through `count` collector ticks, which is what drives the renders. */
+const tick = async (count: number) => {
+  for (let i = 0; i < count; i++) await wait(TIER_MS);
+};
+
+/** Lets the dashboard settle, then measures what a steady state retains. */
+const measure = async (): Promise<Measurement> => {
+  const stdout = new Stdout();
+  const instance = mount(stdout);
 
   /* The first ticks allocate what a steady state then keeps — module code, the
      mock's process list, ink's caches for every label on screen. Measuring
      through them would report one-time cost as a leak. */
   await tick(WARMUP_TICKS);
-  gc();
-  gc();
+  collectGarbage();
+  collectGarbage();
   const startFrames = stdout.frames;
   const startHeap = process.memoryUsage().heapUsed;
 
   await tick(MEASURE_TICKS);
-  gc();
-  gc();
+  collectGarbage();
+  collectGarbage();
   const grew = process.memoryUsage().heapUsed - startHeap;
-  const perTick = grew / MEASURE_TICKS;
-  const frames = stdout.frames - startFrames;
 
   instance.unmount();
 
-  /* Days to the ~4 GB V8 ceiling at the 10s default. The crash report is the
-     only reason this number is interesting, so it is the number printed. */
-  const ticksPerDay = (24 * 60 * 60) / 10;
-  const days = perTick > 0 ? (4 * 1024 ** 3) / (perTick * ticksPerDay) : Infinity;
-  const entries = performance.getEntriesByType('measure').length;
+  return {
+    startHeap,
+    grew,
+    bytesPerTick: grew / MEASURE_TICKS,
+    frames: stdout.frames - startFrames,
+    timingEntries: performance.getEntriesByType('measure').length,
+  };
+};
+
+/** Prints the measurement and returns whether it clears I-10b. */
+const report = ({ startHeap, grew, bytesPerTick, frames, timingEntries }: Measurement): boolean => {
+  /* Days to the V8 ceiling at the shipped tier. The crash report is the only
+     reason this number is interesting, so it is the number printed. */
+  const ticksPerDay = SECONDS_PER_DAY / DEFAULT_TIER_SECONDS;
+  const days = bytesPerTick > 0 ? HEAP_CEILING_BYTES / (bytesPerTick * ticksPerDay) : Infinity;
+  const perTickKb = (bytesPerTick / BYTES_PER_KB).toFixed(2);
 
   console.log(`react ${React.version} (${process.env['NODE_ENV']} build) · ink 7`);
   console.log(`${MEASURE_TICKS} ticks at ${TIER_MS}ms after ${WARMUP_TICKS} warm-up, ${frames} frames drawn`);
   console.log(
-    `heap ${mb(startHeap)} MB -> ${mb(startHeap + grew)} MB   ${(perTick / 1024).toFixed(2)} KB/tick`,
+    `heap ${megabytes(startHeap)} MB -> ${megabytes(startHeap + grew)} MB   ${perTickKb} KB/tick`,
   );
-  console.log(`User Timing entries retained: ${entries}`);
+  console.log(`User Timing entries retained: ${timingEntries}`);
+  const projection = days > UNINTERESTINGLY_FAR_DAYS ? '>10 years' : `${days.toFixed(1)} days`;
   console.log(
-    `projected: ${days > 3650 ? '>10 years' : `${days.toFixed(1)} days`} to a 4 GB heap at the 10s default`,
+    `projected: ${projection} to a 4 GB heap at the ${DEFAULT_TIER_SECONDS}s default`,
   );
 
   if (frames < MIN_FRAMES) {
@@ -200,17 +242,21 @@ const main = async () => {
       `\nI-10b: FAIL — only ${frames} frames drawn, so nothing was really measured.` +
         ' The app rendered but stopped committing; a flat heap here means nothing.',
     );
-    process.exit(1);
+    return false;
   }
 
   /* Both conditions, because either alone can pass while the bug is back: the
      filling buffer is the mechanism, and bytes/tick is the effect. */
-  const ok = perTick < BUDGET_BYTES_PER_TICK && entries === 0;
+  const ok = bytesPerTick < BUDGET_BYTES_PER_TICK && timingEntries === 0;
   console.log(
-    `\nI-10b: ${ok ? 'PASS' : 'FAIL'} — ${(perTick / 1024).toFixed(2)} KB/tick ` +
-      `(budget ${BUDGET_BYTES_PER_TICK / 1024} KB), ${entries} User Timing entries (budget 0)`,
+    `\nI-10b: ${ok ? 'PASS' : 'FAIL'} — ${perTickKb} KB/tick ` +
+      `(budget ${BUDGET_BYTES_PER_TICK / BYTES_PER_KB} KB), ${timingEntries} User Timing entries (budget 0)`,
   );
-  process.exit(ok ? 0 : 1);
+  return ok;
+};
+
+const main = async () => {
+  process.exit(report(await measure()) ? 0 : 1);
 };
 
 void main();

@@ -9,7 +9,7 @@ import { waitForFrame } from './helpers.js';
 
 const ESC = String.fromCharCode(27);
 const ANSI = new RegExp(`${ESC}\\[[0-9;]*m`, 'g');
-const plain = (f: string | undefined) => (f ?? '').replace(ANSI, '');
+const plain = (frame: string | undefined) => (frame ?? '').replace(ANSI, '');
 
 /**
  * I-10b, at the level this repo can act on.
