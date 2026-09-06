@@ -180,6 +180,20 @@ const mount = (stdout: Stdout) => {
     stderr: stdout as never,
     exitOnCtrlC: false,
     patchConsole: false,
+    /*
+     * Forced, because ink turns it off whenever `CI` is set — and then, by its
+     * own documentation, "writes only the final frame at unmount". The app
+     * still renders and still allocates, so the heap figure looks completely
+     * normal; only the frame count gives it away, and this is precisely the
+     * case MIN_FRAMES exists to refuse. It caught it: 1 frame on CI against
+     * ~1290 locally, at an identical 3.9 KB/tick.
+     *
+     * Not env scrubbing, because the interactive dashboard is what this check
+     * is *about* — the thing left open for days is the thing that leaked — so
+     * it should be stated as a property of the measurement rather than
+     * inferred from whatever the environment happens to look like.
+     */
+    interactive: true,
   });
 };
 

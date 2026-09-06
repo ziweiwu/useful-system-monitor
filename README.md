@@ -175,6 +175,10 @@ with `scripts/tty-shim.mjs`, which makes a pipe look like a terminal so the
 dashboard path runs without a pty; `TUI_COLS` and `TUI_ROWS` set the size it
 reports, and are read by nothing else.
 
+Both force ink's interactive rendering too: ink turns it off when `CI` is set
+and then writes only the final frame at unmount, which makes a long-run heap
+check certify a screen nobody drew.
+
 `npm start` and `npm run mock` run under React's development build, so you get
 its warnings; the compiled binary forces the production build, because the
 development one leaks (see I-10b). Set `NODE_ENV` yourself to override either.

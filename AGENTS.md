@@ -52,6 +52,14 @@ quarter of what a real terminal costs.
 pipe look like a terminal so the dashboard path runs without a pty; `TUI_COLS`
 and `TUI_ROWS` set the size it reports, and are read by nothing else.
 
+Both also force ink's **interactive** rendering, which it otherwise switches off
+whenever `CI` or `CONTINUOUS_INTEGRATION` is set — and a non-interactive ink
+writes only the final frame at unmount. Unforced, `verify:longrun` drew 1 frame
+per 3,000 ticks on a runner and `verify:tui`'s child drew nothing at all, while
+the heap number stayed normal because the app really was rendering. If you make
+a harness that mounts the dashboard, force it there too, and give it a
+frames-drawn floor: the heap alone cannot tell a flat app from a quiet one.
+
 ## Things that have already bitten
 
 - **`bin` points at compiled output.** `npm link` and the global install run

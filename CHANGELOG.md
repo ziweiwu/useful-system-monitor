@@ -3,7 +3,7 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
-## 0.9.1
+## 0.9.2
 
 ### Fixed
 
@@ -119,6 +119,21 @@ public surface is the command line, the JSON shape, and the keys.
   project's own review tool printed "SIGTERM sent to Electron" with Electron
   still in the table above the toast. The instrument used to review the kill
   flow misrepresented it.
+- **Both new long-run checks were inert on every CI runner, and said PASS
+  anyway — until one of them said FAIL.** Ink decides whether to render
+  interactively from `is-in-ci`, which is true whenever `CI` or
+  `CONTINUOUS_INTEGRATION` is set, and a non-interactive Ink "writes only the
+  final frame at unmount". So on a runner `verify:longrun` mounted the
+  dashboard, sampled it 3,000 times and drew **1 frame**, and `verify:tui`'s
+  child drew **0 bytes** — measured, not inferred. The heap figure was
+  unaffected (3.99 KB/tick on CI against 3.94 locally), because the app really
+  was rendering; only the writes were suppressed. A heap check that certifies a
+  screen nobody drew is the exact failure mode that let the original leak ship,
+  and it is why `MIN_FRAMES` exists — it is the thing that caught this. Both
+  harnesses now force interactive rendering: `verify:longrun` by passing Ink
+  `interactive: true`, which states the property rather than inferring it from
+  the environment, and `verify:tui` by deleting both variables from its child's
+  environment, since it drives the built binary and cannot pass it options.
 
 ### Changed
 
@@ -136,6 +151,13 @@ public surface is the command line, the JSON shape, and the keys.
   back, because that bug only reproduces on seed 33. 40 seeds catches it in
   ~35s. A check that cannot fail is worse than no check, because it reports
   confidence it has not earned.
+
+## 0.9.1
+
+Tagged, never published. The release gate refused it — correctly — because
+`verify:longrun` reported that only one frame had been drawn behind the heap
+measurement it was about to certify. Everything intended for 0.9.1 ships in
+0.9.2, together with the fix for the harness bug it found.
 
 ## 0.9.0
 

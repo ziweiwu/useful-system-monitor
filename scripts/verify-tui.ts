@@ -97,7 +97,24 @@ const spawnDashboard = () =>
     ['--import', SHIM, CLI, '--mock', '--interval', '1'],
     /* stdin stays open for the whole run: a closed stdin makes ink unmount at
        once, which looks exactly like the failure this exists to detect. */
-    { stdio: ['pipe', 'pipe', 'inherit'], env: { ...process.env, TUI_COLS: '100', TUI_ROWS: '36' } },
+    {
+      stdio: ['pipe', 'pipe', 'inherit'],
+      env: {
+        ...process.env,
+        TUI_COLS: '100',
+        TUI_ROWS: '36',
+        /*
+         * Ink goes non-interactive when either of these is set, and then writes
+         * only the final frame at unmount — so step 3, "is it still drawing",
+         * would fail on every CI runner and pass on every laptop. The shim
+         * already tells the child it has a terminal; this is the other half of
+         * the same claim. Deleted rather than set to '0' so `is-in-ci`'s
+         * `key in env` test cannot see them at all.
+         */
+        CI: undefined,
+        CONTINUOUS_INTEGRATION: undefined,
+      },
+    },
   );
 
 const startSession = (): Session => {
