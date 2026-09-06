@@ -17,7 +17,7 @@ const read = (rel: string) =>
  */
 describe('every bound key is documented where a user would look', () => {
   const app = read('src/app.tsx');
-  const help = read('src/cli.tsx');
+  const help = read('src/main.tsx');
   const readme = read('README.md');
 
   /** Single-character keys the input handler acts on. */

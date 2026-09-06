@@ -142,6 +142,11 @@ gaps with the CPU-time estimate — a different scale, which would sort straight
 to the top — the rows it did not measure say so. Drop the flag to get the
 estimate for everything instead.
 
+**It grew to gigabytes and crashed after a few days.** That was 0.9.0 and
+earlier, running React's development build, which writes profiling entries into
+a buffer nothing ever reads. Upgrade. If you see it on a newer version, that is
+a bug worth reporting — include the `FATAL ERROR` line.
+
 **Reporting a bug.** Include `useful-system-monitor --version` and your macOS
 version.
 
@@ -158,13 +163,28 @@ your battery down would rather defeat the point.
 ```sh
 npm install
 npm test
-npm run mock         # work on the interface without touching your system
+npm run mock                 # work on the interface without touching your system
+npm run verify:longrun       # heap must stay flat across a long run (I-10b)
+npm run verify:tui           # the built binary really mounts and draws (I-22b)
 ```
 
+`verify:longrun` forces `FORCE_COLOR=3` on itself: ink caches layout results
+keyed on the *decorated* string, so measuring without colour reports about a
+quarter of what a real terminal costs. `verify:tui` starts the built binary
+with `scripts/tty-shim.mjs`, which makes a pipe look like a terminal so the
+dashboard path runs without a pty; `TUI_COLS` and `TUI_ROWS` set the size it
+reports, and are read by nothing else.
+
+`npm start` and `npm run mock` run under React's development build, so you get
+its warnings; the compiled binary forces the production build, because the
+development one leaks (see I-10b). Set `NODE_ENV` yourself to override either.
+
 What changed between releases is in [CHANGELOG.md](./CHANGELOG.md). The
-behaviour it promises is written down in [INVARIANTS.md](./INVARIANTS.md),
-and every item there has a test. If you touch anything that reads from the
-system, please add a sample of the real command output to `test/fixtures/`.
+behaviour it promises is written down in [INVARIANTS.md](./INVARIANTS.md), and
+every item there is checked — most by a test, a few by a `verify:` script where
+the claim is a measurement rather than an assertion. If you touch anything that
+reads from the system, please add a sample of the real command output to
+`test/fixtures/`.
 
 ## Sponsor
 

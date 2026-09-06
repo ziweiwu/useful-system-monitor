@@ -28,7 +28,7 @@ const live = process.env['LIVE'] === '1';
 const provider = live ? new DarwinProvider() : new MockProvider();
 const mock = provider instanceof MockProvider ? provider : null;
 const { lastFrame, stdin, unmount } = render(
-  /* `onKilled` matters here as much as in cli.tsx: without it a scripted kill
+  /* `onKilled` matters here as much as in main.tsx: without it a scripted kill
      prints "SIGTERM sent to Electron" while Electron is still sitting in the
      table above the toast, so the instrument used to review the kill flow
      misrepresents it. */

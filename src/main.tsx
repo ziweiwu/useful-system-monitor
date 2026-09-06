@@ -1,4 +1,7 @@
-#!/usr/bin/env node
+/*
+ * The dashboard entry, loaded by `cli.ts` — which is a launcher rather than
+ * this file's first few lines for a reason. See `core/prod-env.ts`.
+ */
 import { createRequire } from 'node:module';
 import { render } from 'ink';
 import { bytes, percent } from './core/format.js';
@@ -215,8 +218,18 @@ async function main(): Promise<void> {
   await waitUntilExit();
 }
 
-main().catch((err: unknown) => {
-  // I-24: errors to stderr, non-zero exit.
-  process.stderr.write(`useful-system-monitor: ${err instanceof Error ? err.message : String(err)}\n`);
-  process.exit(1);
-});
+/*
+ * I-24: errors to stderr, non-zero exit. Kept here rather than in the launcher
+ * so the whole of `main` — including the argument parsing that exits 2 — has
+ * one place its failures are turned into an exit status.
+ */
+export const run = async (): Promise<void> => {
+  try {
+    await main();
+  } catch (err: unknown) {
+    process.stderr.write(
+      `useful-system-monitor: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(1);
+  }
+};

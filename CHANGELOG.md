@@ -7,6 +7,53 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **The dashboard grew to 4 GB and died after about three days.** Left open, it
+  ended in `FATAL ERROR: Ineffective mark-compacts near heap limit`. Nothing
+  this program owns was leaking — the rings, the per-process history and the
+  metadata cache were all bounded, and all 441 tests passed throughout. The
+  growth was React's *development* build, which emits Performance Tracks — about
+  40 `performance.measure()` calls per commit — into a User Timing buffer that
+  Node never caps and that nothing here reads or clears. A dashboard commits
+  forever, so the buffer grew with uptime and with nothing else: 223 KB per
+  render, ~1.9 GB/day at the 10s default. `react` picks its build from
+  `NODE_ENV`, and a CLI started from a shell has none, so the shipped binary
+  always took the development path.
+
+  The entry point is now a launcher with no static imports, which sets
+  `NODE_ENV=production` and then `await import()`s the app. Ordering cannot be
+  won any other way: `tsc` hoists its own `react/jsx-runtime` import above every
+  hand-written one, and Node evaluates CommonJS dependencies while *linking* the
+  module graph, before any ES module body in it — so setting `NODE_ENV` in the
+  first import reads correctly, passes any check made against the source, and
+  still ships a binary running development React. Growth is now 3.9 KB/render,
+  all of it inside ink's own two unevictable caches. `verify:smoke` asks a real
+  run which React modules it actually evaluated, and `verify:longrun` measures
+  the heap across 3,400 renders; both run in CI. See I-10b.
+- **Nothing ever mounted the built dashboard.** The test suite renders the app
+  under a test renderer, and the smoke test runs `--json`, which returns before
+  `render()` is reached — so the shipped mount path had no coverage at all, and
+  a build that loaded correctly but could not mount passed everything while
+  drawing six bytes and exiting 0. `npm run verify:tui` now starts the built
+  binary, waits for a real dashboard, checks it is still drawing after the
+  launch frames drain, presses a key and checks the screen answers, and presses
+  `q` and checks it exits. It runs in CI and before a release. See I-22b.
+- **The header's uptime was frozen at launch.** `host()` costs two `sysctl`
+  spawns, so it is sampled once and never refreshed — which meant `up 7d 3h`
+  still read `up 7d 3h` three days later, wrong on precisely the long sessions
+  this program is for. The boot instant does not change, so one sample was
+  always enough: the uptime is now derived from it at render, which costs
+  nothing and stays correct across sleep, because the kernel counts sleep as
+  uptime too.
+- **Two rows could overflow their box, and ink remembers every row it wraps.**
+  Ink caches wrapped text in a module-level map keyed on the string, with no
+  eviction. The overview status line embeds the machine's live process count,
+  which drifts for as long as the machine is up, so every new value minted a
+  permanent cache entry; the CPU card's detail line did the same across its
+  hundred-odd user/sys combinations. Both are now fitted to the width they have
+  before ink lays them out, so its wrap path is never reached — 386 cached rows
+  after 30 seconds against a real machine and still climbing, versus none. What
+  a narrow terminal shows is unchanged: `fitter` drops the rightmost content
+  first, which is what `wrap="truncate"` did.
 - **A kill could be confirmed on a screen that was not drawn.** Below the
   minimum terminal size (50x10) the app draws nothing but its own size
   complaint — but the kill confirmation is a *mode*, and a mode that is not
