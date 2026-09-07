@@ -11,8 +11,8 @@ use std::collections::HashMap;
 use proptest::prelude::*;
 use sysmon_core::domain::types::{ProcessSample, StartTime};
 use sysmon_core::kill::guards::{
-    check_kill, is_self_or_ancestor, process_name, GuardContext, LiveIdentity, RefusalKind,
-    TargetPid,
+    check_kill, is_self_or_ancestor, process_name, protected_names, GuardContext, LiveIdentity,
+    RefusalKind, TargetPid,
 };
 use sysmon_core::kill::signal::{
     send_signal, KillErrno, KillOutcome, Killer, Signal, SignalRequest,
@@ -58,6 +58,16 @@ fn sample(pid: i32) -> ProcessSample {
         energy: Some(0.0),
         protected: false,
     }
+}
+
+/// A path whose basename *this platform* actually protects.
+///
+/// The list is per-platform, so a test that hardcodes `WindowServer` asserts
+/// nothing on Linux: it names a process that is simply not protected there, and
+/// the assertion passes or fails for the wrong reason. Whichever platform the
+/// suite is compiled for, this is a name its guard must refuse.
+fn a_protected_path() -> String {
+    format!("/usr/bin/{}", protected_names()[0])
 }
 
 fn named(pid: i32, command: &str) -> ProcessSample {
@@ -214,11 +224,22 @@ fn i13_fails_closed_when_there_is_no_process_sample() {
 
 #[test]
 fn i14_refuses_critical_system_processes() {
-    for command in [
+    /* Real paths from the platform being compiled for, so this exercises
+    basename extraction as well as the list — a framework path on macOS, the
+    display server and a systemd service on Linux. */
+    #[cfg(target_os = "linux")]
+    let commands = [
+        "/usr/bin/Xorg",
+        "/usr/bin/gnome-shell",
+        "/usr/lib/systemd/systemd-logind",
+    ];
+    #[cfg(not(target_os = "linux"))]
+    let commands = [
         "/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
         "/sbin/launchd",
         "/System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow",
-    ] {
+    ];
+    for command in commands {
         assert_eq!(
             refusal_kind(&named(616, command), &ctx(999, &[]), None),
             RefusalKind::Protected,
@@ -230,7 +251,7 @@ fn i14_refuses_critical_system_processes() {
 #[test]
 fn i14_explains_the_consequence_rather_than_just_saying_no() {
     let c = ctx(999, &[]);
-    let check = check_kill(&named(616, "/usr/bin/WindowServer"), &c, None);
+    let check = check_kill(&named(616, &a_protected_path()), &c, None);
     let msg = &check.refusal().expect("refused").message;
     let lower = msg.to_lowercase();
     assert!(
@@ -441,7 +462,7 @@ fn every_refusal_path_emits_no_signal() {
     let cases: Vec<(&str, ProcessSample)> = vec![
         ("init", sample(1)),
         ("self", sample(999)),
-        ("protected", named(616, "/usr/bin/WindowServer")),
+        ("protected", named(616, &a_protected_path())),
     ];
     for (label, target) in cases {
         let mut spy = SpyKiller::default();
@@ -469,7 +490,7 @@ proptest! {
         protected in any::<bool>(),
     ) {
         let (pid, self_pid, parent) = pids;
-        let command = if protected { "/usr/bin/WindowServer".to_string() }
+        let command = if protected { a_protected_path() }
                       else { format!("/usr/bin/proc{pid}") };
         let target = ProcessSample { command, ..sample(pid) };
         let live = LiveIdentity::Known(StartTime::Known(if matching { 1_000 } else { 2_000 }));
