@@ -496,3 +496,87 @@ proptest! {
         }
     }
 }
+
+// ---------------------------------------------- I-14, through the guard itself
+
+/*
+ * The gap these close: nothing anywhere fed `protected: true` into `check_kill`.
+ * Every fixture above sets it false, and the proptest that takes
+ * `protected in any::<bool>()` uses the bool only to choose a *command string*,
+ * leaving the field false on both branches. So the flag the collectors compute
+ * and the renderer draws had no test tying it to a decision, and the guard
+ * ignored it for as long as it has existed.
+ */
+
+/// A row shaped the way a collector builds one when it could not resolve a name
+/// at all: the flag set, and a synthetic placeholder where the command goes.
+fn unnamed(pid: i32) -> ProcessSample {
+    ProcessSample {
+        command: format!("pid {pid}"),
+        protected: true,
+        // The same branch that cannot name the process cannot read its start
+        // time either, which is what makes the placeholder unverifiable.
+        start_time: StartTime::Unreadable,
+        ..sample(pid)
+    }
+}
+
+#[test]
+fn i14_a_process_that_could_not_be_named_is_refused() {
+    let check = check_kill(&unnamed(4242), &ctx(1234, &[(4242, 1), (1234, 1)]), None);
+    assert!(
+        !check.is_allowed(),
+        "a row the collector could not identify must not be signalled: {check:?}"
+    );
+    assert_eq!(
+        check.refusal().map(|r| r.kind),
+        Some(RefusalKind::Protected)
+    );
+}
+
+#[test]
+fn i14_the_refusal_names_the_real_cause_not_a_recycled_pid() {
+    // I-16's rule applied to I-14: "could not identify" and "has been reused"
+    // are different facts and must not share a sentence.
+    let check = check_kill(&unnamed(4242), &ctx(1234, &[(4242, 1), (1234, 1)]), None);
+    let message = &check.refusal().expect("refused").message;
+    assert!(
+        message.contains("could not be identified"),
+        "the refusal should name the real cause, got: {message}"
+    );
+}
+
+#[test]
+fn i14_an_unnamed_process_is_refused_at_signal_time_too() {
+    // Not just the modal: the path that actually signals must refuse as well.
+    let mut spy = SpyKiller::default();
+    let out = send_signal(
+        SignalRequest {
+            target: &unnamed(4242),
+            signal: Signal::Kill,
+            ctx: &ctx(1234, &[(4242, 1), (1234, 1)]),
+            live: LiveIdentity::Known(StartTime::Unreadable),
+        },
+        &mut spy,
+    );
+    assert!(matches!(out, KillOutcome::Refused(_)), "{out:?}");
+    assert!(spy.calls.is_empty(), "a refusal must emit no signal");
+}
+
+#[test]
+fn i14_the_guard_and_the_marker_agree_on_every_protected_name() {
+    /*
+     * The bug this catches: `is_protected_name` consulted the macOS list
+     * unconditionally, so on Linux every name in LINUX_PROTECTED_NAMES drew the
+     * `!` marker and was then signalled anyway. Whatever this platform's list
+     * is, the guard must refuse every name on it.
+     */
+    for name in sysmon_core::kill::guards::protected_names() {
+        let target = named(4242, &format!("/usr/bin/{name}"));
+        let check = check_kill(&target, &ctx(1234, &[(4242, 1), (1234, 1)]), None);
+        assert!(
+            !check.is_allowed(),
+            "{name} is on this platform's protected list but the guard allowed it"
+        );
+    }
+}

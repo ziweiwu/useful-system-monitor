@@ -1,7 +1,8 @@
 //! `useful-system-monitor`, in Rust.
 //!
-//! Built in parallel with the shipping TypeScript build; it takes over the npm
-//! `bin` only at proven parity. See the plan and `POST-CUTOVER.md`.
+//! This is what the npm `bin` runs as of 0.10.0. The TypeScript build is still
+//! in the repository and still tested; it is no longer what a user runs. See
+//! `POST-CUTOVER.md` for the behaviour deliberately left unchanged by the port.
 
 use std::process::ExitCode;
 

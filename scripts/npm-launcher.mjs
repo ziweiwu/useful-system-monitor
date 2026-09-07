@@ -3,9 +3,10 @@
  * The `bin` the npm package will point at once the Rust build takes over.
  *
  * It resolves whichever per-platform package npm actually installed and hands
- * control to the binary inside it. **Not yet wired up**: `package.json`'s `bin`
- * still points at `dist/cli.js`, because switching it is the cutover and the
- * cutover happens at proven parity, not when the mechanism first works.
+ * control to the binary inside it. This **is** the `bin` as of 0.10.0; the
+ * per-platform packages are declared as `optionalDependencies` on the published
+ * package.json, which is written at release time (see
+ * scripts/apply-optional-deps.mjs).
  *
  * Three details that are easy to get wrong and expensive to get wrong:
  *

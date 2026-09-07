@@ -353,9 +353,15 @@ fn absorb_rest(ui: &mut UiState, app: &mut AppData, msg: Msg, handles: &supervis
             app.record_processes();
         }
         Msg::CommandLine(c) => app.command_line = c,
-        Msg::Killed { text, bad } => {
+        Msg::Killed { pid, text, bad } => {
             toast(ui, text, if bad { Tone::Bad } else { Tone::Ok }, now_ms());
             ui.mode = Mode::Normal;
+            // A kill that went through is news the collector cannot get any
+            // other way in `--mock`; the platform collectors ignore it and
+            // learn the same thing from the refresh below.
+            if !bad {
+                handles.note_killed(pid);
+            }
             handles.refresh_all();
         }
         Msg::Host(_) | Msg::Cpu(_) | Msg::Memory(_) | Msg::Disk(_) => {

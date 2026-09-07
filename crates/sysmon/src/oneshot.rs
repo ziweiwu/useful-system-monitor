@@ -56,6 +56,7 @@ pub fn run(options: &Options) -> Result<(), String> {
         battery,
         procs,
         ranked,
+        mock: options.mock,
     };
     let text = if options.json {
         json_document(&sample)?
@@ -74,6 +75,8 @@ struct Sample {
     battery: sysmon_core::domain::types::BatteryData,
     procs: crate::collect::ProcessesData,
     ranked: Vec<sysmon_core::domain::types::ProcessSample>,
+    /// Whether these numbers came from `--mock`.
+    mock: bool,
 }
 
 /// JSON gets the whole working set: a consumer that wants ten rows sorted by
@@ -90,6 +93,7 @@ fn json_document(sample: &Sample) -> Result<String, String> {
         others: (&sample.procs.others).into(),
         total: sample.procs.total,
         energy_accurate: sample.procs.energy_accurate,
+        mock: sample.mock,
     };
     serde_json::to_string_pretty(&doc).map_err(|e| e.to_string())
 }

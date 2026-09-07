@@ -72,14 +72,6 @@ pub struct InputContext<'a> {
     pub now_ms: i64,
 }
 
-/// How long a confirmation must have been on screen before it will accept the
-/// key that acts on it.
-///
-/// Comfortably below a human double-tap and far above a terminal's chunk
-/// delivery, so it costs a deliberate user nothing and stops a paste that
-/// straddles two drains.
-pub const CONFIRM_SETTLE_MS: i64 = 200;
-
 /// Apply one key.
 ///
 /// # The hazard this handles, which Rust makes *worse*
@@ -91,16 +83,14 @@ pub const CONFIRM_SETTLE_MS: i64 = 200;
 ///
 /// crossterm delivers discrete key events. A correct synchronous reducer would
 /// therefore see two `k`s, arm SIGKILL and fire it, from one paste. So the
-/// protection has to be made explicit, and it is, in four layers:
+/// protection has to be made explicit, and it is, in three layers:
 ///
 /// 1. Bracketed paste, handled by the caller: pasted text arrives as a distinct
 ///    event and is only accepted in filter mode.
 /// 2. **Batch identity** — a confirm key is refused when it arrived in the same
 ///    burst that opened the mode. Timing-free, so the fuzzer can drive it
 ///    deterministically with no sleeps.
-/// 3. **Settle time** — [`CONFIRM_SETTLE_MS`] since the mode was entered, for a
-///    large paste that straddles two drains.
-/// 4. **The plan-gated confirm** — the caller passes `kill_modal_drawn`, which
+/// 3. **The plan-gated confirm** — the caller passes `kill_modal_drawn`, which
 ///    is true only if the confirmation was in the *last frame actually drawn*.
 ///    This is I-15 ("a kill is confirmed by name, on screen") expressed
 ///    mechanically rather than by remembering to check the terminal size, and
@@ -171,8 +161,8 @@ pub fn reduce(state: &UiState, ev: KeyEvent, ctx: &InputContext<'_>) -> (UiState
             if !ctx.kill_allowed || !ctx.kill_modal_drawn {
                 return (s, fx);
             }
-            // Layers 2 and 3: the key must come from a later burst than the one
-            // that opened the mode, and the mode must have settled.
+            // Layer 2: the key must come from a later burst than the one that
+            // opened the mode.
             let same_burst = ev.batch <= s.mode_entered_batch;
             if same_burst {
                 return (s, fx);

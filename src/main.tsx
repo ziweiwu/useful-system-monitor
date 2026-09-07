@@ -18,7 +18,7 @@ import { App } from './app.js';
    from both `src/cli.tsx` and the compiled `dist/cli.js`. */
 const VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
-const HELP = `useful-system-monitor — see what's using up your Mac, from the terminal
+const HELP = `useful-system-monitor — see what's using up your machine, from the terminal
 
 Usage
   useful-system-monitor [options]
@@ -46,6 +46,12 @@ Keys (dashboard)
   enter        details            k       close the selected app
   /            search             c m e   sort by cpu, memory, energy
   r            refresh now        q       quit
+
+Markers
+  Every state is readable without colour, so the glyphs carry the meaning:
+  ^  charging          =  plugged in, holding      v  running on battery
+  !  protected process, or a volume worth attention
+  >  the selected row  —  never measured, which is not the same as zero
 
 Examples
   useful-system-monitor                        open the dashboard

@@ -123,6 +123,14 @@ pub struct JsonOutput {
     pub others: OthersJson,
     pub total: usize,
     pub energy_accurate: bool,
+    /// Whether these numbers are scripted.
+    ///
+    /// The dashboard says so in its header, for the reason AGENTS.md gives: a
+    /// screen of invented numbers that looks exactly like one of real numbers
+    /// is a trap, and it outlives the terminal it was captured in. A consumer
+    /// piping `--json` had no equivalent, so a script pointed at `--mock` by
+    /// accident could not tell.
+    pub mock: bool,
 }
 
 impl From<&CpuData> for CpuJson {

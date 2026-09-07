@@ -152,6 +152,10 @@ pub fn row(sample: &ProcessSample, place: &RowPlace, ctx: &TableContext, writer:
         spans.extend(energy_cells(p, watts, unit));
     }
     if cols.user > 0 {
+        // The header writes two spaces before USER; without the same gap here
+        // the energy figure and the owner ran together as "0.6Wziweiwu" at
+        // every width. Not an overflow, so no width test could see it.
+        spans.push(plain("  ".to_string()));
         spans.push(user_cell(p, cols.user, emphasis));
     }
 

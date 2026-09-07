@@ -110,16 +110,33 @@ pub enum Msg {
     CommandLine(Option<String>),
     /// The outcome of a kill the user asked for.
     Killed {
+        /// The process that was signalled, so the mock collector can be told.
+        pid: i32,
         text: String,
         bad: bool,
     },
 }
 
 /// What the main thread can ask a collector to do out of band.
+impl Cmd {
+    /// For the `unreachable!` on the tiers that never receive these.
+    fn name(&self) -> &'static str {
+        match self {
+            Cmd::RefreshNow => "RefreshNow",
+            Cmd::SetCap(_) => "SetCap",
+            Cmd::NoteKilled(_) => "NoteKilled",
+            Cmd::Shutdown => "Shutdown",
+        }
+    }
+}
+
 pub enum Cmd {
     /// Sample now, ahead of the tier — and **without** disturbing its phase.
     RefreshNow,
     SetCap(WorkingSetCap),
+    /// A PID was signalled. Only the mock acts on it; the platform collectors
+    /// find out by resampling.
+    NoteKilled(i32),
     Shutdown,
 }
 
@@ -242,7 +259,7 @@ where
                     Ok(Cmd::Shutdown) | Err(RecvTimeoutError::Disconnected) => return,
                     // Out of band, so the phase is deliberately not moved.
                     Ok(Cmd::RefreshNow) => sample(),
-                    Ok(Cmd::SetCap(_)) => unreachable!("only the process tier takes a cap"),
+                    Ok(other) => unreachable!("{} is the process tier's", other.name()),
                     Err(RecvTimeoutError::Timeout) => on_tick(&mut sample, &mut schedule),
                 }
             }
@@ -279,6 +296,13 @@ impl Handles {
     /// band, shortening one delta window and printing a bogus reading. See I-4.
     pub fn set_cap(&self, cap: WorkingSetCap) {
         let _ = self.processes.send(Cmd::SetCap(cap));
+        let _ = self.processes.send(Cmd::RefreshNow);
+    }
+
+    /// Tell the process tier a kill went through, so `--mock` can drop the row
+    /// it just confirmed closing.
+    pub fn note_killed(&self, pid: i32) {
+        let _ = self.processes.send(Cmd::NoteKilled(pid));
         let _ = self.processes.send(Cmd::RefreshNow);
     }
 
@@ -355,6 +379,7 @@ fn process_loop(
         match commands.recv_timeout(schedule.wait()) {
             Ok(Cmd::Shutdown) | Err(RecvTimeoutError::Disconnected) => return,
             Ok(Cmd::SetCap(v)) => cap = v,
+            Ok(Cmd::NoteKilled(pid)) => collector.note_killed(pid),
             Ok(Cmd::RefreshNow) => take(collector, cap),
             Err(RecvTimeoutError::Timeout) => on_tick(&mut || take(collector, cap), &mut schedule),
         }
@@ -536,8 +561,21 @@ pub struct KillRequest {
 ///
 /// "Could not check" is not "gone". Conflating them told users a very much
 /// alive process had already exited. See I-16.
-fn read_identity(pid: i32) -> LiveIdentity {
-    match Collector::new(false).and_then(|c| c.identity(pid).map_err(|e| e.to_string())) {
+fn read_identity(pid: i32, collectors: CollectorKind) -> LiveIdentity {
+    /*
+     * Built from `collectors`, not hardcoded to the live one. Reading the real
+     * process table here while `--mock` drew the row meant the identity check
+     * compared a scripted PID against whatever the host happened to be running:
+     * mock PIDs land in 400..1233, so the answer was "already exited" or
+     * "recycled" depending on the machine, and the success path was
+     * unreachable. The mode advertised as safe to try has to actually be the
+     * mode being exercised.
+     */
+    let source = match collectors {
+        CollectorKind::Mock => Collector::mock(),
+        CollectorKind::Live => Collector::new(false),
+    };
+    match source.and_then(|c| c.identity(pid).map_err(|e| e.to_string())) {
         Ok(Identity::Known(start)) => LiveIdentity::Known(start),
         Ok(Identity::Gone) => LiveIdentity::Gone,
         Err(_) => LiveIdentity::Unverifiable,
@@ -559,7 +597,7 @@ pub fn spawn_kill(outbox: Sender<Msg>, request: KillRequest, collectors: Collect
     std::thread::Builder::new()
         .name("sysmon-kill".into())
         .spawn(move || {
-            let live = read_identity(target.pid);
+            let live = read_identity(target.pid, collectors);
             let ctx = GuardContext {
                 self_pid: std::process::id() as i32,
                 parents,
@@ -583,7 +621,11 @@ pub fn spawn_kill(outbox: Sender<Msg>, request: KillRequest, collectors: Collect
                 KillOutcome::Refused(r) => (r.message, true),
                 KillOutcome::Failed(e) => (e, true),
             };
-            let _ = outbox.send(Msg::Killed { text, bad });
+            let _ = outbox.send(Msg::Killed {
+                pid: target.pid,
+                text,
+                bad,
+            });
         })
         .ok();
 }

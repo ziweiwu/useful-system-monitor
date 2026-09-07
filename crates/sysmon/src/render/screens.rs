@@ -1250,29 +1250,58 @@ pub fn kill_modal(target: &ProcessSample, screen: &Screen) -> Vec<Line<'static>>
             w.push(Line::from(dim("esc back")));
         }
         KillCheck::Allowed(_) => {
+            /*
+             * Priority order, not source order — and the legend outranks the
+             * stats, because the legend is the only thing that shows whether
+             * SIGKILL is armed.
+             *
+             * `RowWriter::push` drops silently once the budget is spent, so
+             * writing these in reading order meant that between 10 and 13 rows
+             * the `t`/`k`/`esc` lines fell off the bottom. The armed frame was
+             * then byte-identical to the unarmed one: a user pressed k, saw
+             * nothing change, pressed again, and force-closed the process. That
+             * is I-15's own rule — a confirmation you cannot see is not a
+             * confirmation — failing one size class above where it was first
+             * fixed. The `Refused` branch already reserves room for `esc back`;
+             * this is the same reservation on the branch that can actually
+             * signal.
+             */
+            const LEGEND_ROWS: usize = 3;
+
             w.push(Line::from(bold("CLOSE THIS APP?", theme::CPU_MID)));
-            w.blank();
             // The name is the confirmation. See I-15.
             w.push(Line::from(bold(
                 truncate(&process_name(&target.command), width),
                 theme::HEADLINE,
             )));
-            w.push(Line::from(dim(format!(
-                "pid {}  owner {}  parent {}",
-                target.pid, target.user, target.ppid
-            ))));
-            w.push(Line::from(dim(format!(
-                "cpu {}   memory {}   energy {}",
-                percent(target.cpu_percent, 1),
-                bytes(target.rss_bytes),
-                percent(target.energy, 1)
-            ))));
-            w.blank();
-            w.push(Line::from(dim(format!(
-                "closing it reclaims about {}",
-                bytes(target.rss_bytes)
-            ))));
-            w.blank();
+
+            /* Detail, in the order it is given up: the list is truncated from
+            the end, so the trailing blank goes before the note, and the note
+            before the numbers. */
+            let optional: Vec<Line<'static>> = vec![
+                Line::from(""),
+                Line::from(dim(format!(
+                    "pid {}  owner {}  parent {}",
+                    target.pid, target.user, target.ppid
+                ))),
+                Line::from(dim(format!(
+                    "cpu {}   memory {}   energy {}",
+                    percent(target.cpu_percent, 1),
+                    bytes(target.rss_bytes),
+                    percent(target.energy, 1)
+                ))),
+                Line::from(""),
+                Line::from(dim(format!(
+                    "closing it reclaims about {}",
+                    bytes(target.rss_bytes)
+                ))),
+                Line::from(""),
+            ];
+            let spare = w.remaining().saturating_sub(LEGEND_ROWS);
+            for line in optional.into_iter().take(spare) {
+                w.push(line);
+            }
+
             w.push(Line::from(vec![
                 span("t", theme::CPU_MID),
                 dim("  ask it to close (SIGTERM)".to_string()),

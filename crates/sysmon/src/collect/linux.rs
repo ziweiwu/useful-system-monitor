@@ -17,10 +17,10 @@ use sysmon_core::domain::types::{
     StartTime, VolumeUsage,
 };
 use sysmon_core::domain::working_set::{select_working_set, WorkingSetCap};
-use sysmon_core::kill::guards::process_name;
+use sysmon_core::kill::guards::is_protected_name;
 use sysmon_core::parse::linux::{
     parse_meminfo, parse_mounts, parse_power_supply, parse_proc_pid_stat,
-    parse_proc_pid_status_uid, parse_proc_stat, Mount, LINUX_PROTECTED_NAMES,
+    parse_proc_pid_status_uid, parse_proc_stat, Mount,
 };
 
 use crate::collect::{Identity, ProcessesData};
@@ -322,7 +322,9 @@ impl LinuxCollector {
             // there is one.
             energy: energy_proxy(cpu_percent),
             protected: meta
-                .is_none_or(|_| LINUX_PROTECTED_NAMES.contains(&process_name(&command).as_str())),
+                // The same predicate the guard uses, so the `!` marker and the
+                // refusal cannot disagree.
+                .is_none_or(|_| is_protected_name(&command)),
             command,
         }
     }

@@ -272,9 +272,18 @@ impl MockCollector {
     }
 
     pub fn command_line(&self, pid: i32) -> Option<String> {
+        /*
+         * Keyed on the row's index, the way `mock_process` names it — not on
+         * the pid. Since `pid = FIRST_MOCK_PID + index * PID_STRIDE`, the two
+         * moduli almost never agree, so the detail panel used to name a
+         * different app than the row it was opened from. In the one mode that
+         * exists so people can try the kill flow safely, that undercuts the
+         * premise the flow rests on: that the name on screen is the process.
+         */
+        let index = (pid - FIRST_MOCK_PID).max(0) / PID_STRIDE;
         Some(format!(
             "{} --mock --pid={pid}",
-            NAMES[(pid as usize) % NAMES.len()]
+            NAMES[(index as usize) % NAMES.len()]
         ))
     }
 

@@ -500,3 +500,123 @@ fn i11_a_failed_collector_degrades_only_its_own_panel() {
         }
     }
 }
+
+/*
+ * I-15 at a short terminal.
+ *
+ * The kill modal wrote its lines in reading order and RowWriter drops silently
+ * once the budget is spent, so between 10 and 13 rows the `t`/`k`/`esc` legend
+ * fell off the bottom. The armed frame was then byte-identical to the unarmed
+ * one, and a user who pressed k, saw nothing, and pressed again force-closed
+ * the process. These pin both halves: the legend survives every drawable
+ * height, and arming is always visible.
+ */
+/// Whether SIGKILL has been armed by a first `k`.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Armed {
+    Yes,
+    No,
+}
+
+fn kill_frame(rows: usize, armed: Armed) -> String {
+    let app = fixture(Populated::Yes);
+    let target = render::visible_rows(&app, &UiState::default())[0].pid;
+    let ui = UiState {
+        mode: Mode::Kill(target),
+        selected_pid: Some(target),
+        armed_kill: armed == Armed::Yes,
+        ..UiState::default()
+    };
+    let size = Size { columns: 50, rows };
+    render::build(&app, &ui, size, NOW)
+        .lines
+        .iter()
+        .map(|l| {
+            l.spans
+                .iter()
+                .map(|s| s.content.as_ref())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn i15_the_kill_legend_survives_every_drawable_height() {
+    for rows in MIN_ROWS..=40 {
+        let frame = kill_frame(rows, Armed::No);
+        assert!(
+            frame.contains("esc  cancel"),
+            "at 50x{rows} the confirmation lost the key legend:\n{frame}"
+        );
+    }
+}
+
+#[test]
+fn i15_arming_sigkill_is_visible_at_every_drawable_height() {
+    for rows in MIN_ROWS..=40 {
+        let unarmed = kill_frame(rows, Armed::No);
+        let armed = kill_frame(rows, Armed::Yes);
+        assert_ne!(
+            unarmed, armed,
+            "at 50x{rows} the armed confirmation is byte-identical to the unarmed one, \
+             so a second k looks like it did nothing"
+        );
+        assert!(
+            armed.contains("press again to force close"),
+            "at 50x{rows} the armed state is not stated:\n{armed}"
+        );
+    }
+}
+
+#[test]
+fn i26_a_populated_row_never_overflows_at_any_width() {
+    // The USER column only appears once the terminal is wide enough, so a sweep
+    // that stops at the narrow sizes never sees the row shape that carries it.
+    let app = fixture(Populated::Yes);
+    for columns in 50..200 {
+        let size = Size { columns, rows: 40 };
+        let frame = render::build(&app, &UiState::default(), size, NOW);
+        for (i, line) in frame.lines.iter().enumerate() {
+            let cells: usize = line
+                .spans
+                .iter()
+                .map(|s| sysmon_core::text::width::display_width(&s.content))
+                .sum();
+            assert!(
+                cells <= columns,
+                "line {i} is {cells} cells in a {columns}-column terminal"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_user_column_is_separated_from_the_energy_figure() {
+    // "0.6Wziweiwu" — the header wrote two spaces before USER and the row did
+    // not, so the two ran together at every width that showed both.
+    let app = fixture(Populated::Yes);
+    let size = Size {
+        columns: 140,
+        rows: 40,
+    };
+    let frame = render::build(&app, &UiState::default(), size, NOW);
+    let text: Vec<String> = frame
+        .lines
+        .iter()
+        .map(|l| {
+            l.spans
+                .iter()
+                .map(|s| s.content.as_ref())
+                .collect::<String>()
+        })
+        .collect();
+    let rows: Vec<&String> = text.iter().filter(|l| l.contains("ziweiwu")).collect();
+    assert!(!rows.is_empty(), "no populated rows to check:\n{text:#?}");
+    for row in rows {
+        assert!(
+            !row.contains("Wziweiwu") && !row.contains("%ziweiwu"),
+            "the owner is glued to the figure before it: {row:?}"
+        );
+    }
+}

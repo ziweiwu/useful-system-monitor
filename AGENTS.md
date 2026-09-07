@@ -229,7 +229,7 @@ run short enough to sit through:
 - **crossterm delivers discrete key events; Ink coalesced a burst into one
   string.** A pasted `"kk"` matched no Ink binding and did nothing, so the
   second-press rule for SIGKILL was protected *by accident*. In Rust it has to
-  be stated: batch identity, a settle time, and a confirm that is gated on the
+  be stated: batch identity, and a confirm that is gated on the
   confirmation being in the **last frame actually drawn**.
 - **`--mock` must not reach `kill(2)`.** The scripted PIDs are small integers
   and some of them are real processes, so mock mode swaps in a killer that

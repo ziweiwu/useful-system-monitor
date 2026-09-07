@@ -175,7 +175,7 @@ pub fn build(app: &AppData, ui: &UiState, size: Size, now_ms: i64) -> Frame {
     out.extend(body);
 
     push_toast(&mut out, ui, width);
-    seal(&mut out, size, width);
+    seal(&mut out, ui, size, width);
 
     Frame {
         lines: out,
@@ -232,12 +232,24 @@ fn row_budgets(ui: &UiState, size: Size) -> (usize, usize) {
 
 /// Pad to the bottom, then the footer, so the legend always sits on the last
 /// line rather than floating under a short screen.
-fn seal(out: &mut Vec<Line<'static>>, size: Size, width: usize) {
+fn seal(out: &mut Vec<Line<'static>>, ui: &UiState, size: Size, width: usize) {
     while out.len() + 1 < size.rows {
         out.push(Line::from(""));
     }
     out.truncate(size.rows.saturating_sub(1));
-    out.push(footer(width));
+    /*
+     * A full-screen mode draws its own legend, so the dashboard's would be a
+     * second, contradicting one on the same screen. Inside the kill
+     * confirmation the generic strip reads "k kill", which in that context is
+     * the already-armed *force* close — the opposite of a safe reading. The
+     * modes keep the brand line instead, so the bottom row is still occupied
+     * and nothing shifts.
+     */
+    out.push(if ui.mode.hides_dashboard() {
+        Line::from(dim(truncate(BRAND, width)))
+    } else {
+        footer(width)
+    });
 }
 
 /// The dashboard, or whichever full-screen mode has replaced it.
@@ -330,11 +342,25 @@ fn header(app: &AppData, width: usize, now_ms: i64) -> Line<'static> {
         }
         _ => "detecting hardware…".to_string(),
     };
-    let left = format!(
-        "{BRAND} {hardware}{}",
-        if app.mock { "  [MOCK DATA]" } else { "" }
-    );
+    /*
+     * The mock marker is reserved before the hardware string is fitted, not
+     * appended after it.
+     *
+     * Appending put it last in a flat truncate, so it was the first thing a
+     * narrow terminal dropped — gone at every width below 79, which includes
+     * the 80-column baseline once the clock is subtracted. AGENTS.md calls the
+     * marker a real feature, because a dashboard of invented numbers that looks
+     * exactly like one of real numbers is a trap and screenshots outlive the
+     * terminal they were taken in. A trap that disappears when the window is
+     * narrow is worse than one that never existed.
+     */
+    let marker = if app.mock { "  [MOCK DATA]" } else { "" };
     let gap = width.saturating_sub(display_width(&right));
+    let for_hardware = gap.saturating_sub(display_width(marker));
+    let left = format!(
+        "{}{marker}",
+        truncate(&format!("{BRAND} {hardware}"), for_hardware)
+    );
     Line::from(vec![
         bold(pad_end(&truncate(&left, gap), gap), theme::HEADLINE),
         dim(right),

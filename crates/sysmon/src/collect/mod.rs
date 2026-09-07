@@ -104,6 +104,18 @@ impl Collector {
     pub fn command_line(&self, pid: i32) -> Option<String> {
         dispatch!(self, command_line, pid)
     }
+
+    /// Tell the collector a PID was signalled.
+    ///
+    /// A no-op for the platform collectors, which find out by resampling. The
+    /// mock has no kernel to ask, so this is the only way its next sample can
+    /// reflect a kill the user actually performed — without it, `--mock`
+    /// confirms a close and the row stays put forever.
+    pub fn note_killed(&mut self, pid: i32) {
+        if let Collector::Mock(c) = self {
+            c.simulate_kill(pid);
+        }
+    }
 }
 
 /// Everything one `processes()` call produces.

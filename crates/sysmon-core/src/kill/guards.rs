@@ -122,8 +122,26 @@ pub fn process_name(command: &str) -> String {
     sanitize_text(base).into_owned()
 }
 
+/// The names *this* platform refuses to signal.
+///
+/// Resolved at compile time, because the two lists are separately reviewed and
+/// a binary built for one platform is never handed the other's process table.
+/// Before this existed the guard consulted the macOS list unconditionally,
+/// which meant every name in `LINUX_PROTECTED_NAMES` — Xorg, gnome-shell,
+/// sshd, the systemd services — drew the `!` marker and was then signalled
+/// anyway. See I-14.
+#[cfg(target_os = "linux")]
+pub fn protected_names() -> &'static [&'static str] {
+    &crate::parse::linux::LINUX_PROTECTED_NAMES
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn protected_names() -> &'static [&'static str] {
+    &PROTECTED_NAMES
+}
+
 pub fn is_protected_name(command: &str) -> bool {
-    PROTECTED_NAMES.contains(&process_name(command).as_str())
+    protected_names().contains(&process_name(command).as_str())
 }
 
 pub struct GuardContext {
@@ -247,6 +265,25 @@ fn lineage_checks(target: &ProcessSample, ctx: &GuardContext) -> Option<KillRefu
             format!(
                 "{} is a critical system process — killing it would log you out or wedge the UI.",
                 process_name(&target.command)
+            ),
+        ));
+    }
+    /*
+     * I-14, and the reason the guard reads the flag rather than only
+     * re-deriving from the name: a collector sets `protected` when it could not
+     * resolve a name for the row *at all*, and then fills `command` with a
+     * synthetic "pid N" placeholder. Re-deriving from that string can only ever
+     * say "not protected", so the one case I-14 exists for — refusing to signal
+     * something we cannot identify — was the one case that got through. The
+     * marker the user sees and the decision the guard makes now read the same
+     * field.
+     */
+    if target.protected {
+        return Some(refusal(
+            RefusalKind::Protected,
+            format!(
+                "PID {} could not be identified, so {BRAND} will not signal it. Press r to refresh.",
+                target.pid
             ),
         ));
     }
