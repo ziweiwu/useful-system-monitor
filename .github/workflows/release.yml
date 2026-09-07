@@ -39,9 +39,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
-      - uses: Swatinem/rust-cache@v2
+      # actions/cache rather than a third-party Rust cache action: this repo's
+      # Actions policy allows GitHub-owned actions only, and widening it for a
+      # build cache is not a trade worth making.
+      - uses: actions/cache@v6
         with:
-          key: release-${{ matrix.target }}
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ matrix.target }}-
 
       - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
         env:
