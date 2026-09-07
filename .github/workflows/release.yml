@@ -159,7 +159,11 @@ jobs:
       - name: Publish the binaries
         run: |
           set -euo pipefail
-          for dir in npm/useful-system-monitor-*; do
+          for dir in ./npm/useful-system-monitor-*/; do
+            # The `./` is load-bearing: `npm publish npm/useful-system-monitor-…`
+            # reads as the GitHub `owner/repo` shorthand, so npm tried to fetch
+            # `github:npm/useful-system-monitor-darwin-arm64` and failed with
+            # EALLOWGIT instead of publishing the directory sitting right there.
             echo "publishing $dir"
             npm publish --access public "$dir"
           done
