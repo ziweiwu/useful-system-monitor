@@ -141,6 +141,17 @@ jobs:
       - name: Assemble the per-platform packages
         run: npm run build:npm-packages
 
+      # The four binary packages are pinned exactly, so they can only appear in
+      # a lockfile once those versions exist on the registry — which they do not
+      # until this run publishes them. Committing them would break `npm ci` for
+      # every contributor on a version that is not out yet, so they are written
+      # in here instead, and the version check is re-run to prove the pins match
+      # what is about to be published.
+      - name: Declare the binary packages
+        run: |
+          npm run apply:optional-deps
+          npm run verify:versions
+
       # The platform packages go first, and the failure mode if they did not is
       # the reason: the main package declares them as optionalDependencies at an
       # exact version, so publishing it first would leave a window in which

@@ -7,6 +7,7 @@
     "useful-system-monitor": "scripts/npm-launcher.mjs"
   },
   "scripts": {
+    "apply:optional-deps": "node scripts/apply-optional-deps.mjs",
     "bench": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo build --release && npm run build && PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q --release -p sysmon-harness --bin bench -- --runs 9",
     "build": "tsc -p tsconfig.build.json",
     "build:npm-packages": "node scripts/build-npm-packages.mjs",
@@ -97,11 +98,5 @@
     "CHANGELOG.md",
     "LICENSE",
     "INVARIANTS.md"
-  ],
-  "optionalDependencies": {
-    "useful-system-monitor-darwin-arm64": "0.10.0",
-    "useful-system-monitor-darwin-x64": "0.10.0",
-    "useful-system-monitor-linux-arm64": "0.10.0",
-    "useful-system-monitor-linux-x64": "0.10.0"
-  }
+  ]
 }

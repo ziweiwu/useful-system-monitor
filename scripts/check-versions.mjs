@@ -1,5 +1,5 @@
 /*
- * package.json, the sysmon crate and the optionalDependencies must all carry
+ * package.json, the sysmon crate and any optionalDependencies must all carry
  * the same version.
  *
  * `--version` is the shape marker a consumer reads (I-25), and after the
@@ -12,7 +12,11 @@
  *
  * The optional dependencies are pinned to the exact version rather than a
  * range, so they need the same treatment: a stale pin resolves to the previous
- * release's binary and the launcher runs the wrong build without a word.
+ * release's binary and the launcher runs the wrong build without a word. They
+ * are absent from the committed package.json and injected at publish time (see
+ * scripts/apply-optional-deps.mjs), so this checks them when they are there and
+ * says so when they are not — running before and after the injection are both
+ * useful, and neither should be silently vacuous.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -42,4 +46,6 @@ if (problems.length) {
   process.stderr.write(`versions disagree:\n${problems.map((p) => `  ${p}\n`).join('')}`);
   process.exit(1);
 }
-process.stdout.write(`versions ok — ${pkg.version} in package.json, the crate and all four binaries\n`);
+const pins = Object.keys(pkg.optionalDependencies ?? {}).length;
+const where = pins ? `the crate and all ${pins} binary pins` : 'the crate (no binary pins yet)';
+process.stdout.write(`versions ok — ${pkg.version} in package.json and ${where}\n`);

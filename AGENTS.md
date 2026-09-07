@@ -109,6 +109,15 @@ tested; it is no longer what a user runs. Plan and phasing:
 Needs a Rust toolchain: `rust-toolchain.toml` pins stable with `rustfmt` and
 `clippy`, and the workspace sets `rust-version = "1.85"`.
 
+**The four binary packages are not in the committed `package.json`.** They are
+pinned to an exact version, so a lockfile can only carry them once those
+versions are on the registry — and they are not until the release that
+publishes them. Committing the stanza breaks `npm ci` for every contributor on
+a version that does not exist yet. `npm run build:npm-packages` writes it to
+`npm/optional-dependencies.json` and the release workflow applies it with `npm
+run apply:optional-deps` just before publishing. That is why the published
+package.json has four dependencies the repository's does not.
+
 **The version lives in two files and they must agree.** `package.json` is what
 the registry, the tag check and the launcher read; `crates/sysmon/Cargo.toml` is
 what `--version` actually prints, because it comes from the binary. `npm run
@@ -123,8 +132,9 @@ npm run verify:tui:rust      # the built binary really mounts and draws (I-22b)
 npm run verify:longrun:rust  # RSS flat across a long run (I-10b)
 npm run qa:fuzz:rust         # seeded keyboard fuzzing, ~4,500 steps/s
 npm run check:linux          # clippy against x86_64-unknown-linux-gnu
-npm run verify:versions      # package.json, the crate and the four pins agree
+npm run verify:versions      # package.json, the crate and any pins agree
 npm run build:npm-packages   # assemble the per-platform packages from target/
+npm run apply:optional-deps  # release-time only: write the pins into package.json
 ```
 
 CI runs `verify:versions` with the other cheap checks, a `rust` job (fmt,
