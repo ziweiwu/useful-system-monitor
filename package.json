@@ -1,19 +1,28 @@
 {
   "name": "useful-system-monitor",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "description": "See what's using up your Mac — and close the apps that are hogging it. CPU, memory, disk and battery at a glance, right in your terminal.",
   "type": "module",
   "bin": {
-    "useful-system-monitor": "dist/cli.js"
+    "useful-system-monitor": "scripts/npm-launcher.mjs"
   },
   "scripts": {
+    "apply:optional-deps": "node scripts/apply-optional-deps.mjs",
+    "bench": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo build --release && npm run build && PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q --release -p sysmon-harness --bin bench -- --runs 9",
     "build": "tsc -p tsconfig.build.json",
+    "build:npm-packages": "node scripts/build-npm-packages.mjs",
+    "check:linux": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo clippy --target x86_64-unknown-linux-gnu -p sysmon",
+    "gen:format-corpus": "tsx scripts/gen-format-corpus.ts",
+    "gen:lstart-corpus": "TZ=UTC tsx scripts/gen-lstart-corpus.ts",
+    "gen:options-corpus": "tsx scripts/gen-options-corpus.ts",
+    "gen:width-corpus": "tsx scripts/gen-width-corpus.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "mock": "tsx src/cli.ts --mock",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
+    "prepublishOnly": "npm run verify:versions && npm run lint && npm run typecheck && npm test",
     "qa:fuzz": "tsx scripts/qa-fuzz.tsx",
+    "qa:fuzz:rust": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q --release -p sysmon-harness --bin qa_fuzz -- --seeds 400 --steps 400",
     "screenshot": "FORCE_COLOR=3 tsx scripts/screenshot.tsx",
     "screenshot:svg": "FORCE_COLOR=3 COLS=100 ROWS=36 tsx scripts/gen-svg.tsx docs/screenshot.svg",
     "screenshot:svg:battery": "FORCE_COLOR=3 COLS=100 ROWS=30 tsx scripts/gen-svg.tsx docs/battery.svg 4",
@@ -21,12 +30,18 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "verify:diff": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo build && PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q -p sysmon-harness --bin diff -- --samples 5",
+    "verify:frames": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo build --release -p sysmon && npm run build && PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q --release -p sysmon-harness --bin frame_diff",
     "verify:kill": "tsx scripts/verify-kill.ts",
     "verify:layout": "tsx scripts/verify-layout.tsx",
     "verify:longrun": "tsx scripts/verify-longrun.tsx",
+    "verify:longrun:rust": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo build --release -p sysmon && PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q -p sysmon-harness --bin verify_longrun -- --secs 120",
+    "verify:rust": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo fmt --all --check && PATH=\"$HOME/.cargo/bin:$PATH\" cargo clippy --all-targets && PATH=\"$HOME/.cargo/bin:$PATH\" cargo test",
     "verify:selfcost": "tsx scripts/verify-selfcost.tsx",
     "verify:smoke": "bash scripts/smoke.sh",
     "verify:tui": "tsx scripts/verify-tui.ts",
+    "verify:tui:rust": "PATH=\"$HOME/.cargo/bin:$PATH\" cargo build && PATH=\"$HOME/.cargo/bin:$PATH\" cargo run -q -p sysmon-harness --bin verify_tui -- --mock",
+    "verify:versions": "node scripts/check-versions.mjs",
     "verify:workingset": "tsx scripts/verify-workingset.ts"
   },
   "dependencies": {
@@ -59,8 +74,8 @@
     "htop",
     "activity-monitor",
     "macos",
-    "ink",
-    "cli"
+    "cli",
+    "rust"
   ],
   "author": "Ziwei Wu (https://github.com/ziweiwu)",
   "license": "MIT",
@@ -73,10 +88,11 @@
     "url": "https://github.com/ziweiwu/useful-system-monitor/issues"
   },
   "os": [
-    "darwin"
+    "darwin",
+    "linux"
   ],
   "files": [
-    "dist",
+    "scripts/npm-launcher.mjs",
     "docs",
     "README.md",
     "CHANGELOG.md",

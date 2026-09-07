@@ -3,6 +3,80 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## 0.10.0
+
+The command is now a native binary. Same interface, same keys, same `--json`
+shape — the program behind them is a Rust rewrite.
+
+### Changed
+
+- **`useful-system-monitor` is a compiled binary, not a Node program.** npm is
+  still the delivery channel: installing resolves one small per-platform
+  package holding the binary, so a Mac downloads ~3.5 MB rather than all four
+  builds, and the lockfile covers the binary the way it covers everything else.
+  Node is needed to install, not to run.
+
+  What this buys, measured against 0.9.2: **~4 MB resident against ~60 MB**, and
+  startup in single-digit milliseconds rather than the ~90 ms Node itself costs
+  before any of our code runs. Sitting idle in a pane — the thing this app is
+  for — it holds flat.
+
+- **Linux is supported.** The collectors read `/proc`, `/sys/class/power_supply`
+  and `statvfs` there, and `os` now lists both platforms. `--energy=accurate`
+  stays macOS-only and is **rejected with exit 2** on Linux rather than quietly
+  serving the CPU-time estimate: one column carries one unit, or it says so
+  (I-1b, I-24).
+
+### Fixed
+
+- **On Linux, the guard consulted the macOS list of protected processes.** The
+  Linux list existed and drove the `!` marker, but nothing fed it to
+  `check_kill`, so `Xorg`, `gnome-shell`, `sshd`, `dbus-daemon` and the systemd
+  services were marked protected on screen and signalled anyway. The marker and
+  the guard now read the same predicate, and the guard also honours the
+  `protected` flag directly — which is what I-14 always said and what closes the
+  case of a process the collector could not name at all.
+- **The kill confirmation hid whether SIGKILL was armed, on terminals 10 to 13
+  rows tall.** The modal wrote its lines in reading order and the row budget
+  dropped the overflow silently, so the `t`/`k`/`esc` legend fell off and the
+  armed frame was byte-identical to the unarmed one: a second `k` looked like it
+  had done nothing, and a third force-closed the process. The legend now outranks
+  the statistics for the row budget, the way every other screen already worked.
+- **`--mock` could never complete a kill.** The identity re-read at signal time
+  used the real process table even in mock mode, so a scripted PID was compared
+  against whatever the host happened to be running and the answer was always
+  "already exited". The mode advertised as safe to try is now the mode actually
+  exercised, and a closed row disappears.
+- **`[MOCK DATA]` vanished below 79 columns**, taking the "these numbers are
+  invented" warning with it at exactly the widths where a screenshot is most
+  likely. It is now reserved before the hardware string is fitted.
+- The process table ran the energy figure and the owner together
+  (`0.6Wziweiwu`): the header wrote the two-space gap and the row did not.
+- `--mock`'s detail panel named a different process than the row it was opened
+  from, because the row and its command line were keyed on different numbers.
+- A full-screen mode no longer draws the dashboard's key legend underneath its
+  own — inside the kill confirmation that strip read "k kill" while `k` meant
+  force-close.
+
+### Added
+
+- `--json` carries a `mock` field, so a script can tell scripted numbers from
+  real ones. The dashboard has always said so in its header; the machine-readable
+  surface had no equivalent.
+- `--help` documents the glyphs (`^` `=` `v` `!` `>` `—`) that carry meaning
+  without colour.
+
+### Notes
+
+- The TypeScript implementation is still in the repo and still tested; it is no
+  longer what `bin` points at. `POST-CUTOVER.md` records the behaviour changes
+  deliberately deferred out of the port so that parity could be proven first.
+- The Linux `/proc` fixtures are hand-written from `proc(5)` rather than
+  captured from a running machine, and there is no Linux equivalent of the
+  macOS differential harness — the TypeScript build it compares against is
+  macOS-only. Linux is covered by unit tests, clippy and a build that runs;
+  treat it as newer than the macOS path.
+
 ## 0.9.2
 
 ### Fixed

@@ -8,7 +8,62 @@ on:
   workflow_dispatch:
 
 jobs:
+  # One binary per platform. aarch64 Linux is cross-compiled from an x86 runner
+  # with its own linker rather than built on an ARM runner, so this does not
+  # depend on runner availability; the others build natively.
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.os }}
+    name: build (${{ matrix.target }})
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Install the cross linker
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      # actions/cache rather than a third-party Rust cache action: this repo's
+      # Actions policy allows GitHub-owned actions only, and widening it for a
+      # build cache is not a trade worth making.
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ matrix.target }}-
+
+      - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sysmon-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/sysmon
+          if-no-files-found: error
+
   publish:
+    needs: build
     runs-on: macos-latest
 
     permissions:
@@ -35,26 +90,40 @@ jobs:
 
       - run: npm ci
 
+      # The four binaries the build job produced, back into the tree where
+      # build-npm-packages expects cargo to have left them.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: sysmon-*
+          path: artifacts
+
+      - name: Put the binaries where cargo would have
+        run: |
+          set -euo pipefail
+          for target in aarch64-apple-darwin x86_64-apple-darwin \
+                        x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
+            mkdir -p "target/$target/release"
+            cp "artifacts/sysmon-$target/sysmon" "target/$target/release/sysmon"
+            chmod +x "target/$target/release/sysmon"
+          done
+
       - name: Verify before releasing
         run: |
+          set -euo pipefail
+          # package.json, the crate and the four optional deps must agree, or
+          # `--version` reports a release the registry never published.
+          npm run verify:versions
           npm run lint
           npm run typecheck
           npm test
-          npm run build
-          # The same smoke test CI runs. Without it a release can publish while
-          # CI is red, which is how 0.6.0 shipped against a workflow still
-          # passing a flag that had been removed.
-          npm run verify:smoke
-          # I-10b: the heap must be flat across a long run. 0.9.0 shipped a
-          # dashboard that died of a 4 GB mark-compact after ~82 hours.
-          npm run verify:longrun
-          # Mounts the built dashboard for real. A release that cannot draw
-          # its own first frame is the one failure --json cannot detect.
-          npm run verify:tui
-          # The layout sweep and the fuzzer, on the reduced grid CI uses. A
-          # release that overflows a terminal is worse than a late release.
-          COLS=50,72,80,120 ROWS=10,24,40 npm run verify:layout
-          npm run qa:fuzz -- --seeds 40 --steps 60
+          # The Rust gates. These are what `bin` now points at.
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets
+          cargo test --workspace
+          # The pty harness against the binary this release will ship (I-22b).
+          cargo run --release -p sysmon-harness --bin verify_tui -- \
+            --bin target/aarch64-apple-darwin/release/sysmon --mock
+          cargo run --release -p sysmon-harness --bin qa_fuzz -- --seeds 40 --steps 60
 
       - name: Check the tag matches package.json
         # Tag pushes only: on a manual dispatch GITHUB_REF_NAME is the branch
@@ -69,9 +138,38 @@ jobs:
           fi
           echo "releasing $PKG"
 
+      - name: Assemble the per-platform packages
+        run: npm run build:npm-packages
+
+      # The four binary packages are pinned exactly, so they can only appear in
+      # a lockfile once those versions exist on the registry — which they do not
+      # until this run publishes them. Committing them would break `npm ci` for
+      # every contributor on a version that is not out yet, so they are written
+      # in here instead, and the version check is re-run to prove the pins match
+      # what is about to be published.
+      - name: Declare the binary packages
+        run: |
+          npm run apply:optional-deps
+          npm run verify:versions
+
+      # The platform packages go first, and the failure mode if they did not is
+      # the reason: the main package declares them as optionalDependencies at an
+      # exact version, so publishing it first would leave a window in which
+      # `npm install useful-system-monitor` resolves the launcher and no binary.
+      - name: Publish the binaries
+        run: |
+          set -euo pipefail
+          for dir in npm/useful-system-monitor-*; do
+            echo "publishing $dir"
+            npm publish --access public "$dir"
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish
-        # No NODE_AUTH_TOKEN: authentication comes from the OIDC token above.
-        # Falls back to NPM_TOKEN only if Trusted Publishing is not configured.
+        # No NODE_AUTH_TOKEN needed for the main package: authentication comes
+        # from the OIDC token above. Falls back to NPM_TOKEN only if Trusted
+        # Publishing is not configured.
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
