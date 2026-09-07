@@ -47,6 +47,27 @@ jobs:
       - name: Smoke test the built CLI
         run: npm run verify:smoke
 
+      # I-10b. `verify:smoke` above already answers the decisive question —
+      # which React build the binary actually evaluated — but only this one
+      # measures the consequence, and the bug it guards against was invisible
+      # to all 441 unit tests: nothing this repo owns was leaking. ~20s.
+      #
+      # One Node version: it measures allocation, not runtime behaviour. A
+      # loaded runner draws fewer frames per tick and so grows *less*, which
+      # makes the budget biased safe rather than flaky.
+      - name: Long-run heap check
+        if: matrix.node == 24
+        run: npm run verify:longrun
+
+      # The only check that mounts the dashboard from the built binary. The
+      # suite renders `App` with ink-testing-library, and `verify:smoke` runs
+      # --json, which returns before render() is reached -- so a build that
+      # loads but cannot mount passed everything else. One did: it drew six
+      # bytes and exited 0, and the heap check called it flat. ~12s.
+      - name: End-to-end TUI check
+        if: matrix.node == 24
+        run: npm run verify:tui
+
       # The two harnesses that found the 0.8.x and 0.9.0 layout bugs. On one
       # Node version only: they exercise rendering, not the runtime, so running
       # them twice buys nothing. A reduced grid keeps CI to about a minute —

@@ -1,3 +1,7 @@
+/*
+ * The dashboard entry, loaded by `cli.ts` — which is a launcher rather than
+ * this file's first few lines for a reason. See `core/prod-env.ts`.
+ */
 import { createRequire } from 'node:module';
 import { render } from 'ink';
 import { bytes, percent } from './core/format.js';
@@ -6,13 +10,12 @@ import { sortProcesses } from './core/scoring.js';
 import { DarwinProvider } from './providers/darwin/provider.js';
 import { MockProvider } from './providers/mock/provider.js';
 import { DEFAULT_TIERS, type MetricsProvider, type Tiers } from './providers/types.js';
-import type { ProcessSample } from './core/types.js';
 import { processName } from './kill/guards.js';
 import { App } from './app.js';
 
 /* Read at runtime rather than baked in at build time, so the version can never
    disagree with the package it was installed from. `../package.json` resolves
-   from both `src/main.tsx` and the compiled `dist/main.js`. */
+   from both `src/cli.tsx` and the compiled `dist/cli.js`. */
 const VERSION = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
 
 const HELP = `useful-system-monitor — see what's using up your Mac, from the terminal
@@ -69,17 +72,10 @@ Notes
    glance; `head` trims it further and --json ignores it entirely. */
 const TEXT_ROWS = 10;
 
-/* Long enough that ps's centisecond CPU column still quantises finely, short
-   enough that the summary is not noticeably slow. Mirrors PRIMING_DELAY in the
-   Rust build. */
-const PRIMING_DELAY_MS = 300;
-const MS_PER_SEC = 1000;
-
-/** One sample of everything, primed so CPU% is a real delta. */
-async function sampleAll(provider: MetricsProvider) {
+async function oneShot(provider: MetricsProvider, o: Options): Promise<number> {
   // Two samples are required: CPU% is always a delta, never a lifetime average.
   await provider.processes();
-  await new Promise((r) => setTimeout(r, PRIMING_DELAY_MS));
+  await new Promise((r) => setTimeout(r, 300));
   const [cpu, mem, disk, batt, procs] = await Promise.all([
     provider.cpu(),
     provider.memory(),
@@ -87,42 +83,41 @@ async function sampleAll(provider: MetricsProvider) {
     provider.battery(),
     provider.processes(),
   ]);
-  return { cpu, mem, disk, batt, procs };
-}
+  /* JSON gets the whole working set: a consumer that wants ten rows sorted by
+     memory has jq, and guessing on its behalf is what --top and --sort were. */
+  const ranked = sortProcesses(procs.visible, 'cpu');
+  const top = o.json ? ranked : ranked.slice(0, TEXT_ROWS);
 
-type Sample = Awaited<ReturnType<typeof sampleAll>>;
+  if (o.json) {
+    process.stdout.write(
+      JSON.stringify(
+        {
+          /* Named so a consumer can tell which shape it is reading. */
+          version: VERSION,
+          cpu: { system: cpu.system, perCore: cpu.perCore, loadAvg: cpu.loadAvg },
+          memory: mem,
+          disk,
+          battery: batt,
+          processes: top.map((p) => ({
+            pid: p.pid,
+            name: processName(p.command),
+            command: p.command,
+            user: p.user,
+            cpuPercent: p.cpuPercent,
+            rssBytes: p.rssBytes,
+            energy: p.energy,
+          })),
+          others: procs.others,
+          total: procs.total,
+          energyAccurate: procs.energyAccurate,
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+    return 0;
+  }
 
-/** The `--json` document. This shape is a public interface — see INVARIANTS. */
-function jsonDocument({ cpu, mem, disk, batt, procs }: Sample, top: ProcessSample[]): string {
-  return (
-    JSON.stringify(
-      {
-        /* Named so a consumer can tell which shape it is reading. */
-        version: VERSION,
-        cpu: { system: cpu.system, perCore: cpu.perCore, loadAvg: cpu.loadAvg },
-        memory: mem,
-        disk,
-        battery: batt,
-        processes: top.map((p) => ({
-          pid: p.pid,
-          name: processName(p.command),
-          command: p.command,
-          user: p.user,
-          cpuPercent: p.cpuPercent,
-          rssBytes: p.rssBytes,
-          energy: p.energy,
-        })),
-        others: procs.others,
-        total: procs.total,
-        energyAccurate: procs.energyAccurate,
-      },
-      null,
-      2,
-    ) + '\n'
-  );
-}
-
-function textReport({ cpu, mem, disk, batt }: Sample, top: ProcessSample[]): string {
   const lines = [
     `cpu ${cpu.system.toFixed(1)}%  mem ${((mem.usedBytes / mem.totalBytes) * 100).toFixed(1)}%` +
       `  disk ${((disk.usedBytes / disk.totalBytes) * 100).toFixed(0)}%` +
@@ -135,80 +130,8 @@ function textReport({ cpu, mem, disk, batt }: Sample, top: ProcessSample[]): str
       `${String(p.pid).padEnd(7)} ${percent(p.cpuPercent).padStart(5)}  ${bytes(p.rssBytes).padStart(6)}  ${processName(p.command)}`,
     );
   }
-  return lines.join('\n') + '\n';
-}
-
-async function oneShot(provider: MetricsProvider, options: Options): Promise<number> {
-  const sample = await sampleAll(provider);
-  /* JSON gets the whole working set: a consumer that wants ten rows sorted by
-     memory has jq, and guessing on its behalf is what --top and --sort were. */
-  const ranked = sortProcesses(sample.procs.visible, 'cpu');
-  const top = options.json ? ranked : ranked.slice(0, TEXT_ROWS);
-  process.stdout.write(options.json ? jsonDocument(sample, top) : textReport(sample, top));
+  process.stdout.write(lines.join('\n') + '\n');
   return 0;
-}
-
-/** The provider this platform can offer, or an explanation and an exit. */
-function chooseProvider(options: Options): MetricsProvider {
-  if (options.mock) return new MockProvider();
-  if (process.platform === 'darwin') {
-    return new DarwinProvider({ accurateEnergy: options.accurateEnergy });
-  }
-  // I-24: name the cause and the remedy rather than failing obscurely.
-  process.stderr.write(
-    `useful-system-monitor: only macOS is supported today (this is ${process.platform}).\n` +
-      '        Run `useful-system-monitor --mock` to see the interface with scripted data.\n',
-  );
-  process.exit(1);
-}
-
-/** `--interval` moves the three fast tiers together. */
-function tiersFor(options: Options): Tiers {
-  if (!options.interval) return DEFAULT_TIERS;
-  const ms = options.interval * MS_PER_SEC;
-  return {
-    ...DEFAULT_TIERS,
-    // The CPU tier drives the render rate, which dominates cost, so --interval
-    // has to move it too or the flag cannot buy responsiveness.
-    cpu: ms,
-    processes: ms,
-    memory: ms,
-  };
-}
-
-/** The two options that print and exit rather than sampling anything. */
-function printAndExit(options: Options): void {
-  if (options.help) {
-    process.stdout.write(HELP);
-    process.exit(0);
-  }
-  if (options.version) {
-    process.stdout.write(`${VERSION}\n`);
-    process.exit(0);
-  }
-}
-
-/*
- * I-22: no TUI unless we have a real terminal on BOTH ends.
- *
- * stdout alone is not enough. Ink's useInput needs raw mode on stdin, and when
- * stdin is a pipe or /dev/null (`useful-system-monitor < /dev/null`, or the
- * process backgrounded from a script) it throws "Raw mode is not supported" and
- * dies with a React stack trace. Falling back to one-shot output is both more
- * useful and more composable.
- */
-function wantsDashboard(options: Options): boolean {
-  const stdoutTty = Boolean(process.stdout.isTTY);
-  const stdinTty = Boolean(process.stdin.isTTY);
-  if (stdoutTty && stdinTty && !options.json) return true;
-  if (stdoutTty && !stdinTty && !options.json) {
-    // I-24: say why the dashboard did not appear, and how to get it.
-    process.stderr.write(
-      'useful-system-monitor: stdin is not a terminal, so the interactive dashboard is unavailable.\n' +
-        '        Showing a one-shot summary. Run it directly from a shell for the TUI.\n',
-    );
-  }
-  return false;
 }
 
 async function main(): Promise<void> {
@@ -224,14 +147,62 @@ async function main(): Promise<void> {
   }
   const o = parsed.options;
 
-  printAndExit(o);
-
-  const provider = chooseProvider(o);
-  if (!wantsDashboard(o)) {
-    process.exit(await oneShot(provider, o));
+  if (o.help) {
+    process.stdout.write(HELP);
+    process.exit(0);
   }
 
-  const tiers = tiersFor(o);
+  if (o.version) {
+    process.stdout.write(`${VERSION}\n`);
+    process.exit(0);
+  }
+
+  let provider: MetricsProvider;
+  if (o.mock) {
+    provider = new MockProvider();
+  } else if (process.platform === 'darwin') {
+    provider = new DarwinProvider({ accurateEnergy: o.accurateEnergy });
+  } else {
+    // I-24: name the cause and the remedy rather than failing obscurely.
+    process.stderr.write(
+      `useful-system-monitor: only macOS is supported today (this is ${process.platform}).\n` +
+        '        Run `useful-system-monitor --mock` to see the interface with scripted data.\n',
+    );
+    process.exit(1);
+  }
+
+  /*
+   * I-22: no TUI unless we have a real terminal on BOTH ends.
+   *
+   * stdout alone is not enough. Ink's useInput needs raw mode on stdin, and
+   * when stdin is a pipe or /dev/null (`useful-system-monitor < /dev/null`, or the process
+   * backgrounded from a script) it throws "Raw mode is not supported" and dies
+   * with a React stack trace. Falling back to one-shot output is both more
+   * useful and more composable.
+   */
+  const interactive = Boolean(process.stdout.isTTY) && Boolean(process.stdin.isTTY);
+  if (!interactive || o.json) {
+    if (process.stdout.isTTY && !process.stdin.isTTY && !o.json) {
+      // I-24: say why the dashboard did not appear, and how to get it.
+      process.stderr.write(
+        'useful-system-monitor: stdin is not a terminal, so the interactive dashboard is unavailable.\n' +
+          '        Showing a one-shot summary. Run it directly from a shell for the TUI.\n',
+      );
+    }
+    const code = await oneShot(provider, o);
+    process.exit(code);
+  }
+
+  const tiers: Tiers = o.interval
+    ? {
+        ...DEFAULT_TIERS,
+        // The CPU tier drives the render rate, which dominates cost, so
+        // --interval has to move it too or the flag cannot buy responsiveness.
+        cpu: o.interval * 1000,
+        processes: o.interval * 1000,
+        memory: o.interval * 1000,
+      }
+    : DEFAULT_TIERS;
 
   const mock = provider instanceof MockProvider ? provider : null;
   const { waitUntilExit } = render(
@@ -247,8 +218,18 @@ async function main(): Promise<void> {
   await waitUntilExit();
 }
 
-main().catch((err: unknown) => {
-  // I-24: errors to stderr, non-zero exit.
-  process.stderr.write(`useful-system-monitor: ${err instanceof Error ? err.message : String(err)}\n`);
-  process.exit(1);
-});
+/*
+ * I-24: errors to stderr, non-zero exit. Kept here rather than in the launcher
+ * so the whole of `main` — including the argument parsing that exits 2 — has
+ * one place its failures are turned into an exit status.
+ */
+export const run = async (): Promise<void> => {
+  try {
+    await main();
+  } catch (err: unknown) {
+    process.stderr.write(
+      `useful-system-monitor: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(1);
+  }
+};

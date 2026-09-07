@@ -155,6 +155,35 @@ export function truncate(s: string, max: number): string {
   return out + '…';
 }
 
+/**
+ * A running budget for a row of coloured segments that must not overflow.
+ *
+ * `wrap="truncate"` already clips such a row, so this changes nothing on
+ * screen — it moves the clipping to *before* ink lays the row out, which is
+ * the whole point. Ink memoises every string it has to wrap in a module-level
+ * cache keyed on the text, with no eviction (7.1.1, `build/wrap-text.js`), so
+ * a row that overflows with a number in it — a live process count, a filter
+ * the user is typing — mints a cache entry per distinct value and never gives
+ * one back. A row that fits is never handed to that code at all. See I-10b.
+ *
+ * Segments are taken in render order and each gets what the ones before it
+ * left, so a narrow terminal loses the rightmost content first — which is what
+ * `wrap="truncate"` did, and why this is not a visual change.
+ *
+ * ```ts
+ * const fit = fitter(width);
+ * <Text>{fit(counts)}<Text color={c}>{fit(sortKey)}</Text>{fit(ages)}</Text>
+ * ```
+ */
+export function fitter(max: number): (s: string) => string {
+  let left = Math.max(0, max);
+  return (s: string) => {
+    const t = truncate(s, left);
+    left -= displayWidth(t);
+    return t;
+  };
+}
+
 /** Pad to exactly `n` cells (truncating if needed). */
 export function padEnd(s: string, n: number): string {
   const t = truncate(s, n);
