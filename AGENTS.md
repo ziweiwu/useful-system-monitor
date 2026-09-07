@@ -70,9 +70,11 @@ frames-drawn floor: the heap alone cannot tell a flat app from a quiet one.
   fatal mark-compact in ~3 days, against **0.6 KB/render** fixed). Set
   `NODE_ENV` yourself to override either. The leak is React's development
   reconciler narrating every render to the Performance Timeline, which Node
-  buffers and never evicts — so `src/cli.tsx` sets `NODE_ENV` and only then reaches
-  the app through a *dynamic* import. A static import there undoes that, and
-  JSX counts: it compiles to one.
+  buffers and never evicts — so `src/cli.ts` sets `NODE_ENV` and only then
+  reaches the app through a *dynamic* import. It is deliberately `.ts` and
+  imports nothing at all: a static import there undoes the fix, and in a `.tsx`
+  file JSX counts, because tsc hoists its own `react/jsx-runtime` import above
+  every hand-written one. See `core/prod-env.ts`.
 - **A build that loads is not a build that mounts.** One drew six bytes, exited
   0, and passed every check — the suite renders `App` under a test renderer and
   `verify:smoke` runs `--json`, which returns before `render()`. A heap check
@@ -96,14 +98,23 @@ command output to `test/fixtures/`.
 
 ## The Rust port
 
-A parallel Rust implementation, built alongside the TypeScript one. It takes
-over the npm `bin` only at proven parity. Plan and phasing:
+**This is what `bin` points at.** As of 0.10.0 the published command is the
+compiled `sysmon` binary, delivered through four per-platform npm packages that
+the main package declares as `optionalDependencies` and `scripts/npm-launcher.mjs`
+resolves at run time. The TypeScript implementation is still here and still
+tested; it is no longer what a user runs. Plan and phasing:
 `~/.claude/plans/mellow-meandering-river.md`. Deferred behaviour changes:
 `POST-CUTOVER.md`.
 
 Needs a Rust toolchain: `rust-toolchain.toml` pins stable with `rustfmt` and
-`clippy`, and the workspace sets `rust-version = "1.85"`. Nothing in the npm
-install path requires it — the Node build is still what `bin` points at.
+`clippy`, and the workspace sets `rust-version = "1.85"`.
+
+**The version lives in two files and they must agree.** `package.json` is what
+the registry, the tag check and the launcher read; `crates/sysmon/Cargo.toml` is
+what `--version` actually prints, because it comes from the binary. `npm run
+verify:versions` compares them and the four `optionalDependencies` pins, and CI
+runs it — a release that bumped one and not the other would publish a package
+whose `--version` disagreed with its own metadata (I-25).
 
 ```sh
 npm run verify:rust          # fmt + clippy + cargo test  (232 tests)
@@ -112,7 +123,18 @@ npm run verify:tui:rust      # the built binary really mounts and draws (I-22b)
 npm run verify:longrun:rust  # RSS flat across a long run (I-10b)
 npm run qa:fuzz:rust         # seeded keyboard fuzzing, ~4,500 steps/s
 npm run check:linux          # clippy against x86_64-unknown-linux-gnu
+npm run verify:versions      # package.json, the crate and the four pins agree
+npm run build:npm-packages   # assemble the per-platform packages from target/
 ```
+
+CI runs `verify:versions` with the other cheap checks, a `rust` job (fmt,
+clippy, test, the pty harness and the fuzzer) on macOS **and** Linux, and a
+`cross-build` job that builds all four release binaries on every push — so a
+target that stops cross-compiling is caught by the commit that broke it rather
+than by the release that needed it. The release workflow builds those four on
+their own runners, publishes the platform packages **first**, then the main
+one: the main package pins them at an exact version, so the other order leaves
+a window where an install resolves a launcher with no binary behind it.
 
 `~/.cargo/bin` is not on `PATH` in a non-interactive shell, which is why the npm
 scripts prepend it.

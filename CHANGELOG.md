@@ -3,6 +3,41 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## 0.10.0
+
+The command is now a native binary. Same interface, same keys, same `--json`
+shape — the program behind them is a Rust rewrite.
+
+### Changed
+
+- **`useful-system-monitor` is a compiled binary, not a Node program.** npm is
+  still the delivery channel: installing resolves one small per-platform
+  package holding the binary, so a Mac downloads ~3.5 MB rather than all four
+  builds, and the lockfile covers the binary the way it covers everything else.
+  Node is needed to install, not to run.
+
+  What this buys, measured against 0.9.2: **~4 MB resident against ~60 MB**, and
+  startup in single-digit milliseconds rather than the ~90 ms Node itself costs
+  before any of our code runs. Sitting idle in a pane — the thing this app is
+  for — it holds flat.
+
+- **Linux is supported.** The collectors read `/proc`, `/sys/class/power_supply`
+  and `statvfs` there, and `os` now lists both platforms. `--energy=accurate`
+  stays macOS-only and is **rejected with exit 2** on Linux rather than quietly
+  serving the CPU-time estimate: one column carries one unit, or it says so
+  (I-1b, I-24).
+
+### Notes
+
+- The TypeScript implementation is still in the repo and still tested; it is no
+  longer what `bin` points at. `POST-CUTOVER.md` records the behaviour changes
+  deliberately deferred out of the port so that parity could be proven first.
+- The Linux `/proc` fixtures are hand-written from `proc(5)` rather than
+  captured from a running machine, and there is no Linux equivalent of the
+  macOS differential harness — the TypeScript build it compares against is
+  macOS-only. Linux is covered by unit tests, clippy and a build that runs;
+  treat it as newer than the macOS path.
+
 ## 0.9.2
 
 ### Fixed

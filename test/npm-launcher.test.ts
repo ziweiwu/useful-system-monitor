@@ -1,12 +1,13 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync, cpSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * The launcher that will become the npm `bin` once the Rust build takes over.
+ * The npm `bin`: the launcher that resolves the per-platform binary package and
+ * hands over to the binary inside it.
  *
  * It is worth testing before it is wired up, because every one of its failure
  * modes appears *at install time on someone else's machine* — an unsupported
@@ -16,6 +17,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  */
 const root = fileURLToPath(new URL('..', import.meta.url));
 const launcher = join(root, 'scripts/npm-launcher.mjs');
+/* Read, never hardcoded. The binary prints its *own* version, compiled in from
+   Cargo.toml, so asserting a literal here would turn every release into a test
+   failure and — worse — would pass while the two versions disagreed, which is
+   the one thing `npm run verify:versions` exists to prevent. */
+const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+  version: string;
+};
 const platformPkg = join(root, 'npm/useful-system-monitor-darwin-arm64');
 
 /** A throwaway tree shaped the way npm would leave one. */
@@ -36,7 +44,7 @@ beforeAll(() => {
   // sandbox has to be shaped like the real package.
   writeFileSync(
     join(sandbox, 'package.json'),
-    JSON.stringify({ name: 'useful-system-monitor', version: '0.9.0' }),
+    JSON.stringify({ name: 'useful-system-monitor', version }),
   );
   mkdirSync(join(sandbox, 'scripts'), { recursive: true });
   cpSync(launcher, join(sandbox, 'scripts/npm-launcher.mjs'));
@@ -75,7 +83,7 @@ describe.skipIf(!built)('the launcher hands over to the platform binary', () => 
   it('resolves the package npm installed and runs it', () => {
     const r = run(['--version']);
     expect(r.status).toBe(0);
-    expect(r.stdout.trim()).toBe('0.9.0');
+    expect(r.stdout.trim()).toBe(version);
   });
 
   it('passes arguments through and forwards the exit status', () => {

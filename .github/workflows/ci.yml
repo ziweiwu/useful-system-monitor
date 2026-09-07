@@ -35,6 +35,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check the versions agree
+        run: npm run verify:versions
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -86,3 +89,95 @@ jobs:
       - name: Fuzz the keyboard
         if: matrix.node == 24
         run: npm run qa:fuzz -- --seeds 40 --steps 60
+
+  # The Rust build, which is what `bin` now points at. Both platforms, because
+  # the collectors are the half of the port that differs between them and a
+  # macOS-only check would let a Linux regression through to a published
+  # binary.
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.os }}
+    name: rust (${{ matrix.target }})
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the toolchain
+        run: rustup target add ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --target ${{ matrix.target }}
+
+      - name: Test
+        run: cargo test --workspace
+
+      # The pty harness: proves the built binary mounts, draws, answers a key
+      # and exits (I-22b). Nothing else covers the shipped mount path.
+      - name: Drive the built binary
+        run: |
+          cargo build --release -p sysmon --bin sysmon
+          cargo run --release -p sysmon-harness --bin verify_tui -- \
+            --bin target/release/sysmon --mock
+
+      # 40 seeds for the same reason the Node fuzzer uses 40: a smaller run
+      # passes clean with a known mode-stacking bug reinstated.
+      - name: Fuzz the keyboard
+        run: cargo run --release -p sysmon-harness --bin qa_fuzz -- --seeds 40 --steps 60
+
+  # The four binaries a release ships. Built on every push, not just on a tag,
+  # so a target that stops cross-compiling is found by the commit that broke it
+  # rather than by the release that needed it.
+  cross-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.os }}
+    name: build (${{ matrix.target }})
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: rustup target add ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: build-${{ matrix.target }}
+
+      - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
+
+      # A binary that will not run is not a binary. Native targets only —
+      # x86_64-apple-darwin runs here under Rosetta, but an arm64 Linux binary
+      # cannot execute on an x86 runner.
+      - name: Check it runs
+        run: ./target/${{ matrix.target }}/release/sysmon --version
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sysmon-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/sysmon
+          if-no-files-found: error

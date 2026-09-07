@@ -3,10 +3,10 @@
 [![npm](https://img.shields.io/npm/v/useful-system-monitor?color=cb3837&logo=npm)](https://www.npmjs.com/package/useful-system-monitor)
 [![CI](https://github.com/ziweiwu/useful-system-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/ziweiwu/useful-system-monitor/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-lightgrey?logo=apple)](#requirements)
+[![platforms](https://img.shields.io/badge/macOS%20%26%20Linux-Apple%20Silicon%20%C2%B7%20Intel%20%C2%B7%20ARM64-lightgrey)](#requirements)
 [![sponsor](https://img.shields.io/github/sponsors/ziweiwu?logo=githubsponsors&color=ea4aaa)](https://github.com/sponsors/ziweiwu)
 
-See what's using up your Mac — and close the apps that are hogging it.
+See what's using up your machine — and close the apps that are hogging it.
 
 It shows your CPU, memory, disk and battery at a glance, lists the apps using
 the most of each, and lets you quit any of them without leaving the terminal.
@@ -24,7 +24,9 @@ npm install -g useful-system-monitor
 useful-system-monitor
 ```
 
-Works on a Mac. Nothing to set up.
+Works on macOS and Linux. Nothing to set up, and no Node runtime is needed at
+run time — npm fetches a single ~3.5 MB binary for your platform and the
+`useful-system-monitor` command is that binary.
 
 Want a shorter name to type?
 
@@ -152,11 +154,15 @@ version.
 
 ## Requirements
 
-A Mac, and [Node.js](https://nodejs.org) 22 or newer — the two release lines
-Node still supports. Linux isn't supported yet — contributions welcome.
+macOS or Linux, on Apple Silicon, Intel or ARM64.
 
-Running it barely costs anything: about 1% of one CPU core. A monitor that ran
-your battery down would rather defeat the point.
+npm is only the delivery channel: it resolves one small per-platform package
+holding a native binary, so a Mac downloads ~3.5 MB and not the other three
+builds. Node is needed to *install*, not to run — the command itself is the
+binary, and nothing about it depends on a Node version once it is on disk.
+
+Running it barely costs anything: about 1% of one CPU core, and a few megabytes
+of memory. A monitor that ran your battery down would rather defeat the point.
 
 ## Contributing
 
