@@ -142,6 +142,12 @@ jobs:
   # The four binaries a release ships. Built on every push, not just on a tag,
   # so a target that stops cross-compiling is found by the commit that broke it
   # rather than by the release that needed it.
+  #
+  # aarch64 Linux is cross-compiled from an x86 runner with its own linker,
+  # rather than built on an ARM runner: the toolchain is a package away and
+  # works on any Linux image, while runner availability is an account-level
+  # thing this workflow should not depend on. The trade is that the result
+  # cannot be executed here, so only the native targets are smoke-run.
   cross-build:
     strategy:
       fail-fast: false
@@ -149,12 +155,16 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
+            native: true
           - os: macos-latest
             target: x86_64-apple-darwin
+            native: true
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - os: ubuntu-24.04-arm
+            native: true
+          - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            native: false
 
     runs-on: ${{ matrix.os }}
     name: build (${{ matrix.target }})
@@ -164,16 +174,24 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
 
+      - name: Install the cross linker
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
       - uses: Swatinem/rust-cache@v2
         with:
           key: build-${{ matrix.target }}
 
       - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
-      # A binary that will not run is not a binary. Native targets only —
-      # x86_64-apple-darwin runs here under Rosetta, but an arm64 Linux binary
-      # cannot execute on an x86 runner.
+      # A binary that will not run is not a binary — for the targets this runner
+      # can actually execute.
       - name: Check it runs
+        if: matrix.native
         run: ./target/${{ matrix.target }}/release/sysmon --version
 
       - uses: actions/upload-artifact@v7

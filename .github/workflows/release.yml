@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  # One binary per platform, each on a runner that can actually execute what it
-  # built. Cross-compiling to Linux from macOS needs a linker for that target;
-  # building on the target's own runner needs nothing.
+  # One binary per platform. aarch64 Linux is cross-compiled from an x86 runner
+  # with its own linker rather than built on an ARM runner, so this does not
+  # depend on runner availability; the others build natively.
   build:
     strategy:
       fail-fast: true
@@ -22,7 +22,7 @@ jobs:
             target: x86_64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - os: ubuntu-24.04-arm
+          - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
 
     runs-on: ${{ matrix.os }}
@@ -33,11 +33,19 @@ jobs:
 
       - run: rustup target add ${{ matrix.target }}
 
+      - name: Install the cross linker
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
       - uses: Swatinem/rust-cache@v2
         with:
           key: release-${{ matrix.target }}
 
       - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
       - uses: actions/upload-artifact@v7
         with:
