@@ -39,7 +39,7 @@ jobs:
 
       - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sysmon-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/sysmon
@@ -75,7 +75,7 @@ jobs:
 
       # The four binaries the build job produced, back into the tree where
       # build-npm-packages expects cargo to have left them.
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           pattern: sysmon-*
           path: artifacts
