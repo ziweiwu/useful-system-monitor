@@ -161,6 +161,11 @@ npm test
 npm run mock         # work on the interface without touching your system
 ```
 
+A Rust port lives alongside the TypeScript one in `crates/`, built and tested
+separately and not yet what `npm install` gives you. Working on it needs a Rust
+toolchain (`rust-toolchain.toml` pins the version); `npm run verify:rust` runs
+its format, lint and test gates. See [AGENTS.md](./AGENTS.md) for the layout.
+
 What changed between releases is in [CHANGELOG.md](./CHANGELOG.md). The
 behaviour it promises is written down in [INVARIANTS.md](./INVARIANTS.md),
 and every item there has a test. If you touch anything that reads from the

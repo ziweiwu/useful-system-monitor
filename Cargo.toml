@@ -1,0 +1,22 @@
+# Rust workspace for the port. See the plan: the Rust binary is built in
+# parallel with the shipping Node app and only takes over `bin` at proven
+# parity, so this coexists with package.json rather than replacing it.
+[workspace]
+members = ["crates/sysmon-core", "crates/sysmon", "crates/sysmon-harness"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/ziweiwu/useful-system-monitor"
+
+[workspace.lints.rust]
+# `deny`, not `forbid`: per-core CPU ticks come from mach's host_processor_info
+# and have no safe wrapper in std. Exactly one module opts out, with a comment
+# saying why — see crates/sysmon/src/collect/cpu.rs. `forbid` would make that
+# impossible to express rather than impossible to do by accident.
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }

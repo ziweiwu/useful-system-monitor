@@ -5,3 +5,9 @@ scripts/frames.json
 preview.html
 
 .verify-gate-state.json
+
+# Rust
+/target/
+
+# Generated per-platform binary packages
+/npm/

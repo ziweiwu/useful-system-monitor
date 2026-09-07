@@ -1,0 +1,47 @@
+useful-system-monitor — see what's using up your Mac, from the terminal
+
+Usage
+  useful-system-monitor [options]
+
+  With no options it opens the dashboard. When stdin or stdout is not a
+  terminal it prints a one-shot summary instead, so it composes in pipes,
+  scripts and cron.
+
+Options
+  --json              One-shot JSON to stdout instead of the dashboard
+  --interval SECONDS  Dashboard refresh, 1 or more (default 10). Lower is more
+                      responsive and costs more CPU; no effect one-shot.
+  --energy=accurate   Use macOS Energy Impact instead of the CPU-time estimate.
+                      Costs ~1s of CPU per 60s sample (~5x the default budget).
+  --mock              Run with scripted data, without touching the system
+  -h, --help          Show this help
+  --version           Print the version
+
+  There is no row-count or sort option: the dashboard sorts with c, m and e,
+  and --json hands over the whole working set so head and jq can do the rest.
+
+Keys (dashboard)
+  left/right   move between the five screens; 1-5 jump straight to one
+  up/dn        pick a process     +/-     show more or fewer rows
+  enter        details            k       close the selected app
+  /            search             c m e   sort by cpu, memory, energy
+  r            refresh now        q       quit
+
+Examples
+  useful-system-monitor                        open the dashboard
+  useful-system-monitor --json | jq .cpu       the numbers, for a script
+  useful-system-monitor | head -8              the busiest few, as text
+  useful-system-monitor --interval 2           refresh faster to catch a spike
+
+Exit status
+  0  success
+  1  could not run — unsupported platform, or a collector failed
+  2  bad usage — unknown option, or a value that cannot be used
+
+Notes
+  Energy is estimated from CPU time by default; macOS's own Energy Impact
+  costs ~1s of CPU per sample, which would make this tool a battery drain.
+
+  Colour follows NO_COLOR and the terminal's capabilities. The dashboard is
+  laid out for 80x24 and adapts down to 50x10, dropping detail rather than
+  overflowing; below 50x10 it says so instead of drawing a broken frame.

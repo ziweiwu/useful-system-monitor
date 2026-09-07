@@ -1,0 +1,30 @@
+# The binary. Everything that touches the outside world — spawning, signalling,
+# the terminal — lives here; the rules it applies live in sysmon-core.
+[package]
+name = "sysmon"
+version = "0.9.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "sysmon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sysmon"
+path = "src/main.rs"
+
+[dependencies]
+sysmon-core = { path = "../sysmon-core" }
+libc = "0.2"
+ratatui = "0.29"
+crossterm = "0.28"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+wait-timeout = "0.2"
+
+[lints]
+workspace = true

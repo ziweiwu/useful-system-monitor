@@ -7,6 +7,32 @@ public surface is the command line, the JSON shape, and the keys.
 
 ### Fixed
 
+- **The dashboard ran out of memory and died after about a day and a half.**
+  `FATAL ERROR: Ineffective mark-compacts near heap limit`, at V8's 4 GB
+  ceiling, with nothing before it in the logs. The cause was which React the
+  binary loaded. React and react-reconciler choose their build from
+  `process.env.NODE_ENV` at import time, and a globally installed CLI runs with
+  it unset — so the shipped binary got the **development** reconciler, which
+  narrates every render to the Performance Timeline for React DevTools: a
+  `performance.measure()` per component, per commit, on the "Components ⚛"
+  track. Node buffers user-timing entries for the life of the process and never
+  evicts them, so an app whose whole job is to sit in a pane and redraw
+  accumulated them until it died. Nothing in the app could release them; they
+  are held by the runtime. Measured at **173.7 KB per render**, against
+  **0.6 KB** now.
+
+  `dist/cli.js` is now a launcher that sets `NODE_ENV` and *then* reaches the
+  app through a dynamic import, because an ESM `import` is hoisted above every
+  statement in the file and so cannot be sequenced after the assignment. That
+  ordering is the whole fix and it is invisible: a static import added to the
+  entry point puts the leak straight back, and JSX counts as one, since the
+  automatic runtime compiles it to `import ... from 'react/jsx-runtime'`. I-10b
+  pins it from both ends — `test/entry.test.ts` for the ordering,
+  `npm run verify:longrun` for the heap.
+
+  `npm start` and `npm run mock` still run the development build, so React's
+  warnings are there while working on it.
+
 - **A kill could be confirmed on a screen that was not drawn.** Below the
   minimum terminal size (50x10) the app draws nothing but its own size
   complaint — but the kill confirmation is a *mode*, and a mode that is not

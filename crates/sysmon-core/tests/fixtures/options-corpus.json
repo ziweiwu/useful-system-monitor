@@ -1,0 +1,1353 @@
+{
+ "note": "Generated from src/core/options.ts by scripts/gen-options-corpus.ts.",
+ "cases": [
+  {
+   "argv": [],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--mock"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": true,
+    "json": false,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--json"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": true,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "-h"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": null,
+    "help": true,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--help"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": null,
+    "help": true,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--version"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": null,
+    "help": false,
+    "version": true
+   }
+  },
+  {
+   "argv": [
+    "--json",
+    "--mock"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": true,
+    "json": true,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--json",
+    "--mock",
+    "--interval=3"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": true,
+    "json": true,
+    "interval": 3,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "accurate"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": true,
+    "mock": false,
+    "json": false,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy=accurate"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": true,
+    "mock": false,
+    "json": false,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "fast"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"fast\")"
+  },
+  {
+   "argv": [
+    "--energy=fast"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"fast\")"
+  },
+  {
+   "argv": [
+    "--energy"
+   ],
+   "ok": false,
+   "error": "--energy needs a value: accurate"
+  },
+  {
+   "argv": [
+    "--interval"
+   ],
+   "ok": false,
+   "error": "--interval needs a value"
+  },
+  {
+   "argv": [
+    "--interval",
+    "--json"
+   ],
+   "ok": false,
+   "error": "--interval needs a value"
+  },
+  {
+   "argv": [
+    "--energy",
+    "--json"
+   ],
+   "ok": false,
+   "error": "--energy needs a value: accurate"
+  },
+  {
+   "argv": [
+    "--jsonn"
+   ],
+   "ok": false,
+   "error": "unknown option \"--jsonn\""
+  },
+  {
+   "argv": [
+    "-x"
+   ],
+   "ok": false,
+   "error": "unknown option \"-x\""
+  },
+  {
+   "argv": [
+    "report.txt"
+   ],
+   "ok": false,
+   "error": "unexpected argument \"report.txt\" — this tool takes options only"
+  },
+  {
+   "argv": [
+    "--top"
+   ],
+   "ok": false,
+   "error": "unknown option \"--top\""
+  },
+  {
+   "argv": [
+    "--sort"
+   ],
+   "ok": false,
+   "error": "unknown option \"--sort\""
+  },
+  {
+   "argv": [
+    "-v"
+   ],
+   "ok": false,
+   "error": "unknown option \"-v\""
+  },
+  {
+   "argv": [
+    "-V"
+   ],
+   "ok": false,
+   "error": "unknown option \"-V\""
+  },
+  {
+   "argv": [
+    "--interval=2",
+    "--energy=accurate",
+    "--json"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": true,
+    "mock": false,
+    "json": true,
+    "interval": 2,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--mock",
+    "--mock"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": true,
+    "json": false,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--json",
+    "--json"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": true,
+    "interval": null,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=1",
+    "--interval=5"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--",
+    "x"
+   ],
+   "ok": false,
+   "error": "unknown option \"--\""
+  },
+  {
+   "argv": [
+    "-"
+   ],
+   "ok": false,
+   "error": "unknown option \"-\""
+  },
+  {
+   "argv": [
+    "--"
+   ],
+   "ok": false,
+   "error": "unknown option \"--\""
+  },
+  {
+   "argv": [
+    "--interval",
+    "1"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 1,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=1"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 1,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "1"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"1\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "2"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 2,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=2"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 2,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "2"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"2\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "10"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 10,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=10"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 10,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "10"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"10\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "7200"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 7200,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=7200"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 7200,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "7200"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"7200\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "2.5"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 2.5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=2.5"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 2.5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "2.5"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"2.5\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "1e3"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 1000,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=1e3"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 1000,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "1e3"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"1e3\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "1E3"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 1000,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=1E3"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 1000,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "1E3"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"1E3\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    ".5"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \".5\")"
+  },
+  {
+   "argv": [
+    "--interval=.5"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \".5\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    ".5"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \".5\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "5."
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=5."
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "5."
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"5.\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "+5"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=+5"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "+5"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"+5\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "-5"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"-5\")"
+  },
+  {
+   "argv": [
+    "--interval=-5"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"-5\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "-5"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"-5\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "0"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"0\")"
+  },
+  {
+   "argv": [
+    "--interval=0"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"0\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "0"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"0\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "-0"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"-0\")"
+  },
+  {
+   "argv": [
+    "--interval=-0"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"-0\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "-0"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"-0\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    ""
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"\")"
+  },
+  {
+   "argv": [
+    "--interval="
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    ""
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    " "
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \" \")"
+  },
+  {
+   "argv": [
+    "--interval= "
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \" \")"
+  },
+  {
+   "argv": [
+    "--energy",
+    " "
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \" \")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "  3  "
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 3,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=  3  "
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 3,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "  3  "
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"  3  \")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "\t4\n"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 4,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=\t4\n"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 4,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "\t4\n"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"\t4\n\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "abc"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"abc\")"
+  },
+  {
+   "argv": [
+    "--interval=abc"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"abc\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "abc"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"abc\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "inf"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"inf\")"
+  },
+  {
+   "argv": [
+    "--interval=inf"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"inf\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "inf"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"inf\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "Infinity"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"Infinity\")"
+  },
+  {
+   "argv": [
+    "--interval=Infinity"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"Infinity\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "Infinity"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"Infinity\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "-Infinity"
+   ],
+   "ok": false,
+   "error": "--interval needs a value"
+  },
+  {
+   "argv": [
+    "--interval=-Infinity"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"-Infinity\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "-Infinity"
+   ],
+   "ok": false,
+   "error": "--energy needs a value: accurate"
+  },
+  {
+   "argv": [
+    "--interval",
+    "NaN"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"NaN\")"
+  },
+  {
+   "argv": [
+    "--interval=NaN"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"NaN\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "NaN"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"NaN\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "nan"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"nan\")"
+  },
+  {
+   "argv": [
+    "--interval=nan"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"nan\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "nan"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"nan\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "0x10"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 16,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=0x10"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 16,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "0x10"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"0x10\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "0X10"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 16,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=0X10"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 16,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "0X10"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"0X10\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "0b101"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=0b101"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 5,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "0b101"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"0b101\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "0o17"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 15,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=0o17"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 15,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "0o17"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"0o17\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "0xzz"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"0xzz\")"
+  },
+  {
+   "argv": [
+    "--interval=0xzz"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"0xzz\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "0xzz"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"0xzz\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "1_000"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"1_000\")"
+  },
+  {
+   "argv": [
+    "--interval=1_000"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"1_000\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "1_000"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"1_000\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "1,5"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"1,5\")"
+  },
+  {
+   "argv": [
+    "--interval=1,5"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"1,5\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "1,5"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"1,5\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "3000000"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"3000000\")"
+  },
+  {
+   "argv": [
+    "--interval=3000000"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"3000000\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "3000000"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"3000000\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "2147483"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 2147483,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--interval=2147483"
+   ],
+   "ok": true,
+   "options": {
+    "accurateEnergy": false,
+    "mock": false,
+    "json": false,
+    "interval": 2147483,
+    "help": false,
+    "version": false
+   }
+  },
+  {
+   "argv": [
+    "--energy",
+    "2147483"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"2147483\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "2147484"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"2147484\")"
+  },
+  {
+   "argv": [
+    "--interval=2147484"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"2147484\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "2147484"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"2147484\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "1e-3"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"1e-3\")"
+  },
+  {
+   "argv": [
+    "--interval=1e-3"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"1e-3\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "1e-3"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"1e-3\")"
+  },
+  {
+   "argv": [
+    "--interval",
+    "999999999999"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"999999999999\")"
+  },
+  {
+   "argv": [
+    "--interval=999999999999"
+   ],
+   "ok": false,
+   "error": "--interval needs a number of seconds between 1 and 2147483 (got \"999999999999\")"
+  },
+  {
+   "argv": [
+    "--energy",
+    "999999999999"
+   ],
+   "ok": false,
+   "error": "--energy only accepts \"accurate\" (got \"999999999999\")"
+  }
+ ]
+}

@@ -177,7 +177,7 @@ export function useSampler(provider: MetricsProvider, tiers: Tiers, workingSetSi
      * single extra `ps` per launch and nothing thereafter. The delta is over
      * true elapsed wall-clock either way, so a short first window is noisier
      * but not wrong — `ps` TIME has centisecond resolution, which over 700ms
-     * quantises to ~1.4%. `oneShot` in cli.tsx has always primed this way.
+     * quantises to ~1.4%. `oneShot` in main.tsx has always primed this way.
      */
     const priming = setTimeout(() => {
       void runCpu();
