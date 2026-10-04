@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, cpSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { constants, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -73,6 +73,30 @@ describe('I-24: the npm launcher explains itself rather than throwing', () => {
   });
 });
 
+describe('I-24: a binary killed by a signal leaves the status a shell would report', () => {
+  /* Its own sandbox: the binary here is a stand-in that kills itself, and the
+     suite below installs the real one under the same package name. */
+  const stub = join(tmpdir(), `usm-launcher-signal-${process.pid}`);
+  const SHELL_SIGNAL_BASE = 128;
+
+  beforeAll(() => {
+    const binDir = join(stub, `node_modules/useful-system-monitor-${process.platform}-${process.arch}/bin`);
+    mkdirSync(binDir, { recursive: true });
+    mkdirSync(join(stub, 'scripts'), { recursive: true });
+    writeFileSync(join(stub, 'package.json'), JSON.stringify({ name: 'useful-system-monitor', version }));
+    cpSync(launcher, join(stub, 'scripts/npm-launcher.mjs'));
+    writeFileSync(join(binDir, 'sysmon'), '#!/bin/sh\nkill -TERM $$\n', { mode: 0o755 });
+  });
+
+  afterAll(() => rmSync(stub, { recursive: true, force: true }));
+
+  it('exits 128 + the signal number, not a bare 128', () => {
+    const r = spawnSync(process.execPath, [join(stub, 'scripts/npm-launcher.mjs')], { cwd: stub });
+    expect(r.signal).toBeNull();
+    expect(r.status).toBe(SHELL_SIGNAL_BASE + constants.signals.SIGTERM);
+  });
+});
+
 describe.skipIf(!built)('the launcher hands over to the platform binary', () => {
   beforeAll(() => {
     cpSync(platformPkg, join(sandbox, 'node_modules/useful-system-monitor-darwin-arm64'), {
@@ -104,7 +128,13 @@ describe.skipIf(!built)('the launcher hands over to the platform binary', () => 
         encoding: 'utf8',
       }),
     );
-    expect(Object.keys(viaLauncher).toSorted()).toEqual(Object.keys(viaNode).toSorted());
+    /* The binary adds `mock` on purpose (0.10.0): a script fed `--mock` by
+       accident has to be able to tell. Every key the Node build has must
+       still be there, and nothing else may appear. */
+    const binaryOnlyKeys = ['mock'];
+    const sharedKeys = Object.keys(viaLauncher).filter((k) => !binaryOnlyKeys.includes(k));
+    expect(sharedKeys.toSorted()).toEqual(Object.keys(viaNode).toSorted());
+    expect(viaLauncher.mock).toBe(false);
     expect(Object.keys(viaLauncher.memory).toSorted()).toEqual(
       Object.keys(viaNode.memory).toSorted(),
     );

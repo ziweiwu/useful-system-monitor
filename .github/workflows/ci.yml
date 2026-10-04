@@ -8,8 +8,8 @@ on:
 
 jobs:
   check:
-    # macOS only: the collectors read ps/vm_stat/ioreg/pmset, and package.json
-    # declares os: ["darwin"], so npm refuses to install anywhere else.
+    # macOS only: this is the TypeScript build, whose collectors read
+    # ps/vm_stat/ioreg/pmset. The Rust jobs below cover Linux.
     runs-on: macos-latest
 
     strategy:
