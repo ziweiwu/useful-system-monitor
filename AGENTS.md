@@ -6,8 +6,9 @@ Read this before changing anything.
 ## What this is
 
 A macOS terminal dashboard — CPU, memory, disk and battery, the processes
-using the most of each, and a kill path. Ink and React, shipped as
-`dist/cli.js`.
+using the most of each, and a kill path. What ships is the Rust binary in
+`crates/`; the original Ink and React build in `src/` is still built and tested
+beside it, as the oracle the port is checked against.
 
 It watches a machine while the user works, so its own cost is a feature, not an
 afterthought. Collector cost is **0.31% of one core**, whole-app **1.31%** at
@@ -126,7 +127,7 @@ runs it — a release that bumped one and not the other would publish a package
 whose `--version` disagreed with its own metadata (I-25).
 
 ```sh
-npm run verify:rust          # fmt + clippy + cargo test  (232 tests)
+npm run verify:rust          # fmt + clippy + cargo test  (240 tests)
 npm run verify:diff          # Rust --json vs. the shipping Node build
 npm run verify:tui:rust      # the built binary really mounts and draws (I-22b)
 npm run verify:longrun:rust  # RSS flat across a long run (I-10b)
@@ -298,14 +299,12 @@ runner. `test/npm-launcher.test.ts` covers resolution, argument pass-through,
 exit-status forwarding and the two distinct failures (unsupported platform vs
 `--omit=optional`).
 
-**The `bin` still points at `dist/cli.js`.** Switching it is the cutover, and
-the cutover waits on parity.
+The cutover landed in 0.10.0: `bin` is the launcher, and `dist/cli.js` is no
+longer in the published package.
 
 ### Not done
 
 - **M11 to completion**: the recorded mock trace, and the four detail screens.
-- **The npm cutover**: flipping `bin`, publishing the platform packages, and
-  the CI job that builds the Linux binaries.
 - **Linux has no oracle.** The TypeScript build is macOS-only, so the
   differential harness cannot check the Linux collectors at all, and the
   fixtures in `test/fixtures/linux/` are written from the documented `proc(5)`
@@ -338,6 +337,43 @@ Two deliberate exclusions:
 `watch` entries are git pathspecs, not prefixes — git matches whole path
 components, so the manifests are spelled out individually. A lockfile change is
 the one most likely to break the build and the easiest to leave off the list.
+
+## Releasing
+
+1. Bump `package.json` (`npm version --no-git-tag-version patch` updates the
+   lockfile too) and `crates/sysmon/Cargo.toml` together, let any cargo command
+   carry `Cargo.lock`, add the `CHANGELOG.md` entry, and land it through a PR.
+   `npm version` on its own bumps one file of two, and the release rejects it.
+2. Tag the merge commit and push the tag: `git tag -a vX.Y.Z -m X.Y.Z <sha> &&
+   git push origin vX.Y.Z`. `release.yml` builds the four binaries, re-runs the
+   gates, publishes the platform packages, then the main one. **Never move a
+   tag.** A re-run (`gh run rerun <run-id> --failed`) builds from the tagged
+   commit, so it only helps when the cause was outside the repo — credentials,
+   a registry error. Both publish steps step over versions already on the
+   registry, so a re-run after a partial publish finishes the rest. Anything
+   that needs a code change ships as the next patch version.
+3. **Homebrew is by hand.** The `ziweiwu/homebrew-tap` formula downloads
+   `useful-system-monitor-X.Y.Z-<target>.tar.gz` — the bare `sysmon` binary —
+   from the GitHub Release for the tag. Build those from the Release run's
+   `sysmon-<target>` artifacts (`gh run download <run-id>`), attach them with
+   `gh release create`, bump the four `url`/`sha256` pairs in the formula, push
+   the tap, then `brew upgrade useful-system-monitor && brew test
+   useful-system-monitor`.
+
+**npm publishing is Trusted Publishing (OIDC) only — the repo has no
+`NPM_TOKEN`.** npm attaches a trusted publisher only to a package that already
+exists, so a package name the workflow has never published fails with
+`ENEEDAUTH`. That is what stopped 0.10.0: it was tagged, and its GitHub Release
+and Homebrew formula went out, but none of the four platform packages existed,
+so npm never got it. A new package name — a fifth platform, say — needs the
+account owner to create it once and attach the workflow, from a logged-in
+machine with 2FA:
+
+```sh
+npm publish --access public <package-dir>   # its first version, by hand
+npm trust github <package-name> --repo ziweiwu/useful-system-monitor \
+  --file release.yml --allow-publish -y
+```
 
 ## Commits
 

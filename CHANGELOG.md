@@ -3,6 +3,36 @@
 Notable changes per release. Versions follow [semver](https://semver.org): the
 public surface is the command line, the JSON shape, and the keys.
 
+## 0.10.1
+
+The first release of the native binary that npm actually has. **0.10.0 was
+tagged and reached Homebrew, but never npm**: its release stopped at the first
+of the four new per-platform packages, which had nothing to authenticate with.
+Coming from 0.9.2, everything under 0.10.0 below is new to you.
+
+### Fixed
+
+- **Installing pulled in ~23 MB of a program that no longer runs.** The
+  published package still listed Ink and React as dependencies, so `npx` and
+  `npm install -g` fetched about 4,950 files and 38 packages that the launcher
+  never loads. They are development dependencies now, and an install is the
+  launcher plus the one ~3.5 MB binary for your platform, as 0.10.0 promised.
+- **A binary killed by a signal exited the launcher with a bare 128**, where a
+  shell reports 128 plus the signal number — `kill` landing on the dashboard
+  read as 128 rather than 143. The launcher now adds the number, which is what
+  its own comment always said it did.
+
+### Release
+
+- A release run that fails part-way through publishing can be re-run:
+  versions already on the registry are skipped rather than failing the whole
+  run, since npm never accepts a version twice.
+- The launcher's hand-over tests now run during the release, against the binary
+  about to be published. They skipped wherever no binary package had been
+  assembled, which was everywhere, and one had gone stale on the `mock` field.
+- vitest 4.1.11, for GHSA-82fw-gwwq-j7x9 (a path traversal in its mocker). It
+  is a test-only dependency and was never in the published package.
+
 ## 0.10.0
 
 The command is now a native binary. Same interface, same keys, same `--json`

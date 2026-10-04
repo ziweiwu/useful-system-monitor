@@ -1,7 +1,10 @@
 name: Release
 
-# Publishes to npm when a version tag is pushed:
-#   npm version patch && git push --follow-tags
+# Publishes to npm when a version tag is pushed. The version lives in two files,
+# so `npm version` alone produces a tag this workflow rejects — the steps are in
+# AGENTS.md, "Releasing". In short: bump package.json and
+# crates/sysmon/Cargo.toml together in a PR, then tag the merge commit:
+#   git tag -a vX.Y.Z -m X.Y.Z <merge-sha> && git push origin vX.Y.Z
 on:
   push:
     tags: ['v*']
@@ -107,6 +110,14 @@ jobs:
             chmod +x "target/$target/release/sysmon"
           done
 
+      # Before the tests, not after: test/npm-launcher.test.ts hands over to
+      # the binary package for this runner only when one has been assembled,
+      # and skips otherwise. Assembled first, it checks the darwin-arm64 binary
+      # about to be published (macos-latest is an arm64 Mac) — after, it
+      # checked nothing, and went stale unnoticed.
+      - name: Assemble the per-platform packages
+        run: npm run build:npm-packages
+
       - name: Verify before releasing
         run: |
           set -euo pipefail
@@ -138,9 +149,6 @@ jobs:
           fi
           echo "releasing $PKG"
 
-      - name: Assemble the per-platform packages
-        run: npm run build:npm-packages
-
       # The four binary packages are pinned exactly, so they can only appear in
       # a lockfile once those versions exist on the registry — which they do not
       # until this run publishes them. Committing them would break `npm ci` for
@@ -156,10 +164,24 @@ jobs:
       # the reason: the main package declares them as optionalDependencies at an
       # exact version, so publishing it first would leave a window in which
       # `npm install useful-system-monitor` resolves the launcher and no binary.
+      #
+      # Each package authenticates through its own Trusted Publisher, and npm
+      # only lets one be attached to a package that already exists. A package
+      # name this workflow has never published therefore fails with ENEEDAUTH
+      # until it is bootstrapped by hand — AGENTS.md, "Releasing".
       - name: Publish the binaries
         run: |
           set -euo pipefail
           for dir in ./npm/useful-system-monitor-*/; do
+            name=$(node -p "require('${dir}package.json').name")
+            version=$(node -p "require('${dir}package.json').version")
+            # npm never accepts a version twice, so a re-run after a partial
+            # failure has to step over what already went out — otherwise the only
+            # way past one flaky publish is a new release number.
+            if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+              echo "already published: $name@$version"
+              continue
+            fi
             # The `./` is load-bearing: `npm publish npm/useful-system-monitor-…`
             # reads as the GitHub `owner/repo` shorthand, so npm tried to fetch
             # `github:npm/useful-system-monitor-darwin-arm64` and failed with
@@ -173,7 +195,16 @@ jobs:
       - name: Publish
         # No NODE_AUTH_TOKEN needed for the main package: authentication comes
         # from the OIDC token above. Falls back to NPM_TOKEN only if Trusted
-        # Publishing is not configured.
-        run: npm publish --access public
+        # Publishing is not configured. Skips a version already out, for the
+        # same re-run reason as the binaries.
+        run: |
+          set -euo pipefail
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+            echo "already published: $name@$version"
+            exit 0
+          fi
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

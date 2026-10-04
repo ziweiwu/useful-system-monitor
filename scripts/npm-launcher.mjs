@@ -26,6 +26,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { constants } from 'node:os';
 
 const require = createRequire(import.meta.url);
 const { name, version } = require('../package.json');
@@ -63,6 +64,14 @@ if (result.error) {
 }
 /* A process killed by a signal has no exit code. Shells report 128 + the
    signal number, so `$?` means the same thing it would if the binary had been
-   run directly. */
+   run directly. spawnSync reports the signal by name, so the number has to be
+   looked up: 128 alone would tell a script "killed" without saying by what. */
 const SIGNAL_EXIT_BASE = 128;
-process.exit(result.status ?? (result.signal ? SIGNAL_EXIT_BASE : 1));
+
+function exitStatusOf({ status, signal }) {
+  if (status !== null) return status;
+  if (signal) return SIGNAL_EXIT_BASE + (constants.signals[signal] ?? 0);
+  return 1;
+}
+
+process.exit(exitStatusOf(result));

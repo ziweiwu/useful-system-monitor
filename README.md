@@ -189,11 +189,12 @@ check certify a screen nobody drew.
 its warnings; the compiled binary forces the production build, because the
 development one leaks (see I-10b). Set `NODE_ENV` yourself to override either.
 
-A Rust port lives alongside the TypeScript one in `crates/`, built and tested
-separately. It is not yet what `npm install` gives you. Working on it needs a
-Rust toolchain (`rust-toolchain.toml` pins the version); `npm run verify:rust`
-runs its format, lint and test gates. See [AGENTS.md](./AGENTS.md) for the
-three-crate layout and the rest of the commands.
+The command `npm install` gives you is the Rust build in `crates/`; the
+TypeScript one in `src/` is still built and tested beside it. Working on the
+Rust side needs a Rust toolchain (`rust-toolchain.toml` pins the version);
+`npm run verify:rust` runs its format, lint and test gates. See
+[AGENTS.md](./AGENTS.md) for the three-crate layout and the rest of the
+commands.
 
 What changed between releases is in [CHANGELOG.md](./CHANGELOG.md). The
 behaviour it promises is written down in [INVARIANTS.md](./INVARIANTS.md), and
