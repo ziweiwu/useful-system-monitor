@@ -347,9 +347,11 @@ the one most likely to break the build and the easiest to leave off the list.
 2. Tag the merge commit and push the tag: `git tag -a vX.Y.Z -m X.Y.Z <sha> &&
    git push origin vX.Y.Z`. `release.yml` builds the four binaries, re-runs the
    gates, publishes the platform packages, then the main one. **Never move a
-   tag.** A run that fails after publishing anything is fixed forward with the
-   next patch version; one that published nothing can be re-run once the cause
-   is fixed, and the binary loop steps over versions already on the registry.
+   tag.** A re-run (`gh run rerun <run-id> --failed`) builds from the tagged
+   commit, so it only helps when the cause was outside the repo — credentials,
+   a registry error. Both publish steps step over versions already on the
+   registry, so a re-run after a partial publish finishes the rest. Anything
+   that needs a code change ships as the next patch version.
 3. **Homebrew is by hand.** The `ziweiwu/homebrew-tap` formula downloads
    `useful-system-monitor-X.Y.Z-<target>.tar.gz` — the bare `sysmon` binary —
    from the GitHub Release for the tag. Build those from the Release run's

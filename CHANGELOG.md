@@ -24,9 +24,9 @@ Coming from 0.9.2, everything under 0.10.0 below is new to you.
 
 ### Release
 
-- A release run that fails part-way through publishing the binaries can be
-  re-run: versions already on the registry are skipped rather than failing the
-  whole run, since npm never accepts a version twice.
+- A release run that fails part-way through publishing can be re-run:
+  versions already on the registry are skipped rather than failing the whole
+  run, since npm never accepts a version twice.
 - The launcher's hand-over tests now run during the release, against the binary
   about to be published. They skipped wherever no binary package had been
   assembled, which was everywhere, and one had gone stale on the `mock` field.

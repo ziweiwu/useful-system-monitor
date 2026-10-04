@@ -131,8 +131,8 @@ describe.skipIf(!built)('the launcher hands over to the platform binary', () => 
     /* The binary adds `mock` on purpose (0.10.0): a script fed `--mock` by
        accident has to be able to tell. Every key the Node build has must
        still be there, and nothing else may appear. */
-    const binaryOnlyKeys = ['mock'];
-    const sharedKeys = Object.keys(viaLauncher).filter((k) => !binaryOnlyKeys.includes(k));
+    const binaryOnlyKeys = new Set(['mock']);
+    const sharedKeys = Object.keys(viaLauncher).filter((k) => !binaryOnlyKeys.has(k));
     expect(sharedKeys.toSorted()).toEqual(Object.keys(viaNode).toSorted());
     expect(viaLauncher.mock).toBe(false);
     expect(Object.keys(viaLauncher.memory).toSorted()).toEqual(
