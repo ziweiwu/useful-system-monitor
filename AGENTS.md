@@ -127,7 +127,7 @@ runs it — a release that bumped one and not the other would publish a package
 whose `--version` disagreed with its own metadata (I-25).
 
 ```sh
-npm run verify:rust          # fmt + clippy + cargo test  (240 tests)
+npm run verify:rust          # fmt + clippy + cargo test  (242 tests)
 npm run verify:diff          # Rust --json vs. the shipping Node build
 npm run verify:tui:rust      # the built binary really mounts and draws (I-22b)
 npm run verify:longrun:rust  # RSS flat across a long run (I-10b)
@@ -183,12 +183,15 @@ seam may assume a platform**, and `#[cfg]` covers both. `cargo check
 --target x86_64-unknown-linux-gnu` is the only thing that catches a break, and
 `npm run check:linux` runs it.
 
-**`unsafe_code` is `deny`, not `forbid`**, so exactly two modules can opt out
+**`unsafe_code` is `deny`, not `forbid`**, so exactly four modules can opt out
 with a comment saying why: `crates/sysmon/src/collect/cpu.rs` (mach
 `host_processor_info`, which
 has no safe wrapper and is the only way to read per-core ticks without spawning
-`top`) and the `statvfs`/`sysconf` calls in `crates/sysmon/src/collect/linux.rs`.
-Everything else
+`top`), the `statvfs`/`sysconf` calls in `crates/sysmon/src/collect/linux.rs`,
+`crates/sysmon/src/collect/proc_table.rs` (libproc and `KERN_PROCARGS2` for the
+user's own processes, so `ps` only runs for other users') and
+`crates/sysmon/src/collect/vm.rs` (`host_statistics64` and two sysctls in place
+of spawning `vm_stat` and `sysctl`). Everything else
 is safe code over plain data.
 
 ### The technique that has paid for itself

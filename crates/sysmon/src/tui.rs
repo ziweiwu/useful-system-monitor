@@ -1,6 +1,6 @@
 //! The dashboard: terminal setup, the event loop, and putting it all back.
 
-use std::io::{self, Stdout};
+use std::io::{self, BufWriter, Stdout};
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -99,11 +99,18 @@ fn translate(k: CtKeyEvent) -> Option<Key> {
     })
 }
 
+/// The terminal, writing through a buffer that holds a whole frame: `Stdout`
+/// alone is a `LineWriter` that flushes every 1 KiB, so a frame went out as a
+/// dozen `write`s to the pty instead of one. ratatui flushes after every
+/// draw, so nothing waits in the buffer between frames.
+type Screen = Terminal<CrosstermBackend<BufWriter<Stdout>>>;
+/// Room for a full redraw of a large terminal, colours included.
+const FRAME_BUFFER: usize = 64 * 1024;
+
 pub fn run(options: &Options) -> Result<(), String> {
     let _guard = TerminalGuard::enter().map_err(|e| e.to_string())?;
-    let backend = CrosstermBackend::new(io::stdout());
-    let mut terminal: Terminal<CrosstermBackend<Stdout>> =
-        Terminal::new(backend).map_err(|e| e.to_string())?;
+    let backend = CrosstermBackend::new(BufWriter::with_capacity(FRAME_BUFFER, io::stdout()));
+    let mut terminal: Screen = Terminal::new(backend).map_err(|e| e.to_string())?;
 
     let (tx, rx) = mpsc::channel::<Msg>();
     let mut ui = UiState::default();
@@ -143,7 +150,7 @@ struct Wiring<'a> {
 
 /// Draw, drain input, absorb samples, settle — until the user quits.
 fn event_loop(
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    terminal: &mut Screen,
     ui: &mut UiState,
     app: &mut AppData,
     wiring: Wiring,
@@ -223,11 +230,7 @@ fn start_collectors(
 
 /// Draw one frame, and report whether the kill confirmation actually reached
 /// the screen. See I-15.
-fn draw(
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    app: &AppData,
-    ui: &UiState,
-) -> Result<bool, String> {
+fn draw(terminal: &mut Screen, app: &AppData, ui: &UiState) -> Result<bool, String> {
     let size = terminal.size().map_err(|e| e.to_string())?;
     let size = Size {
         columns: size.width as usize,
