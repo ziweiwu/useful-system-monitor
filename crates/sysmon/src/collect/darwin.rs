@@ -2,10 +2,10 @@
 //!
 //! Each one is shaped by its cost. The tier notes in the plan carry the
 //! numbers; the short version is that a render costs far more than any
-//! collector, and the two `ps` calls differ by 2x, so names are cached and the
-//! expensive call is made only when a *visible* process has no name yet.
+//! collector, and that `ps` costs per process listed, so it lists only the
+//! processes libproc cannot read (`proc_table`).
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::time::Duration;
 
 use sysmon_core::domain::deltas::{core_utilisation, summarise, CpuDeltaTracker, CpuTimes};
@@ -25,6 +25,8 @@ use sysmon_core::text::sanitize_text;
 
 use crate::collect::cpu;
 use crate::collect::exec::{bin, run, CommandError, DEFAULT_TIMEOUT};
+use crate::collect::proc_table;
+use crate::collect::vm;
 use crate::collect::{Identity, ProcessesData};
 
 #[allow(dead_code)]
@@ -33,11 +35,12 @@ pub struct DarwinCollector {
     ncpu: usize,
     deltas: CpuDeltaTracker,
     prev_cpu_times: Vec<CpuTimes>,
-    /// Static metadata is expensive (it doubles the cost of `ps`: 22 ms -> 44 ms,
-    /// because it resolves executable paths and maps UIDs to names) but never
-    /// changes for a live PID, so it is cached and only refetched when a
-    /// *visible* process has no name.
+    /// Static metadata, re-read for every PID only when a *visible* process
+    /// has no name: it costs twice the hot columns (`ps`: 22 ms -> 44 ms,
+    /// because it resolves executable paths and maps UIDs to names).
     meta_cache: HashMap<i32, ProcessMeta>,
+    /// libproc's view of the process table; `None` if it could not be set up.
+    table: Option<proc_table::Reader>,
     energy_impact: HashMap<i32, f64>,
     energy_sampled_at: i64,
 }
@@ -64,6 +67,7 @@ impl DarwinCollector {
             deltas: CpuDeltaTracker::new(FULL_SCALE_PCT * ncpu as f64),
             prev_cpu_times: prev,
             meta_cache: HashMap::new(),
+            table: proc_table::Reader::new(),
             energy_impact: HashMap::new(),
             energy_sampled_at: 0,
         })
@@ -114,7 +118,11 @@ impl DarwinCollector {
         })
     }
 
+    /// Read in-process (`vm`); the three commands only if that fails.
     pub fn memory(&self) -> Result<MemoryData, CommandError> {
+        if let Some(memory) = vm::read() {
+            return Ok(memory);
+        }
         let vm = run(bin::VM_STAT, &[], DEFAULT_TIMEOUT)?;
         let swap = sysctl("vm.swapusage")?;
         let total = sysctl("hw.memsize")
@@ -240,12 +248,7 @@ impl DarwinCollector {
     }
 
     pub fn processes(&mut self, cap: WorkingSetCap) -> Result<ProcessesData, CommandError> {
-        // Hot columns only: 22 ms rather than 48 ms.
-        let hot = parse_ps_hot(&run(
-            bin::PS,
-            &["-Ao", "pid,ppid,time,rss"],
-            DEFAULT_TIMEOUT,
-        )?);
+        let (hot, split) = self.sample_table()?;
         let now = now_ms();
         if self.accurate_energy && self.energy_sampled_at == 0 {
             self.refresh_energy();
@@ -262,6 +265,7 @@ impl DarwinCollector {
             hot: &hot,
             cpu_by_pid: &cpu_by_pid,
             lane,
+            split: split.as_ref(),
         };
         let (all, ws) = self.rows(&tick, cap)?;
 
@@ -276,10 +280,43 @@ impl DarwinCollector {
         })
     }
 
+    /// Hot columns for every process.
+    ///
+    /// libproc reads this user's processes without a spawn; `ps` reads the
+    /// rest, restricted to them, and the `Split` records which were which so a
+    /// name lookup can divide the table the same way. Without libproc it is the
+    /// hot `ps` call over every process, as it was.
+    fn sample_table(&mut self) -> Result<(Vec<RawProcess>, Option<Split>), CommandError> {
+        let Some(table) = self.table.as_ref().and_then(proc_table::Reader::read) else {
+            // Hot columns only: 22 ms rather than 48 ms.
+            let hot = parse_ps_hot(&run(bin::PS, &["-Ao", HOT_COLUMNS], DEFAULT_TIMEOUT)?);
+            return Ok((hot, None));
+        };
+        let proc_table::Table {
+            mut hot,
+            other_uids,
+            own_unreadable,
+        } = table;
+        let split = Split {
+            native: hot.iter().map(|p| p.pid).collect(),
+            other_uids,
+            ps_pids: own_unreadable,
+        };
+        let read: HashSet<i32> = split.native.iter().copied().collect();
+        let out = ps_selected(HOT_COLUMNS, &split.other_uids, &split.ps_pids)?;
+        hot.extend(
+            parse_ps_hot(&out)
+                .into_iter()
+                .filter(|p| !read.contains(&p.pid)),
+        );
+        hot.sort_by_key(|p| p.pid);
+        Ok((hot, Some(split)))
+    }
+
     /// Every row, and the working set chosen from it.
     ///
-    /// The second `ps` is only worth its 26 ms when a visible row has no name,
-    /// so the rows are built once optimistically and only rebuilt if that
+    /// The static columns are only worth reading when a visible row has no
+    /// name, so the rows are built once optimistically and only rebuilt if that
     /// turns out to be true.
     fn rows(&mut self, tick: &Tick, cap: WorkingSetCap) -> Result<Rows, CommandError> {
         let all = self.build_all(tick.hot, tick.cpu_by_pid, tick.lane);
@@ -291,7 +328,7 @@ impl DarwinCollector {
         {
             return Ok((all, ws));
         }
-        self.rebuild_meta_cache(tick.hot)?;
+        self.rebuild_meta_cache(tick)?;
         let all = self.build_all(tick.hot, tick.cpu_by_pid, tick.lane);
         let ws = select_working_set(&all, cap);
         Ok((all, ws))
@@ -316,14 +353,27 @@ impl DarwinCollector {
         }
     }
 
-    /// Names, users and start times for every live PID, from the slower `ps`.
-    fn rebuild_meta_cache(&mut self, hot: &[RawProcess]) -> Result<(), CommandError> {
-        let metas = parse_ps_static(&run(
-            bin::PS,
-            &["-Ao", "pid,lstart,user,state,comm"],
-            DEFAULT_TIMEOUT,
-        )?);
-        let live: HashSet<i32> = hot.iter().map(|p| p.pid).collect();
+    /// Names, users, states and start times for every live PID, divided the
+    /// way the sample was: libproc for this user's, `ps` for the rest and for
+    /// any whose argument area libproc could not read. Without libproc, the
+    /// slower `ps` over every process.
+    fn rebuild_meta_cache(&mut self, tick: &Tick) -> Result<(), CommandError> {
+        let metas = match (tick.split, self.table.as_mut()) {
+            (Some(split), Some(reader)) => {
+                let (mut metas, unread) = reader.metas(&split.native);
+                let pids: Vec<i32> = split.ps_pids.iter().chain(&unread).copied().collect();
+                let named: HashSet<i32> = metas.iter().map(|m| m.pid).collect();
+                let out = ps_selected(STATIC_COLUMNS, &split.other_uids, &pids)?;
+                metas.extend(
+                    parse_ps_static(&out)
+                        .into_iter()
+                        .filter(|m| !named.contains(&m.pid)),
+                );
+                metas
+            }
+            _ => parse_ps_static(&run(bin::PS, &["-Ao", STATIC_COLUMNS], DEFAULT_TIMEOUT)?),
+        };
+        let live: HashSet<i32> = tick.hot.iter().map(|p| p.pid).collect();
         // I-10: rebuilding from the live set also evicts exited PIDs, so the
         // cache cannot grow without bound.
         self.meta_cache = metas
@@ -403,6 +453,18 @@ struct Tick<'a> {
     hot: &'a [RawProcess],
     cpu_by_pid: &'a HashMap<i32, Option<f64>>,
     lane: EnergyLane,
+    /// `None` when libproc is down and `ps` read every process.
+    split: Option<&'a Split>,
+}
+
+/// How a sample divided the process table between libproc and `ps`.
+struct Split {
+    /// The PIDs libproc read.
+    native: Vec<i32>,
+    /// Real UIDs, other than this user's, whose processes `ps` read.
+    other_uids: BTreeSet<u32>,
+    /// This user's PIDs that `ps` read: setuid programs and zombies.
+    ps_pids: Vec<i32>,
 }
 
 /// Which unit the energy column is carrying this tick.
@@ -413,6 +475,75 @@ enum EnergyLane {
     /// The CPU-time proxy, for every row.
     Estimated,
 }
+
+/// `columns` for the processes libproc left to `ps`: other users' by real
+/// UID, and this user's unreadable ones by PID — or for every process, when
+/// that selection fails, for the caller to keep the ones libproc did not read.
+///
+/// Users go by name where `/etc/passwd` has one, read afresh on every call:
+/// `ps` resolves each `-U` entry with `getpwnam` first, and a number misses
+/// that lookup before `getpwuid` finds it — 13 ms of `ps` CPU against 8 ms
+/// for 37 other users here, most of the call. `ps` exits 1 both when nothing
+/// matched and when it was given a user that does not exist, which is why 1
+/// falls back to every process rather than to an empty answer.
+fn ps_selected(columns: &str, uids: &BTreeSet<u32>, pids: &[i32]) -> Result<String, CommandError> {
+    let join = |items: Vec<String>| items.join(",");
+    let mut args = vec!["-o".to_string(), columns.to_string()];
+    if !uids.is_empty() {
+        let names = passwd_names();
+        let user = |uid: &u32| names.get(uid).cloned().unwrap_or_else(|| uid.to_string());
+        args.push("-U".into());
+        args.push(join(uids.iter().map(user).collect()));
+    }
+    if !pids.is_empty() {
+        args.push("-p".into());
+        args.push(join(pids.iter().map(i32::to_string).collect()));
+    }
+    if args.len() == PS_FORMAT_ARGS {
+        return Ok(String::new());
+    }
+    let argv: Vec<&str> = args.iter().map(String::as_str).collect();
+    match run(bin::PS, &argv, DEFAULT_TIMEOUT) {
+        Err(e) if e.exit_code == Some(PS_NO_MATCH) => {
+            run(bin::PS, &["-Ao", columns], DEFAULT_TIMEOUT)
+        }
+        other => other,
+    }
+}
+
+/// Account names by UID, from `/etc/passwd`, which lists every system
+/// account — the users whose processes libproc cannot read. Empty if it cannot
+/// be read, and then `ps` gets numbers.
+fn passwd_names() -> HashMap<u32, String> {
+    parse_passwd(&std::fs::read_to_string(PASSWD).unwrap_or_default())
+}
+
+/// The first name for each UID in `passwd(5)` text. `nobody`'s `-2` is no
+/// `u32`, so it stays out and is passed to `ps` as a number.
+fn parse_passwd(passwd: &str) -> HashMap<u32, String> {
+    let mut names = HashMap::new();
+    for line in passwd.lines().filter(|line| !line.starts_with('#')) {
+        let mut fields = line.split(':');
+        let (Some(name), Some(uid)) = (fields.next(), fields.nth(1)) else {
+            continue;
+        };
+        if let (false, Ok(uid)) = (name.is_empty(), uid.parse::<u32>()) {
+            names.entry(uid).or_insert_with(|| name.to_string());
+        }
+    }
+    names
+}
+
+/// `-o <columns>`: the arguments before any selector.
+const PS_FORMAT_ARGS: usize = 2;
+const PASSWD: &str = "/etc/passwd";
+/// What `ps` exits with when no process matched its selectors, or a user it
+/// was given does not exist.
+const PS_NO_MATCH: i32 = 1;
+/// Read every sample.
+const HOT_COLUMNS: &str = "pid,ppid,time,rss";
+/// Read only when a visible process has no name.
+const STATIC_COLUMNS: &str = "pid,lstart,user,state,comm";
 
 /// One core fully busy.
 const FULL_SCALE_PCT: f64 = 100.0;
@@ -440,4 +571,36 @@ fn uptime_sec() -> u64 {
         return 0;
     }
     ((now_ms() / 1000) - secs).max(0) as u64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PASSWD_FIXTURE: &str = include_str!("../../../../test/fixtures/passwd.txt");
+    /// `_windowserver` in the fixture.
+    const WINDOWSERVER_UID: u32 = 88;
+    /// Any UID, given two names.
+    const SHARED_UID: u32 = 7;
+
+    #[test]
+    fn passwd_names_skip_comments_and_negative_uids() {
+        let names = parse_passwd(PASSWD_FIXTURE);
+        assert_eq!(names.get(&0).map(String::as_str), Some("root"));
+        assert_eq!(
+            names.get(&WINDOWSERVER_UID).map(String::as_str),
+            Some("_windowserver")
+        );
+        assert!(!names
+            .values()
+            .any(|name| name == "nobody" || name.starts_with('#')));
+    }
+
+    #[test]
+    fn passwd_names_keep_the_first_name_for_a_uid() {
+        let passwd =
+            format!("first:*:{SHARED_UID}:0::/:/bin/sh\nsecond:*:{SHARED_UID}:0::/:/bin/sh\n");
+        let names = parse_passwd(&passwd);
+        assert_eq!(names.get(&SHARED_UID).map(String::as_str), Some("first"));
+    }
 }

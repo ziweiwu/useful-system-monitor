@@ -18,6 +18,10 @@ pub mod exec;
 #[cfg(target_os = "linux")]
 pub mod linux;
 pub mod mock;
+#[cfg(target_os = "macos")]
+pub mod proc_table;
+#[cfg(target_os = "macos")]
+pub mod vm;
 
 /// The platform's collector. Both expose the same methods.
 #[cfg(target_os = "macos")]
