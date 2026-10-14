@@ -651,3 +651,158 @@ pub fn spawn_kill(outbox: Sender<Msg>, request: KillRequest, collectors: Collect
         })
         .ok();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc::channel;
+
+    const PATIENCE: Duration = Duration::from_secs(10);
+    /// Longer than any test runs, so only an explicit command makes a sample.
+    const NEVER: Duration = Duration::from_secs(3600);
+    /// cpu, memory, disk, battery, processes.
+    const TIER_COUNT: usize = 5;
+    const ANY_MESSAGE: i32 = 7;
+    const SOME_CAP: usize = 3;
+    const KILLED_PID: i32 = 42;
+
+    struct Inboxes {
+        cpu: Receiver<Cmd>,
+        memory: Receiver<Cmd>,
+        disk: Receiver<Cmd>,
+        battery: Receiver<Cmd>,
+        processes: Receiver<Cmd>,
+    }
+
+    impl Inboxes {
+        fn all(&self) -> [&Receiver<Cmd>; TIER_COUNT] {
+            [
+                &self.cpu,
+                &self.memory,
+                &self.disk,
+                &self.battery,
+                &self.processes,
+            ]
+        }
+    }
+
+    fn handles() -> (Handles, Inboxes) {
+        let (cpu, cpu_rx) = channel();
+        let (memory, memory_rx) = channel();
+        let (disk, disk_rx) = channel();
+        let (battery, battery_rx) = channel();
+        let (processes, processes_rx) = channel();
+        let handles = Handles {
+            cpu,
+            memory,
+            disk,
+            battery,
+            processes,
+            threads: Vec::new(),
+        };
+        let inboxes = Inboxes {
+            cpu: cpu_rx,
+            memory: memory_rx,
+            disk: disk_rx,
+            battery: battery_rx,
+            processes: processes_rx,
+        };
+        (handles, inboxes)
+    }
+
+    #[test]
+    fn post_delivers_to_a_live_receiver() {
+        let (tx, rx) = channel();
+        post(&tx, ANY_MESSAGE);
+        assert_eq!(rx.try_recv(), Ok(ANY_MESSAGE));
+    }
+
+    #[test]
+    fn refresh_all_asks_every_tier() {
+        let (h, inboxes) = handles();
+        h.refresh_all();
+        for rx in inboxes.all() {
+            assert!(matches!(rx.try_recv(), Ok(Cmd::RefreshNow)));
+        }
+    }
+
+    #[test]
+    fn set_cap_reaches_only_the_process_tier_then_resamples() {
+        let (h, inboxes) = handles();
+        h.set_cap(WorkingSetCap::Top(SOME_CAP));
+        assert!(matches!(
+            inboxes.processes.try_recv(),
+            Ok(Cmd::SetCap(WorkingSetCap::Top(SOME_CAP)))
+        ));
+        assert!(matches!(inboxes.processes.try_recv(), Ok(Cmd::RefreshNow)));
+        assert!(inboxes.cpu.try_recv().is_err());
+    }
+
+    #[test]
+    fn note_killed_names_the_pid_then_resamples() {
+        let (h, inboxes) = handles();
+        h.note_killed(KILLED_PID);
+        assert!(matches!(
+            inboxes.processes.try_recv(),
+            Ok(Cmd::NoteKilled(KILLED_PID))
+        ));
+        assert!(matches!(inboxes.processes.try_recv(), Ok(Cmd::RefreshNow)));
+    }
+
+    #[test]
+    fn shutdown_tells_every_tier() {
+        let (h, inboxes) = handles();
+        h.shutdown();
+        for rx in inboxes.all() {
+            assert!(matches!(rx.try_recv(), Ok(Cmd::Shutdown)));
+        }
+    }
+
+    fn next_processes(samples: &Receiver<Msg>) -> bool {
+        matches!(samples.recv_timeout(PATIENCE), Ok(Msg::Processes(_)))
+    }
+
+    #[test]
+    fn process_loop_samples_on_start_and_on_request_until_shutdown() {
+        let (out, samples) = channel();
+        let (commands, inbox) = channel();
+        let worker = std::thread::spawn(move || {
+            let mut c = Collector::mock().unwrap();
+            process_loop(&out, &mut c, NEVER, (inbox, WorkingSetCap::All));
+        });
+        assert!(next_processes(&samples), "no first sample");
+        commands.send(Cmd::RefreshNow).unwrap();
+        assert!(next_processes(&samples), "RefreshNow did not resample");
+        commands.send(Cmd::Shutdown).unwrap();
+        worker.join().unwrap();
+    }
+
+    #[test]
+    fn spawn_host_posts_the_host_facts() {
+        let (out, rx) = channel();
+        spawn_host(&out).unwrap();
+        assert!(matches!(rx.recv_timeout(PATIENCE), Ok(Msg::Host(_))));
+    }
+
+    #[test]
+    fn spawn_kill_reports_the_outcome_for_the_target() {
+        let target = Collector::mock()
+            .unwrap()
+            .processes(WorkingSetCap::All)
+            .unwrap()
+            .visible
+            .remove(0);
+        let pid = target.pid;
+        let (out, rx) = channel();
+        let request = KillRequest {
+            target,
+            signal: Signal::Term,
+            parents: std::collections::HashMap::new(),
+        };
+        spawn_kill(out, request, CollectorKind::Mock);
+        assert!(matches!(
+            rx.recv_timeout(PATIENCE),
+            Ok(Msg::Killed { pid: p, .. }) if p == pid
+        ));
+    }
+}

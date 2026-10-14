@@ -154,3 +154,29 @@ pub fn load_average() -> [f64; LOAD_WINDOWS] {
     }
     avg
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A core that has never been scheduled, which no live core is.
+    const NO_TICKS: f64 = 0.0;
+
+    #[test]
+    fn per_core_times_has_one_ticking_entry_per_core() {
+        let cores = per_core_times().unwrap();
+        let expected = std::thread::available_parallelism().unwrap().get();
+        assert_eq!(cores.len(), expected);
+        assert!(cores.iter().all(|c| c.user + c.sys + c.idle > NO_TICKS));
+    }
+
+    #[test]
+    fn load_average_is_three_distinct_live_readings() {
+        let [one, five, fifteen] = load_average();
+        for load in [one, five, fifteen] {
+            assert!(load.is_finite() && load >= NO_READING, "{load}");
+        }
+        // Three windows over a running machine never settle on one figure.
+        assert!(one != five || five != fifteen, "{one} {five} {fifteen}");
+    }
+}

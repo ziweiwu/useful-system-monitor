@@ -127,7 +127,7 @@ runs it — a release that bumped one and not the other would publish a package
 whose `--version` disagreed with its own metadata (I-25).
 
 ```sh
-npm run verify:rust          # the Rust gate (see Guardrails)  (240 tests)
+npm run verify:rust          # the Rust gate (see Guardrails)  (253 tests)
 npm run mutants:rust         # cargo-mutants on this branch's diff, as CI runs it
 npm run verify:diff          # Rust --json vs. the shipping Node build
 npm run verify:tui:rust      # the built binary really mounts and draws (I-22b)
@@ -177,7 +177,8 @@ CI runs the same npm scripts.
   any mutant no test catches fails the PR. `npm run mutants:rust` is the same
   run locally. `.cargo/mutants.toml` leaves out the harness and the Linux-only
   collector, which nothing on a Mac would test, and `TerminalGuard` /
-  `restore_terminal`, which need a real TTY.
+  `restore_terminal`, which need a real TTY, and `RealKiller::kill`, which
+  would have to signal a real process.
 - **Shipped binaries** are built with `cargo auditable`, and `cargo audit bin`
   checks each one, in `cross-build` and in the release.
 

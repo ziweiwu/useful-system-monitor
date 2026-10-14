@@ -492,3 +492,23 @@ fn spawn_command_line(outbox: mpsc::Sender<Msg>, pid: i32, collectors: Collector
         })
         .ok();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sysmon_core::domain::working_set::WorkingSetCap;
+
+    #[test]
+    fn spawn_command_line_posts_the_rows_argv() {
+        let mut mock = Collector::mock().unwrap();
+        let pid = mock.processes(WorkingSetCap::All).unwrap().visible[0].pid;
+        let expected = mock.command_line(pid);
+        assert!(expected.is_some());
+        let (out, rx) = mpsc::channel();
+        spawn_command_line(out, pid, CollectorKind::Mock);
+        assert!(matches!(
+            rx.recv_timeout(Duration::from_secs(10)),
+            Ok(Msg::CommandLine(line)) if line == expected
+        ));
+    }
+}

@@ -171,3 +171,21 @@ pub mod bin {
     pub const IOREG: &str = "/usr/sbin/ioreg";
     pub const TOP: &str = "/usr/bin/top";
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PATIENCE: Duration = Duration::from_secs(10);
+
+    #[test]
+    fn run_returns_what_the_command_printed() {
+        assert_eq!(run("/bin/echo", &["hello"], PATIENCE).unwrap(), "hello\n");
+    }
+
+    #[test]
+    fn run_reports_a_command_that_exits_non_zero() {
+        let err = run("/usr/bin/false", &[], PATIENCE).unwrap_err();
+        assert_eq!(err.exit_code, Some(1));
+    }
+}

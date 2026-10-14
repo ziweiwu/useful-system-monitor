@@ -18,4 +18,9 @@ timeout_multiplier = 3.0
 # Raw mode and the alternate screen need a real TTY, which no unit test has.
 # The pty harness (verify_tui, run in CI) enters through TerminalGuard but does
 # not assert the restore, so these mutants would be reported missed.
-exclude_re = ["TerminalGuard", "restore_terminal"]
+#
+# RealKiller::kill is kill(2) itself. Catching its mutant means signalling a
+# real process, which unit tests must not do, and TargetPid cannot be built
+# outside sysmon-core to aim it at a child of the test. No harness covers it
+# either: verify_tui and qa_fuzz run --mock, whose killer signals nothing.
+exclude_re = ["TerminalGuard", "restore_terminal", "impl Killer for RealKiller"]
