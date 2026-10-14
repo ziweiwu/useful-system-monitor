@@ -14,6 +14,10 @@ use regex::Regex;
 /// energy impact is itself a rate and `top` has nothing to compare against yet.
 /// Only the final block carries real numbers.
 pub fn parse_top_power(stdout: &str) -> HashMap<i32, f64> {
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static ROW: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^\s*(\d+)\s+([\d.]+)\s*$").expect("static regex"));
 

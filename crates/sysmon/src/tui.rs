@@ -53,8 +53,7 @@ impl TerminalGuard {
         execute!(io::stdout(), EnterAlternateScreen, EnableBracketedPaste)?;
         let previous = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
-            let _ = disable_raw_mode();
-            let _ = execute!(io::stdout(), DisableBracketedPaste, LeaveAlternateScreen);
+            restore_terminal();
             previous(info);
         }));
         Ok(Self)
@@ -63,6 +62,20 @@ impl TerminalGuard {
 
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
+        restore_terminal();
+    }
+}
+
+/// Leaves raw mode and the alternate screen, each step tried on its own.
+///
+/// Runs from the panic hook and from `Drop`, neither of which has a caller to
+/// hand an error to, and a failed first step must not skip the second.
+fn restore_terminal() {
+    #[expect(
+        clippy::let_underscore_must_use,
+        reason = "best effort, from a panic hook or Drop: there is no caller to tell"
+    )]
+    {
         let _ = disable_raw_mode();
         let _ = execute!(io::stdout(), DisableBracketedPaste, LeaveAlternateScreen);
     }
@@ -475,7 +488,7 @@ fn spawn_command_line(outbox: mpsc::Sender<Msg>, pid: i32, collectors: Collector
             }
             .ok()
             .and_then(|c| c.command_line(pid));
-            let _ = outbox.send(Msg::CommandLine(line));
+            supervisor::post(&outbox, Msg::CommandLine(line));
         })
         .ok();
 }

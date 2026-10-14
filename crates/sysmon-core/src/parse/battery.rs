@@ -20,12 +20,28 @@ const CENTI_PER_UNIT: f64 = 100.0;
 /// (optimised charging), and is neither charging nor draining. A lowercase-only
 /// pattern silently fails to match it and reports "no battery".
 pub fn parse_pmset(stdout: &str) -> Option<PmsetBattery> {
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static STATE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"(\d+)%;\s*([A-Za-z ]+?);").expect("static regex"));
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static REMAINING: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"(\d+):(\d{2})\s+remaining").expect("static regex"));
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static PRESENT: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"present:\s*true").expect("static regex"));
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static AC: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"drawing from 'AC Power'").expect("static regex"));
 
@@ -63,11 +79,19 @@ pub fn parse_signed_int64(text: &str) -> Option<i64> {
 /// `ioreg -rn AppleSmartBattery -w0`.
 pub fn parse_ioreg_battery(stdout: &str) -> IoregBattery {
     let num = |key: &str| -> Option<i64> {
+        #[expect(
+            clippy::expect_used,
+            reason = "the key is escaped into a fixed pattern"
+        )]
         let re = Regex::new(&format!(r#""{}"\s*=\s*(-?\d+)"#, regex::escape(key)))
             .expect("key is escaped");
         re.captures(stdout).and_then(|c| parse_signed_int64(&c[1]))
     };
     let yes_no = |key: &str| -> Option<bool> {
+        #[expect(
+            clippy::expect_used,
+            reason = "the key is escaped into a fixed pattern"
+        )]
         let re = Regex::new(&format!(r#""{}"\s*=\s*(Yes|No)"#, regex::escape(key)))
             .expect("key is escaped");
         re.captures(stdout).map(|c| &c[1] == "Yes")

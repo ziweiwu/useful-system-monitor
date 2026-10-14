@@ -8,6 +8,8 @@ preview.html
 
 # Rust
 /target/
+# cargo-mutants' report (npm run mutants:rust)
+/mutants.out*/
 
 # Generated per-platform binary packages
 /npm/

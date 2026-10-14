@@ -10,11 +10,12 @@
 //! the tier notes: CPU can be sampled often precisely because it spawns
 //! nothing).
 //!
-//! So the workspace sets `unsafe_code = "deny"` rather than `forbid`, and this
-//! module opts out for about twenty lines. The unsafety is confined to one
-//! call and one slice construction, both immediately below; everything above
-//! and below this file is safe code operating on a plain `Vec<CpuTimes>`.
-#![allow(unsafe_code)]
+//! So the workspace sets `unsafe_code = "deny"` rather than `forbid`, and each
+//! unsafe block and fn in this module opts out on its own, with an
+//! `#[expect(unsafe_code)]` giving the reason and a `SAFETY` note. The unsafety
+//! is confined to one call and one slice construction, both immediately below;
+//! everything above and below this file is safe code operating on a plain
+//! `Vec<CpuTimes>`.
 
 use sysmon_core::domain::deltas::CpuTimes;
 
@@ -32,13 +33,20 @@ pub fn per_core_times() -> Result<Vec<CpuTimes>, String> {
     let mut info: *mut libc::processor_cpu_load_info_t = std::ptr::null_mut();
     let mut info_count: libc::mach_msg_type_number_t = 0;
 
+    #[expect(
+        unsafe_code,
+        reason = "per-core ticks have no safe API; see the module note"
+    )]
     // SAFETY: `mach_host_self()` returns a send right that is valid for the
     // life of the process. `host_processor_info` writes the out-parameters only
     // on success (checked below), and is the documented way to obtain
     // PROCESSOR_CPU_LOAD_INFO. Deprecated in the libc crate but not in the OS,
     // and it remains what Activity Monitor and `top` themselves use.
     let result = unsafe {
-        #[allow(deprecated)]
+        #[expect(
+            deprecated,
+            reason = "libc defers mach to the mach2 crate; the OS call is current"
+        )]
         let host = libc::mach_host_self();
         libc::host_processor_info(
             host,
@@ -57,13 +65,17 @@ pub fn per_core_times() -> Result<Vec<CpuTimes>, String> {
         return Err("host_processor_info returned no data".to_string());
     }
 
+    #[expect(unsafe_code, reason = "reads the kernel's buffer; see the module note")]
     // SAFETY: on success the kernel guarantees `count` structs at `info`, each
     // holding CPU_STATE_MAX ticks. The slice is read and copied out before the
     // allocation is released below, and never escapes this function.
     let out = unsafe { read_tick_counters(info, count) };
+    #[expect(unsafe_code, reason = "frees the kernel's buffer; see the module note")]
     // SAFETY: the kernel allocated this with vm_allocate on our behalf, and the
     // caller owns it. `info_count` is in units of natural_t, as returned above.
-    unsafe { release_tick_counters(info, info_count) };
+    unsafe {
+        release_tick_counters(info, info_count)
+    };
 
     Ok(out)
 }
@@ -72,7 +84,7 @@ pub fn per_core_times() -> Result<Vec<CpuTimes>, String> {
 ///
 /// `counters` must point at `count` `[natural_t; CPU_STATE_MAX]` structs, as
 /// `host_processor_info` guarantees on success.
-#[allow(unsafe_code)]
+#[expect(unsafe_code, reason = "builds a slice over a raw kernel buffer")]
 unsafe fn read_tick_counters(
     counters: *mut libc::processor_cpu_load_info_t,
     count: libc::natural_t,
@@ -99,12 +111,18 @@ unsafe fn read_tick_counters(
 ///
 /// `counters` must be the allocation `host_processor_info` handed out, and
 /// `len` its length in `natural_t` units.
-#[allow(unsafe_code)]
+#[expect(
+    unsafe_code,
+    reason = "hands a raw kernel buffer back to vm_deallocate"
+)]
 unsafe fn release_tick_counters(
     counters: *mut libc::processor_cpu_load_info_t,
     len: libc::mach_msg_type_number_t,
 ) {
-    #[allow(deprecated)]
+    #[expect(
+        deprecated,
+        reason = "libc defers mach to the mach2 crate; the OS call is current"
+    )]
     let task = libc::mach_task_self();
     libc::vm_deallocate(
         task,
@@ -124,6 +142,10 @@ const LOAD_WINDOWS: usize = 3;
 /// The 1, 5 and 15 minute figures, in that order.
 pub fn load_average() -> [f64; LOAD_WINDOWS] {
     let mut avg = [NO_READING; LOAD_WINDOWS];
+    #[expect(
+        unsafe_code,
+        reason = "std has no load average; getloadavg is the libc call"
+    )]
     // SAFETY: `getloadavg` writes at most the number of elements it is told the
     // buffer holds, and the buffer is a local array of exactly that size.
     let written = unsafe { libc::getloadavg(avg.as_mut_ptr(), LOAD_WINDOWS as libc::c_int) };

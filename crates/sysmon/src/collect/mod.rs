@@ -124,7 +124,6 @@ impl Collector {
 /// kill path and its inputs landed first on purpose, because every past bug
 /// there was a distinction collapsed under time pressure. See the milestone
 /// order in the plan.
-#[allow(dead_code)]
 pub struct ProcessesData {
     pub total: usize,
     pub visible: Vec<ProcessSample>,
@@ -141,7 +140,6 @@ pub struct ProcessesData {
 }
 
 /// What the process itself can be identified as, right now. See I-16.
-#[allow(dead_code)]
 pub enum Identity {
     Known(StartTime),
     Gone,

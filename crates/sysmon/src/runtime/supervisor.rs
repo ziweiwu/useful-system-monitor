@@ -245,7 +245,7 @@ fn spawn_tier<F>(
     priming: Priming,
     commands: Receiver<Cmd>,
     mut sample: F,
-) -> std::thread::JoinHandle<()>
+) -> Result<std::thread::JoinHandle<()>, String>
 where
     F: FnMut() + Send + 'static,
 {
@@ -264,7 +264,19 @@ where
                 }
             }
         })
-        .expect("spawning a collector thread")
+        .map_err(|e| e.to_string())
+}
+
+/// Sends, and lets a refusal go.
+///
+/// A channel refuses only once its receiver has been dropped, which happens on
+/// the way out: whoever was reading has stopped, so there is nobody to tell.
+pub(crate) fn post<T>(to: &Sender<T>, message: T) {
+    #[expect(
+        clippy::let_underscore_must_use,
+        reason = "a refused send means the reader is gone"
+    )]
+    let _ = to.send(message);
 }
 
 pub struct Handles {
@@ -286,7 +298,7 @@ impl Handles {
             &self.battery,
             &self.processes,
         ] {
-            let _ = tx.send(Cmd::RefreshNow);
+            post(tx, Cmd::RefreshNow);
         }
     }
 
@@ -295,15 +307,15 @@ impl Handles {
     /// tier would reset all five phases and re-run the CPU collector out of
     /// band, shortening one delta window and printing a bogus reading. See I-4.
     pub fn set_cap(&self, cap: WorkingSetCap) {
-        let _ = self.processes.send(Cmd::SetCap(cap));
-        let _ = self.processes.send(Cmd::RefreshNow);
+        post(&self.processes, Cmd::SetCap(cap));
+        post(&self.processes, Cmd::RefreshNow);
     }
 
     /// Tell the process tier a kill went through, so `--mock` can drop the row
     /// it just confirmed closing.
     pub fn note_killed(&self, pid: i32) {
-        let _ = self.processes.send(Cmd::NoteKilled(pid));
-        let _ = self.processes.send(Cmd::RefreshNow);
+        post(&self.processes, Cmd::NoteKilled(pid));
+        post(&self.processes, Cmd::RefreshNow);
     }
 
     pub fn shutdown(self) {
@@ -314,9 +326,13 @@ impl Handles {
             &self.battery,
             &self.processes,
         ] {
-            let _ = tx.send(Cmd::Shutdown);
+            post(tx, Cmd::Shutdown);
         }
         for t in self.threads {
+            #[expect(
+                clippy::let_underscore_must_use,
+                reason = "shutting down: a collector that panicked has nobody left to tell"
+            )]
             let _ = t.join();
         }
     }
@@ -371,7 +387,7 @@ fn process_loop(
     let mut cap = initial_cap;
     let take = |c: &mut Collector, cap: WorkingSetCap| {
         let p = panel(|| c.processes(cap));
-        let _ = outbox.send(Msg::Processes(Box::new(p)));
+        post(outbox, Msg::Processes(Box::new(p)));
     };
     take(collector, cap);
     let mut schedule = Schedule::new(interval, Priming::Early);
@@ -404,9 +420,9 @@ fn spawn_fast_tiers(
         commands,
         move || {
             let p = panel(|| c.cpu());
-            let _ = out.send(Msg::Cpu(Box::new(p)));
+            post(&out, Msg::Cpu(Box::new(p)));
         },
-    ));
+    )?);
 
     let (mem_tx, commands) = std::sync::mpsc::channel();
     let out = outbox.clone();
@@ -418,9 +434,9 @@ fn spawn_fast_tiers(
         commands,
         move || {
             let p = panel(|| c.memory());
-            let _ = out.send(Msg::Memory(Box::new(p)));
+            post(&out, Msg::Memory(Box::new(p)));
         },
-    ));
+    )?);
     Ok((cpu_tx, mem_tx))
 }
 
@@ -441,9 +457,9 @@ fn spawn_slow_tiers(
         commands,
         move || {
             let p = panel(|| c.disk());
-            let _ = out.send(Msg::Disk(Box::new(p)));
+            post(&out, Msg::Disk(Box::new(p)));
         },
-    ));
+    )?);
 
     let (batt_tx, commands) = std::sync::mpsc::channel();
     let out = outbox.clone();
@@ -455,9 +471,9 @@ fn spawn_slow_tiers(
         commands,
         move || {
             let p = panel(|| c.battery());
-            let _ = out.send(Msg::Battery(Box::new(p)));
+            post(&out, Msg::Battery(Box::new(p)));
         },
-    ));
+    )?);
     Ok((disk_tx, batt_tx))
 }
 
@@ -483,7 +499,7 @@ fn spawn_host(outbox: &Sender<Msg>) -> Result<(), String> {
         .name("sysmon-host".into())
         .spawn(move || {
             if let Ok(c) = Collector::new(false) {
-                let _ = tx.send(Msg::Host(Box::new(c.host())));
+                post(&tx, Msg::Host(Box::new(c.host())));
             }
         })
         .map_err(|e| e.to_string())?;
@@ -518,9 +534,12 @@ impl Killer for RealKiller {
             Signal::Term => libc::SIGTERM,
             Signal::Kill => libc::SIGKILL,
         };
+        #[expect(
+            unsafe_code,
+            reason = "std cannot signal an arbitrary pid; kill(2) is the libc call"
+        )]
         // SAFETY: `kill(2)` with a pid the type system has already proven is
         // greater than 1, so no process-group signal is representable here.
-        #[allow(unsafe_code)]
         let rc = unsafe { libc::kill(pid.get(), sig) };
         if rc == 0 {
             return Ok(());
@@ -621,11 +640,14 @@ pub fn spawn_kill(outbox: Sender<Msg>, request: KillRequest, collectors: Collect
                 KillOutcome::Refused(r) => (r.message, true),
                 KillOutcome::Failed(e) => (e, true),
             };
-            let _ = outbox.send(Msg::Killed {
-                pid: target.pid,
-                text,
-                bad,
-            });
+            post(
+                &outbox,
+                Msg::Killed {
+                    pid: target.pid,
+                    text,
+                    bad,
+                },
+            );
         })
         .ok();
 }

@@ -49,9 +49,12 @@ fn now_ms() -> i64 {
 
 /// `USER_HZ`, which is 100 on every mainstream kernel but is not guaranteed.
 fn clock_ticks() -> u64 {
+    #[expect(
+        unsafe_code,
+        reason = "std does not expose USER_HZ; sysconf is the libc call"
+    )]
     // SAFETY: `sysconf` takes an integer name and returns a long; no pointers
     // are involved and the call has no preconditions.
-    #[allow(unsafe_code)]
     let v = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
     if v > 0 {
         v as u64
@@ -73,8 +76,11 @@ const TYPICAL_PROCESS_COUNT: usize = 512;
 const LOAD_WINDOWS: usize = 3;
 
 fn page_size() -> u64 {
+    #[expect(
+        unsafe_code,
+        reason = "std does not expose the page size; sysconf is the libc call"
+    )]
     // SAFETY: as above.
-    #[allow(unsafe_code)]
     let v = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
     if v > 0 {
         v as u64
@@ -411,9 +417,9 @@ fn load_average() -> [f64; LOAD_WINDOWS] {
 /// the same judgement `parse_df` makes about APFS snapshots on macOS.
 fn usage(mount: &Mount) -> Option<VolumeUsage> {
     let path = std::ffi::CString::new(mount.mount.as_str()).ok()?;
+    #[expect(unsafe_code, reason = "std has no statvfs; it is the libc call")]
     // SAFETY: `statvfs` takes a NUL-terminated path and a pointer to a struct
     // it fills; both are valid here, and the result is only read on success.
-    #[allow(unsafe_code)]
     let stat = unsafe {
         let mut s: libc::statvfs = std::mem::zeroed();
         if libc::statvfs(path.as_ptr(), &mut s) != 0 {

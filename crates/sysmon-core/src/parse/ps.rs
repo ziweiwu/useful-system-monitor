@@ -29,6 +29,10 @@ const LONGEST_MONTH_DAYS: i32 = 31;
 
 pub fn parse_cpu_time_ms(field: &str) -> Option<u64> {
     // Defensive: accept an optional hours group in case a future format adds one.
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static RE: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"^(?:(\d+):)?(\d+):(\d+)(?:\.(\d{1,2}))?$").expect("static regex")
     });
@@ -96,6 +100,10 @@ pub fn parse_ps_hot(stdout: &str) -> Vec<RawProcess> {
 /// `lstart` is five whitespace-separated tokens with a padded day
 /// ("Sat Aug  1 17:46:44 2026"), and COMM is a path that may itself contain
 /// spaces, so this is positional rather than a naive split.
+#[expect(
+    clippy::expect_used,
+    reason = "a literal pattern; the parser tests compile it"
+)]
 static PS_STATIC_C: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(\d+)\s+(\S+\s+\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(\S+)\s+(\S+)\s+(.*)$")
         .expect("static regex")
@@ -109,6 +117,10 @@ static PS_STATIC_C: LazyLock<Regex> = LazyLock::new(|| {
 /// for every process on the machine. The only structure every locale shares is
 /// the clock, so this anchors on the first `HH:MM:SS` and takes an optional
 /// trailing year. See I-28.
+#[expect(
+    clippy::expect_used,
+    reason = "a literal pattern; the parser tests compile it"
+)]
 static PS_STATIC_ANY_LOCALE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(\d+)\s+(\S.*?\d{1,2}:\d{2}:\d{2}(?:\s+\d{4})?)\s+(\S+)\s+(\S+)\s+(.*)$")
         .expect("static regex")
@@ -118,6 +130,10 @@ static MONTHS: [&str; 12] = [
     "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
 ];
 
+#[expect(
+    clippy::expect_used,
+    reason = "a literal pattern; the parser tests compile it"
+)]
 static LSTART_TIME: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(\d{1,2}):(\d{2}):(\d{2})$").expect("static regex"));
 

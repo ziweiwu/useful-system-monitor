@@ -185,8 +185,14 @@ impl Session {
     }
 
     fn send(&mut self, keys: &str) {
-        let _ = self.writer.write_all(keys.as_bytes());
-        let _ = self.writer.flush();
+        #[expect(
+            clippy::let_underscore_must_use,
+            reason = "a key that never arrives shows up as the screen check that follows timing out"
+        )]
+        {
+            let _ = self.writer.write_all(keys.as_bytes());
+            let _ = self.writer.flush();
+        }
     }
 
     /// Escape, alone.
@@ -221,8 +227,14 @@ impl Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        #[expect(
+            clippy::let_underscore_must_use,
+            reason = "Drop has no caller to report to"
+        )]
+        {
+            let _ = self.child.kill();
+            let _ = self.child.wait();
+        }
     }
 }
 

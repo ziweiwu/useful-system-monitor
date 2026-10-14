@@ -12,6 +12,10 @@ const HELP: &str = include_str!("../src/help.txt");
 const MAIN_TSX: &str = include_str!("../../../src/main.tsx");
 
 /// Pull the `const HELP = ` template literal back out of the TypeScript.
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a moved HELP literal fails the parity test"
+)]
 fn typescript_help() -> &'static str {
     let start = MAIN_TSX
         .find("const HELP = `")

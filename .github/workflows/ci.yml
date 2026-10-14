@@ -6,6 +6,14 @@ on:
   pull_request:
   workflow_dispatch:
 
+# The cargo tools the Rust gate runs, pinned: each job's tool cache is keyed on
+# these, so only a version bump pays for building them again.
+env:
+  CARGO_TEST_TOOLS: cargo-nextest@0.9.148
+  CARGO_SUPPLY_CHAIN_TOOLS: cargo-deny@0.20.2 cargo-vet@0.10.2 cargo-machete@0.9.2
+  CARGO_MUTANTS_TOOLS: cargo-mutants@27.1.0 cargo-nextest@0.9.148
+  CARGO_RELEASE_TOOLS: cargo-auditable@0.7.7 cargo-audit@0.22.2
+
 jobs:
   check:
     # macOS only: this is the TypeScript build, whose collectors read
@@ -109,6 +117,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          # The clippy ratchet judges the lines this change touches, against
+          # the merge base, so it needs the history to find one.
+          fetch-depth: 0
 
       - name: Install the toolchain
         run: rustup target add ${{ matrix.target }}
@@ -126,14 +139,34 @@ jobs:
           key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ matrix.target }}-
 
+      # cargo install rather than a third-party installer action, for the same
+      # reason.
+      - uses: actions/cache@v6
+        id: cargo-tools
+        with:
+          path: ~/.cargo-tools
+          key: cargo-tools-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_TEST_TOOLS }}
+      - name: Install the cargo tools
+        if: steps.cargo-tools.outputs.cache-hit != 'true'
+        run: |
+          read -ra tools <<< "$CARGO_TEST_TOOLS"
+          cargo install --locked --root ~/.cargo-tools "${tools[@]}"
+      - run: echo "$HOME/.cargo-tools/bin" >> "$GITHUB_PATH"
+
+      # The same npm scripts `npm run verify:rust` and the Stop hook run.
       - name: Format
-        run: cargo fmt --all --check
+        run: npm run fmt:rust
 
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets --target ${{ matrix.target }}
+      # Every clippy lint fatal, except arithmetic_side_effects and
+      # indexing_slicing, which fail only on lines this change touches.
+      # Per target, because the collectors are cfg-gated by platform.
+      - name: Clippy (ratcheted)
+        run: npm run lint:rust -- --target ${{ matrix.target }}
 
-      - name: Test
-        run: cargo test --workspace
+      - name: Test (nextest + doctests)
+        env:
+          NEXTEST_PROFILE: ci
+        run: npm run test:rust
 
       # The pty harness: proves the built binary mounts, draws, answers a key
       # and exits (I-22b). Nothing else covers the shipped mount path.
@@ -147,6 +180,90 @@ jobs:
       # passes clean with a known mode-stacking bug reinstated.
       - name: Fuzz the keyboard
         run: cargo run --release -p sysmon-harness --bin qa_fuzz -- --seeds 40 --steps 60
+
+  # Licenses, advisories, sources, audits and unused dependencies: properties of
+  # the lockfile rather than of a target, so one runner answers for all four.
+  supply-chain:
+    runs-on: ubuntu-latest
+    name: supply chain
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@v6
+        id: cargo-tools
+        with:
+          path: ~/.cargo-tools
+          key: cargo-tools-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_SUPPLY_CHAIN_TOOLS }}
+      - name: Install the cargo tools
+        if: steps.cargo-tools.outputs.cache-hit != 'true'
+        run: |
+          read -ra tools <<< "$CARGO_SUPPLY_CHAIN_TOOLS"
+          cargo install --locked --root ~/.cargo-tools "${tools[@]}"
+      - run: echo "$HOME/.cargo-tools/bin" >> "$GITHUB_PATH"
+
+      - name: cargo deny
+        run: npm run deny:rust
+      - name: cargo vet
+        run: npm run vet:rust
+      - name: cargo machete
+        run: npm run machete:rust
+
+  # Mutants on the PR's own diff: a changed function whose every mutation still
+  # passes the tests is a function no test checks. On macOS, because most of
+  # the cfg-gated collectors only compile there (.cargo/mutants.toml leaves out
+  # the Linux one for the same reason).
+  mutants:
+    name: cargo-mutants on the PR diff
+    if: github.event_name == 'pull_request'
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install the toolchain
+        run: rustup toolchain install
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-mutants-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-mutants-
+
+      - uses: actions/cache@v6
+        id: cargo-tools
+        with:
+          path: ~/.cargo-tools
+          key: cargo-tools-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_MUTANTS_TOOLS }}
+      - name: Install the cargo tools
+        if: steps.cargo-tools.outputs.cache-hit != 'true'
+        run: |
+          read -ra tools <<< "$CARGO_MUTANTS_TOOLS"
+          cargo install --locked --root ~/.cargo-tools "${tools[@]}"
+      - run: echo "$HOME/.cargo-tools/bin" >> "$GITHUB_PATH"
+
+      - name: Diff against the base branch
+        run: git diff "origin/${GITHUB_BASE_REF}...HEAD" > "$RUNNER_TEMP/pr.diff"
+
+      - name: Mutants that no test catches fail the PR
+        run: cargo mutants --in-place --no-shuffle --in-diff "$RUNNER_TEMP/pr.diff"
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutants.out
+          path: mutants.out
+          retention-days: 14
 
   # The four binaries a release ships. Built on every push, not just on a tag,
   # so a target that stops cross-compiling is found by the commit that broke it
@@ -202,9 +319,26 @@ jobs:
           key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ matrix.target }}-
 
-      - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
+      - uses: actions/cache@v6
+        id: cargo-tools
+        with:
+          path: ~/.cargo-tools
+          key: cargo-tools-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_RELEASE_TOOLS }}
+      - name: Install the cargo tools
+        if: steps.cargo-tools.outputs.cache-hit != 'true'
+        run: |
+          read -ra tools <<< "$CARGO_RELEASE_TOOLS"
+          cargo install --locked --root ~/.cargo-tools "${tools[@]}"
+      - run: echo "$HOME/.cargo-tools/bin" >> "$GITHUB_PATH"
+
+      # Built exactly as release.yml builds it: `cargo auditable` embeds the
+      # dependency list in the binary, so a shipped one can be audited later.
+      - run: cargo auditable build --release --locked -p sysmon --bin sysmon --target ${{ matrix.target }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      - name: Audit the embedded dependency list
+        run: cargo audit bin target/${{ matrix.target }}/release/sysmon
 
       # A binary that will not run is not a binary — for the targets this runner
       # can actually execute.

@@ -1,0 +1,21 @@
+# cargo-mutants: CI runs it on each pull request's diff, on macOS
+# (`npm run mutants:rust` locally).
+test_tool = "nextest"
+# sysmon-harness is the measuring tools themselves (verify_tui, qa_fuzz, ...):
+# CI runs them as checks and nothing tests them, so every mutant there would be
+# reported missed. collect/linux.rs compiles only for Linux, so on a Mac every
+# mutant in it builds unchanged and would be reported missed too.
+exclude_globs = [
+    "tests/**",
+    "benches/**",
+    "examples/**",
+    "fuzz/**",
+    "**/build.rs",
+    "crates/sysmon-harness/**",
+    "crates/sysmon/src/collect/linux.rs",
+]
+timeout_multiplier = 3.0
+# Raw mode and the alternate screen need a real TTY, which no unit test has.
+# The pty harness (verify_tui, run in CI) enters through TerminalGuard but does
+# not assert the restore, so these mutants would be reported missed.
+exclude_re = ["TerminalGuard", "restore_terminal"]

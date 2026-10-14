@@ -27,7 +27,6 @@ use crate::collect::cpu;
 use crate::collect::exec::{bin, run, CommandError, DEFAULT_TIMEOUT};
 use crate::collect::{Identity, ProcessesData};
 
-#[allow(dead_code)]
 pub struct DarwinCollector {
     accurate_energy: bool,
     ncpu: usize,
@@ -53,7 +52,6 @@ fn sysctl(key: &str) -> Result<String, CommandError> {
     run(bin::SYSCTL, &["-n", key], DEFAULT_TIMEOUT).map(|s| s.trim().to_string())
 }
 
-#[allow(dead_code)]
 impl DarwinCollector {
     pub fn new(accurate_energy: bool) -> Result<Self, String> {
         let prev = cpu::per_core_times()?;
@@ -421,7 +419,6 @@ const FULL_SCALE_PCT: f64 = 100.0;
 const TOP_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// Seconds since boot, from `kern.boottime`.
-#[allow(dead_code)]
 fn uptime_sec() -> u64 {
     // "{ sec = 1754079004, usec = 123456 } Fri Aug  1 ..."
     let Ok(out) = sysctl("kern.boottime") else {

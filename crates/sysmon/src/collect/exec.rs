@@ -109,9 +109,17 @@ fn spawn(path: &str, args: &[&str]) -> Result<std::process::Child, CommandError>
 pub fn run(path: &str, args: &[&str], timeout: Duration) -> Result<String, CommandError> {
     let mut child = spawn(path, args)?;
 
+    #[expect(
+        clippy::expect_used,
+        reason = "spawn() sets Stdio::piped(), so the handle is there"
+    )]
     let mut stdout = child.stdout.take().expect("stdout was piped");
     let reader = std::thread::spawn(move || {
         let mut buf = Vec::new();
+        #[expect(
+            clippy::let_underscore_must_use,
+            reason = "a failed read keeps what arrived; the exit status below decides"
+        )]
         let _ = stdout.read_to_end(&mut buf);
         buf
     });
@@ -124,9 +132,15 @@ pub fn run(path: &str, args: &[&str], timeout: Duration) -> Result<String, Comma
     let Some(status) = status else {
         // No answer at all, which is not the same as a command that ran and
         // said no. Killing it also closes the pipe, so the reader can finish.
-        let _ = child.kill();
-        let _ = child.wait();
-        let _ = reader.join();
+        #[expect(
+            clippy::let_underscore_must_use,
+            reason = "best-effort cleanup: the timeout is the error to report"
+        )]
+        {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = reader.join();
+        }
         return Err(CommandError {
             message: format!("{path} timed out after {}s", timeout.as_secs()),
             exit_code: None,

@@ -9,6 +9,10 @@ use crate::domain::types::{RootDisk, VolumeUsage};
 /// The eight fixed numeric/percent columns, then the mount point as the
 /// remainder. `map auto_home` and friends have a space in the device column and
 /// so fail this outright, which is the intended outcome.
+#[expect(
+    clippy::expect_used,
+    reason = "a literal pattern; the parser tests compile it"
+)]
 static DF_ROW: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%\s+(\d+)\s+(\d+)\s+(\S+)\s+(.*)$")
         .expect("static regex")
@@ -89,6 +93,10 @@ fn df_rows(stdout: &str) -> Vec<Row> {
 /// its own group. Insertion order is kept, so the result is deterministic
 /// before sorting.
 fn by_container(rows: Vec<Row>) -> Vec<Vec<Row>> {
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static CONTAINER: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^/dev/(disk\d+)").expect("static regex"));
     let mut keys: Vec<String> = Vec::new();
@@ -117,6 +125,10 @@ fn by_container(rows: Vec<Row>) -> Vec<Vec<Row>> {
 /// the firmware volumes); `/` is never excluded here because it is picked as
 /// the representative above.
 fn representative(group: &[Row]) -> Option<VolumeUsage> {
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static NFS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[^/]+:/").expect("static regex"));
     let rep = group
         .iter()

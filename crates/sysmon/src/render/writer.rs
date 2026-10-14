@@ -19,7 +19,13 @@ pub struct RowWriter {
     width: usize,
     rows: usize,
     lines: Vec<Line<'static>>,
-    #[cfg_attr(not(debug_assertions), allow(dead_code))]
+    #[cfg_attr(
+        not(debug_assertions),
+        expect(
+            dead_code,
+            reason = "read only by a debug_assert, which release builds drop"
+        )
+    )]
     label: &'static str,
 }
 

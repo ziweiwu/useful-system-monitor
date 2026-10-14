@@ -33,6 +33,10 @@ fn used_bytes(wired: u64, active: u64, compressed: u64) -> u64 {
 
 /// Bytes behind one `vm_stat` label, using the page size the header declared.
 fn page_bytes(vm_stat: &str, page_size: u64, label: &str) -> u64 {
+    #[expect(
+        clippy::expect_used,
+        reason = "the label is escaped into a fixed pattern"
+    )]
     let re = Regex::new(&format!(r"(?m)^{}:\s+(\d+)\.", regex::escape(label)))
         .expect("label is escaped");
     re.captures(vm_stat)
@@ -41,6 +45,10 @@ fn page_bytes(vm_stat: &str, page_size: u64, label: &str) -> u64 {
 }
 
 pub fn parse_memory(vm_stat: &str, swap_usage: &str, total_bytes: u64) -> MemoryData {
+    #[expect(
+        clippy::expect_used,
+        reason = "a literal pattern; the parser tests compile it"
+    )]
     static PAGE_SIZE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"page size of (\d+) bytes").expect("static regex"));
 
@@ -85,6 +93,10 @@ pub fn parse_memory(vm_stat: &str, swap_usage: &str, total_bytes: u64) -> Memory
 /// comma is accepted here too: the previous pattern stopped at the separator and
 /// reported a machine with 1 GB of swap as having none. See I-28.
 fn swap_num(swap_usage: &str, label: &str) -> u64 {
+    #[expect(
+        clippy::expect_used,
+        reason = "the label is escaped into a fixed pattern"
+    )]
     let re = Regex::new(&format!(
         r"(?i){}\s*=\s*(\d+(?:[.,]\d+)?)([KMG])",
         regex::escape(label)
