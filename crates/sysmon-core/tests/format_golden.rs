@@ -24,6 +24,10 @@ struct Corpus {
     age: Vec<(i64, String)>,
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a bad fixture fails the test that loads it"
+)]
 fn corpus() -> Corpus {
     serde_json::from_str(include_str!("fixtures/format-corpus.json")).expect("corpus parses")
 }

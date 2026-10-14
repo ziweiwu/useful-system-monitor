@@ -15,6 +15,10 @@ use sysmon_core::cli::options::{
     js_number, parse_args, Options, ParseResult, MAX_INTERVAL_SEC, MIN_INTERVAL_SEC,
 };
 
+#[expect(
+    clippy::panic,
+    reason = "a test helper: an unexpected parse error fails the test"
+)]
 fn ok(argv: &[&str]) -> Options {
     match parse_args(argv) {
         ParseResult::Ok(o) => *o,
@@ -22,6 +26,10 @@ fn ok(argv: &[&str]) -> Options {
     }
 }
 
+#[expect(
+    clippy::panic,
+    reason = "a test helper: an unexpected success fails the test"
+)]
 fn err(argv: &[&str]) -> String {
     match parse_args(argv) {
         ParseResult::Err(e) => e,

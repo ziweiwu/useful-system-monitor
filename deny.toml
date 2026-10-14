@@ -1,0 +1,57 @@
+# cargo-deny configuration. `npm run deny:rust` and CI run `cargo deny --locked check`.
+
+[graph]
+# What ships: the sysmon binary, one per platform package (release.yml).
+targets = [
+    { triple = "aarch64-apple-darwin" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+]
+all-features = false
+
+[advisories]
+version = 2
+yanked = "deny"
+# Unsound notices in any crate, not only the workspace's direct dependencies
+# (cargo-deny's default): `cargo audit bin` reports them for the shipped binary,
+# so the gate should too.
+unsound = "all"
+# None of these is a vulnerability, and none has a semver-compatible way out:
+# leaving each means a breaking upgrade of its parent.
+ignore = [
+    # paste, through ratatui 0.29 (the latest 0.29.x). Gone in ratatui 0.30.
+    { id = "RUSTSEC-2024-0436", reason = "paste is unmaintained; only ratatui 0.30 drops it" },
+    # serial, through portable-pty 0.8 (the latest 0.8.x), in the dev-only
+    # sysmon-harness: never in a shipped binary.
+    { id = "RUSTSEC-2017-0008", reason = "serial is unmaintained; dev-only harness, needs portable-pty 0.9" },
+    # lru 0.12, through ratatui 0.29's layout cache, which calls only
+    # get_or_insert and resize, with a (Rect, Layout) key whose Drop cannot panic.
+    { id = "RUSTSEC-2026-0253", reason = "lru pop() panic safety; ratatui 0.29 never calls pop" },
+    { id = "RUSTSEC-2026-0002", reason = "lru IterMut aliasing; ratatui 0.29 never calls iter_mut" },
+]
+
+[licenses]
+version = 2
+# Only what the shipped graph needs, all permissive: a new license is a decision, not a default.
+confidence-threshold = 0.9
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+
+[bans]
+# Duplicate versions are reported, not fatal: they come in through ratatui,
+# crossterm and portable-pty, and none of them is ours to fix.
+multiple-versions = "warn"
+wildcards = "deny"
+# The workspace's own crates depend on each other by path, and none is published.
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -127,28 +127,60 @@ runs it — a release that bumped one and not the other would publish a package
 whose `--version` disagreed with its own metadata (I-25).
 
 ```sh
-npm run verify:rust          # fmt + clippy + cargo test  (240 tests)
+npm run verify:rust          # the Rust gate (see Guardrails)  (253 tests)
+npm run mutants:rust         # cargo-mutants on this branch's diff, as CI runs it
 npm run verify:diff          # Rust --json vs. the shipping Node build
 npm run verify:tui:rust      # the built binary really mounts and draws (I-22b)
 npm run verify:longrun:rust  # RSS flat across a long run (I-10b)
 npm run qa:fuzz:rust         # seeded keyboard fuzzing, ~4,500 steps/s
-npm run check:linux          # clippy against x86_64-unknown-linux-gnu
+npm run check:linux          # the ratcheted clippy against x86_64-unknown-linux-gnu
 npm run verify:versions      # package.json, the crate and any pins agree
 npm run build:npm-packages   # assemble the per-platform packages from target/
 npm run apply:optional-deps  # release-time only: write the pins into package.json
 ```
 
 CI runs `verify:versions` with the other cheap checks, a `rust` job (fmt,
-clippy, test, the pty harness and the fuzzer) on macOS **and** Linux, and a
-`cross-build` job that builds all four release binaries on every push — so a
-target that stops cross-compiling is caught by the commit that broke it rather
-than by the release that needed it. The release workflow builds those four on
+ratcheted clippy, nextest and doctests, the pty harness and the fuzzer) on macOS
+**and** Linux, a `supply-chain` job (deny, vet, machete), a `mutants` job on
+pull requests, and a `cross-build` job that builds all four release binaries on
+every push — so a target that stops cross-compiling is caught by the commit that
+broke it rather than by the release that needed it. The release workflow builds those four on
 their own runners, publishes the platform packages **first**, then the main
 one: the main package pins them at an exact version, so the other order leaves
 a window where an install resolves a launcher with no binary behind it.
 
 `~/.cargo/bin` is not on `PATH` in a non-interactive shell, which is why the npm
 scripts prepend it.
+
+### Guardrails
+
+`npm run verify:rust` is the one Rust gate: fmt, ratcheted clippy, nextest plus
+doctests, `cargo deny`, `cargo vet`, `cargo machete`. The Stop hook runs it and
+CI runs the same npm scripts.
+
+- **Lints.** All of clippy is `deny`, and so are `unwrap_used`, `expect_used`,
+  `panic`, `let_underscore_must_use` and `#[allow]` itself (Cargo.toml). Where
+  a panic or a dropped result is deliberate, write
+  `#[expect(lint, reason = "...")]`, which fails once it stops firing. Release
+  builds keep `overflow-checks`.
+- **The ratchet.** `clippy::arithmetic_side_effects` and
+  `clippy::indexing_slicing` fail only on lines your branch touches, against
+  the merge base with `origin/HEAD` (`scripts/clippy_ratchet.py`; tests and
+  `#[cfg(test)]` code are exempt). Touch a line with `a + b` or `v[i]` and you
+  fix it; the ~320 untouched sites are left alone. Code is judged per target,
+  so run `npm run check:linux` too — CI does both.
+- **Vet.** A new or upgraded crate fails `cargo vet` until it is audited
+  (`cargo vet certify`) or exempted (`cargo vet add-exemption`). Which one is
+  the user's decision, not the agent's; so is a new `deny.toml` ignore or
+  license.
+- **Mutants.** CI runs `cargo mutants` on each pull request's diff, on macOS:
+  any mutant no test catches fails the PR. `npm run mutants:rust` is the same
+  run locally. `.cargo/mutants.toml` leaves out the harness and the Linux-only
+  collector, which nothing on a Mac would test, and `TerminalGuard` /
+  `restore_terminal`, which need a real TTY, and `RealKiller::kill`, which
+  would have to signal a real process.
+- **Shipped binaries** are built with `cargo auditable`, and `cargo audit bin`
+  checks each one, in `cross-build` and in the release.
 
 ### What works
 
@@ -183,13 +215,14 @@ seam may assume a platform**, and `#[cfg]` covers both. `cargo check
 --target x86_64-unknown-linux-gnu` is the only thing that catches a break, and
 `npm run check:linux` runs it.
 
-**`unsafe_code` is `deny`, not `forbid`**, so exactly two modules can opt out
-with a comment saying why: `crates/sysmon/src/collect/cpu.rs` (mach
-`host_processor_info`, which
-has no safe wrapper and is the only way to read per-core ticks without spawning
-`top`) and the `statvfs`/`sysconf` calls in `crates/sysmon/src/collect/linux.rs`.
-Everything else
-is safe code over plain data.
+**`unsafe_code` is `deny`, not `forbid`**, so an unsafe block can opt out, one
+at a time, with `#[expect(unsafe_code, reason = "...")]` and a `// SAFETY:`
+note. Three files do: `crates/sysmon/src/collect/cpu.rs` (mach
+`host_processor_info`, which has no safe wrapper and is the only way to read
+per-core ticks without spawning `top`), the `statvfs`/`sysconf` calls in
+`crates/sysmon/src/collect/linux.rs`, and the `kill(2)` in
+`crates/sysmon/src/runtime/supervisor.rs`. Everything else is safe code over
+plain data.
 
 ### The technique that has paid for itself
 
@@ -319,8 +352,11 @@ list from here — `watch` pathspecs, `gates` as `[name, argv]` pairs, and a
 per-gate `timeout`. A repo with no `gates.json` gets nothing, which is what
 keeps a Stop hook that runs a test suite from firing everywhere.
 
-The list is `prepublishOnly`'s, unchanged: `lint`, `typecheck`, `test`,
-`build`. **Measured 23.6s end to end.**
+The list is `prepublishOnly`'s — `lint`, `typecheck`, `test`, `build`,
+**measured 23.6s end to end** — plus `rust`, which is `npm run verify:rust`:
+6s when no Rust changed, 99s after an edit to `sysmon-core`, which rebuilds
+everything above it. `watch` covers `crates/`, the Cargo files and the
+supply-chain config as well as the TypeScript side.
 
 Two deliberate exclusions:
 
@@ -330,7 +366,7 @@ Two deliberate exclusions:
   turn, and a slow Stop hook is one that gets deleted. The remaining 38 files
   and 355 tests run in 21s. CI runs the whole suite on both Node lines, so
   nothing is unguarded — it is guarded later.
-- **The `verify:*` scripts are excluded entirely** — `longrun`, `tui`,
+- **The other `verify:*` scripts are excluded** — `longrun`, `tui`,
   `layout`, `selfcost` are tens of seconds to minutes each and need a real
   machine to measure against. CI carries them on a macOS runner.
 

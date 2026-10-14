@@ -13,10 +13,27 @@ repository = "https://github.com/ziweiwu/useful-system-monitor"
 
 [workspace.lints.rust]
 # `deny`, not `forbid`: per-core CPU ticks come from mach's host_processor_info
-# and have no safe wrapper in std. Exactly one module opts out, with a comment
-# saying why — see crates/sysmon/src/collect/cpu.rs. `forbid` would make that
-# impossible to express rather than impossible to do by accident.
+# and have no safe wrapper in std, and neither do sysconf, statvfs or kill(2).
+# Each unsafe block opts out on its own with `#[expect(unsafe_code, reason)]`
+# and a SAFETY note — see crates/sysmon/src/collect/cpu.rs, collect/linux.rs
+# and runtime/supervisor.rs. `forbid` would make that impossible to express
+# rather than impossible to do by accident.
 unsafe_code = "deny"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
+# The agent guardrails. arithmetic_side_effects and indexing_slicing are not
+# listed: scripts/clippy_ratchet.py holds only the lines a branch touches to
+# them, so the few hundred sites that predate them are left alone.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+let_underscore_must_use = "deny"
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+undocumented_unsafe_blocks = "deny"
+
+[profile.release]
+overflow-checks = true

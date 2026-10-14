@@ -8,13 +8,23 @@
     "tsconfig.json",
     "tsconfig.build.json",
     "vitest.config.ts",
-    ".oxlintrc.json"
+    ".oxlintrc.json",
+    "crates/",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    "clippy.toml",
+    "deny.toml",
+    "supply-chain/",
+    ".config/",
+    ".cargo/"
   ],
   "gates": [
     ["lint", ["npm", "run", "lint"]],
     ["typecheck", ["npm", "run", "typecheck"]],
     ["test", ["npx", "vitest", "run", "--exclude", "test/ui.test.tsx", "--exclude", "**/node_modules/**", "--exclude", "**/dist/**"]],
-    ["build", ["npm", "run", "build"]]
+    ["build", ["npm", "run", "build"]],
+    ["rust", ["npm", "run", "verify:rust"]]
   ],
   "timeout": 600
 }

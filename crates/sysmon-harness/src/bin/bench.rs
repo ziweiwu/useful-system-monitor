@@ -238,8 +238,14 @@ fn steady_state(argv: &[&str], secs: u64) -> Option<Steady> {
     }
     let cpu1 = cpu_time_ms(pid).unwrap_or(cpu0);
     let elapsed = t0.elapsed().as_secs_f64();
-    let _ = child.kill();
-    let _ = child.wait();
+    #[expect(
+        clippy::let_underscore_must_use,
+        reason = "stopping the app is best effort: the run is already measured"
+    )]
+    {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
 
     Some(Steady {
         rss_kb: median(rss_samples),

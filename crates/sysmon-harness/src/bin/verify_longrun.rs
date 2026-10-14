@@ -116,6 +116,15 @@ fn spawn_app(
 /// boundary — and a counter that silently misses frames reports a larger
 /// KB/render than the truth, which is the direction that turns a healthy build
 /// into a failing one.
+/// The pty's two ends: frames drawn, counted as they arrive, and the key input.
+fn pty_ends(
+    pair: &portable_pty::PtyPair,
+) -> Result<(mpsc::Receiver<usize>, Box<dyn std::io::Write + Send>), String> {
+    let reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
+    let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+    Ok((count_frames(reader), writer))
+}
+
 fn count_frames(mut reader: Box<dyn std::io::Read + Send>) -> mpsc::Receiver<usize> {
     let (tx, rx) = mpsc::channel::<usize>();
     std::thread::spawn(move || {
@@ -172,7 +181,12 @@ fn drive(
     while start.elapsed() < Duration::from_secs(secs) + WARMUP {
         std::thread::sleep(Duration::from_millis(tick_ms));
         use std::io::Write;
+        #[expect(
+            clippy::let_underscore_must_use,
+            reason = "a lost key costs a render; the renders floor in verdict() catches a dead pty"
+        )]
         let _ = writer.write_all(keys[renders % keys.len()]);
+        #[expect(clippy::let_underscore_must_use, reason = "as for the write above")]
         let _ = writer.flush();
         while let Ok(n) = frames.try_recv() {
             renders += n;
@@ -265,8 +279,13 @@ fn main() -> std::process::ExitCode {
     };
     let pid = child.process_id().unwrap_or(0);
 
-    let frames = count_frames(pair.master.try_clone_reader().expect("a reader"));
-    let mut writer = pair.master.take_writer().expect("a writer");
+    let (frames, mut writer) = match pty_ends(&pair) {
+        Ok(ends) => ends,
+        Err(e) => {
+            eprintln!("verify_longrun: {e}");
+            return std::process::ExitCode::from(1);
+        }
+    };
 
     println!("pid {pid}, {secs}s at a 1s tier, keys every {tick_ms}ms\n");
     // Let the caches fill before measuring, so their one-time growth is not
@@ -274,8 +293,14 @@ fn main() -> std::process::ExitCode {
     let (baseline, renders) = drive(pid, &mut writer, &frames, (secs, tick_ms));
 
     let end_kb = rss_kb(pid);
-    let _ = child.kill();
-    let _ = child.wait();
+    #[expect(
+        clippy::let_underscore_must_use,
+        reason = "stopping the app is best effort: the run is already measured"
+    )]
+    {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
 
     let (Some(base), Some(end_kb)) = (baseline, end_kb) else {
         eprintln!("verify_longrun: no baseline, or the process was gone before the final reading");

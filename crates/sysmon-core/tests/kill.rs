@@ -91,6 +91,10 @@ fn ctx(self_pid: i32, parents: &[(i32, i32)]) -> GuardContext {
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "a test helper: a guard that did not refuse fails the test"
+)]
 fn refusal_kind(
     target: &ProcessSample,
     ctx: &GuardContext,

@@ -245,7 +245,7 @@ fn spawn_tier<F>(
     priming: Priming,
     commands: Receiver<Cmd>,
     mut sample: F,
-) -> std::thread::JoinHandle<()>
+) -> Result<std::thread::JoinHandle<()>, String>
 where
     F: FnMut() + Send + 'static,
 {
@@ -264,7 +264,19 @@ where
                 }
             }
         })
-        .expect("spawning a collector thread")
+        .map_err(|e| e.to_string())
+}
+
+/// Sends, and lets a refusal go.
+///
+/// A channel refuses only once its receiver has been dropped, which happens on
+/// the way out: whoever was reading has stopped, so there is nobody to tell.
+pub(crate) fn post<T>(to: &Sender<T>, message: T) {
+    #[expect(
+        clippy::let_underscore_must_use,
+        reason = "a refused send means the reader is gone"
+    )]
+    let _ = to.send(message);
 }
 
 pub struct Handles {
@@ -286,7 +298,7 @@ impl Handles {
             &self.battery,
             &self.processes,
         ] {
-            let _ = tx.send(Cmd::RefreshNow);
+            post(tx, Cmd::RefreshNow);
         }
     }
 
@@ -295,15 +307,15 @@ impl Handles {
     /// tier would reset all five phases and re-run the CPU collector out of
     /// band, shortening one delta window and printing a bogus reading. See I-4.
     pub fn set_cap(&self, cap: WorkingSetCap) {
-        let _ = self.processes.send(Cmd::SetCap(cap));
-        let _ = self.processes.send(Cmd::RefreshNow);
+        post(&self.processes, Cmd::SetCap(cap));
+        post(&self.processes, Cmd::RefreshNow);
     }
 
     /// Tell the process tier a kill went through, so `--mock` can drop the row
     /// it just confirmed closing.
     pub fn note_killed(&self, pid: i32) {
-        let _ = self.processes.send(Cmd::NoteKilled(pid));
-        let _ = self.processes.send(Cmd::RefreshNow);
+        post(&self.processes, Cmd::NoteKilled(pid));
+        post(&self.processes, Cmd::RefreshNow);
     }
 
     pub fn shutdown(self) {
@@ -314,9 +326,13 @@ impl Handles {
             &self.battery,
             &self.processes,
         ] {
-            let _ = tx.send(Cmd::Shutdown);
+            post(tx, Cmd::Shutdown);
         }
         for t in self.threads {
+            #[expect(
+                clippy::let_underscore_must_use,
+                reason = "shutting down: a collector that panicked has nobody left to tell"
+            )]
             let _ = t.join();
         }
     }
@@ -371,7 +387,7 @@ fn process_loop(
     let mut cap = initial_cap;
     let take = |c: &mut Collector, cap: WorkingSetCap| {
         let p = panel(|| c.processes(cap));
-        let _ = outbox.send(Msg::Processes(Box::new(p)));
+        post(outbox, Msg::Processes(Box::new(p)));
     };
     take(collector, cap);
     let mut schedule = Schedule::new(interval, Priming::Early);
@@ -404,9 +420,9 @@ fn spawn_fast_tiers(
         commands,
         move || {
             let p = panel(|| c.cpu());
-            let _ = out.send(Msg::Cpu(Box::new(p)));
+            post(&out, Msg::Cpu(Box::new(p)));
         },
-    ));
+    )?);
 
     let (mem_tx, commands) = std::sync::mpsc::channel();
     let out = outbox.clone();
@@ -418,9 +434,9 @@ fn spawn_fast_tiers(
         commands,
         move || {
             let p = panel(|| c.memory());
-            let _ = out.send(Msg::Memory(Box::new(p)));
+            post(&out, Msg::Memory(Box::new(p)));
         },
-    ));
+    )?);
     Ok((cpu_tx, mem_tx))
 }
 
@@ -441,9 +457,9 @@ fn spawn_slow_tiers(
         commands,
         move || {
             let p = panel(|| c.disk());
-            let _ = out.send(Msg::Disk(Box::new(p)));
+            post(&out, Msg::Disk(Box::new(p)));
         },
-    ));
+    )?);
 
     let (batt_tx, commands) = std::sync::mpsc::channel();
     let out = outbox.clone();
@@ -455,9 +471,9 @@ fn spawn_slow_tiers(
         commands,
         move || {
             let p = panel(|| c.battery());
-            let _ = out.send(Msg::Battery(Box::new(p)));
+            post(&out, Msg::Battery(Box::new(p)));
         },
-    ));
+    )?);
     Ok((disk_tx, batt_tx))
 }
 
@@ -483,7 +499,7 @@ fn spawn_host(outbox: &Sender<Msg>) -> Result<(), String> {
         .name("sysmon-host".into())
         .spawn(move || {
             if let Ok(c) = Collector::new(false) {
-                let _ = tx.send(Msg::Host(Box::new(c.host())));
+                post(&tx, Msg::Host(Box::new(c.host())));
             }
         })
         .map_err(|e| e.to_string())?;
@@ -518,9 +534,12 @@ impl Killer for RealKiller {
             Signal::Term => libc::SIGTERM,
             Signal::Kill => libc::SIGKILL,
         };
+        #[expect(
+            unsafe_code,
+            reason = "std cannot signal an arbitrary pid; kill(2) is the libc call"
+        )]
         // SAFETY: `kill(2)` with a pid the type system has already proven is
         // greater than 1, so no process-group signal is representable here.
-        #[allow(unsafe_code)]
         let rc = unsafe { libc::kill(pid.get(), sig) };
         if rc == 0 {
             return Ok(());
@@ -621,11 +640,169 @@ pub fn spawn_kill(outbox: Sender<Msg>, request: KillRequest, collectors: Collect
                 KillOutcome::Refused(r) => (r.message, true),
                 KillOutcome::Failed(e) => (e, true),
             };
-            let _ = outbox.send(Msg::Killed {
-                pid: target.pid,
-                text,
-                bad,
-            });
+            post(
+                &outbox,
+                Msg::Killed {
+                    pid: target.pid,
+                    text,
+                    bad,
+                },
+            );
         })
         .ok();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc::channel;
+
+    const PATIENCE: Duration = Duration::from_secs(10);
+    /// Longer than any test runs, so only an explicit command makes a sample.
+    const NEVER: Duration = Duration::from_secs(3600);
+    /// cpu, memory, disk, battery, processes.
+    const TIER_COUNT: usize = 5;
+    const ANY_MESSAGE: i32 = 7;
+    const SOME_CAP: usize = 3;
+    const KILLED_PID: i32 = 42;
+
+    struct Inboxes {
+        cpu: Receiver<Cmd>,
+        memory: Receiver<Cmd>,
+        disk: Receiver<Cmd>,
+        battery: Receiver<Cmd>,
+        processes: Receiver<Cmd>,
+    }
+
+    impl Inboxes {
+        fn all(&self) -> [&Receiver<Cmd>; TIER_COUNT] {
+            [
+                &self.cpu,
+                &self.memory,
+                &self.disk,
+                &self.battery,
+                &self.processes,
+            ]
+        }
+    }
+
+    fn handles() -> (Handles, Inboxes) {
+        let (cpu, cpu_rx) = channel();
+        let (memory, memory_rx) = channel();
+        let (disk, disk_rx) = channel();
+        let (battery, battery_rx) = channel();
+        let (processes, processes_rx) = channel();
+        let handles = Handles {
+            cpu,
+            memory,
+            disk,
+            battery,
+            processes,
+            threads: Vec::new(),
+        };
+        let inboxes = Inboxes {
+            cpu: cpu_rx,
+            memory: memory_rx,
+            disk: disk_rx,
+            battery: battery_rx,
+            processes: processes_rx,
+        };
+        (handles, inboxes)
+    }
+
+    #[test]
+    fn post_delivers_to_a_live_receiver() {
+        let (tx, rx) = channel();
+        post(&tx, ANY_MESSAGE);
+        assert_eq!(rx.try_recv(), Ok(ANY_MESSAGE));
+    }
+
+    #[test]
+    fn refresh_all_asks_every_tier() {
+        let (h, inboxes) = handles();
+        h.refresh_all();
+        for rx in inboxes.all() {
+            assert!(matches!(rx.try_recv(), Ok(Cmd::RefreshNow)));
+        }
+    }
+
+    #[test]
+    fn set_cap_reaches_only_the_process_tier_then_resamples() {
+        let (h, inboxes) = handles();
+        h.set_cap(WorkingSetCap::Top(SOME_CAP));
+        assert!(matches!(
+            inboxes.processes.try_recv(),
+            Ok(Cmd::SetCap(WorkingSetCap::Top(SOME_CAP)))
+        ));
+        assert!(matches!(inboxes.processes.try_recv(), Ok(Cmd::RefreshNow)));
+        assert!(inboxes.cpu.try_recv().is_err());
+    }
+
+    #[test]
+    fn note_killed_names_the_pid_then_resamples() {
+        let (h, inboxes) = handles();
+        h.note_killed(KILLED_PID);
+        assert!(matches!(
+            inboxes.processes.try_recv(),
+            Ok(Cmd::NoteKilled(KILLED_PID))
+        ));
+        assert!(matches!(inboxes.processes.try_recv(), Ok(Cmd::RefreshNow)));
+    }
+
+    #[test]
+    fn shutdown_tells_every_tier() {
+        let (h, inboxes) = handles();
+        h.shutdown();
+        for rx in inboxes.all() {
+            assert!(matches!(rx.try_recv(), Ok(Cmd::Shutdown)));
+        }
+    }
+
+    fn next_processes(samples: &Receiver<Msg>) -> bool {
+        matches!(samples.recv_timeout(PATIENCE), Ok(Msg::Processes(_)))
+    }
+
+    #[test]
+    fn process_loop_samples_on_start_and_on_request_until_shutdown() {
+        let (out, samples) = channel();
+        let (commands, inbox) = channel();
+        let worker = std::thread::spawn(move || {
+            let mut c = Collector::mock().unwrap();
+            process_loop(&out, &mut c, NEVER, (inbox, WorkingSetCap::All));
+        });
+        assert!(next_processes(&samples), "no first sample");
+        commands.send(Cmd::RefreshNow).unwrap();
+        assert!(next_processes(&samples), "RefreshNow did not resample");
+        commands.send(Cmd::Shutdown).unwrap();
+        worker.join().unwrap();
+    }
+
+    #[test]
+    fn spawn_host_posts_the_host_facts() {
+        let (out, rx) = channel();
+        spawn_host(&out).unwrap();
+        assert!(matches!(rx.recv_timeout(PATIENCE), Ok(Msg::Host(_))));
+    }
+
+    #[test]
+    fn spawn_kill_reports_the_outcome_for_the_target() {
+        let target = Collector::mock()
+            .unwrap()
+            .processes(WorkingSetCap::All)
+            .unwrap()
+            .visible
+            .remove(0);
+        let pid = target.pid;
+        let (out, rx) = channel();
+        let request = KillRequest {
+            target,
+            signal: Signal::Term,
+            parents: std::collections::HashMap::new(),
+        };
+        spawn_kill(out, request, CollectorKind::Mock);
+        assert!(matches!(
+            rx.recv_timeout(PATIENCE),
+            Ok(Msg::Killed { pid: p, .. }) if p == pid
+        ));
+    }
 }

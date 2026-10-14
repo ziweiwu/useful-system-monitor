@@ -40,7 +40,7 @@ pub fn window(
     scroll_top: usize,
 ) -> Window {
     // At least one row even when the table is not drawn — see the type note.
-    let rows = NonZeroUsize::new(table_rows.max(1)).expect("max(1) is never zero");
+    let rows = NonZeroUsize::new(table_rows).unwrap_or(NonZeroUsize::MIN);
     let max = total.saturating_sub(rows.get());
     let cur = scroll_top.min(max);
 

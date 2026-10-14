@@ -10,6 +10,10 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# Pinned, so the tool cache below rebuilds them only on a version bump.
+env:
+  CARGO_RELEASE_TOOLS: cargo-auditable@0.7.7 cargo-audit@0.22.2
+
 jobs:
   # One binary per platform. aarch64 Linux is cross-compiled from an x86 runner
   # with its own linker rather than built on an ARM runner, so this does not
@@ -55,9 +59,31 @@ jobs:
           key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ matrix.target }}-
 
-      - run: cargo build --release -p sysmon --bin sysmon --target ${{ matrix.target }}
+      # cargo install rather than a third-party installer action, for the same
+      # reason.
+      - uses: actions/cache@v6
+        id: cargo-tools
+        with:
+          path: ~/.cargo-tools
+          key: cargo-tools-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_RELEASE_TOOLS }}
+      - name: Install the cargo tools
+        if: steps.cargo-tools.outputs.cache-hit != 'true'
+        run: |
+          read -ra tools <<< "$CARGO_RELEASE_TOOLS"
+          cargo install --locked --root ~/.cargo-tools "${tools[@]}"
+      - run: echo "$HOME/.cargo-tools/bin" >> "$GITHUB_PATH"
+
+      # `cargo auditable` embeds the dependency list in the binary, so a copy
+      # already on someone's machine can be checked against advisories that
+      # appear after it shipped.
+      - run: cargo auditable build --release --locked -p sysmon --bin sysmon --target ${{ matrix.target }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      # Reads the embedded list back, which proves it is there, and fails the
+      # release on a known vulnerability in what is about to ship.
+      - name: Audit the binary
+        run: cargo audit bin target/${{ matrix.target }}/release/sysmon
 
       - uses: actions/upload-artifact@v7
         with:
