@@ -170,13 +170,34 @@ mod tests {
         assert!(cores.iter().all(|c| c.user + c.sys + c.idle > NO_TICKS));
     }
 
+    /// `vm.loadavg` prints two decimals, so a reading can sit this far off it.
+    const PRINTED_ROUNDING: f64 = 0.01;
+
+    fn sysctl_loadavg() -> Vec<f64> {
+        let out = std::process::Command::new("/usr/sbin/sysctl")
+            .args(["-n", "vm.loadavg"])
+            .output()
+            .unwrap();
+        String::from_utf8(out.stdout)
+            .unwrap()
+            .split_whitespace()
+            .filter_map(|word| word.parse().ok())
+            .collect()
+    }
+
+    /// Bracketed by a `sysctl` read on each side, so a kernel update between
+    /// the calls moves the bounds rather than failing the test.
     #[test]
-    fn load_average_is_three_distinct_live_readings() {
-        let [one, five, fifteen] = load_average();
-        for load in [one, five, fifteen] {
-            assert!(load.is_finite() && load >= NO_READING, "{load}");
+    fn load_average_matches_what_sysctl_reports() {
+        let before = sysctl_loadavg();
+        let loads = load_average();
+        let after = sysctl_loadavg();
+        assert_eq!(before.len(), LOAD_WINDOWS);
+        assert_eq!(after.len(), LOAD_WINDOWS);
+        for ((load, b), a) in loads.iter().zip(&before).zip(&after) {
+            let low = b.min(*a) - PRINTED_ROUNDING;
+            let high = b.max(*a) + PRINTED_ROUNDING;
+            assert!((low..=high).contains(load), "{load} outside {low}..={high}");
         }
-        // Three windows over a running machine never settle on one figure.
-        assert!(one != five || five != fifteen, "{one} {five} {fifteen}");
     }
 }
